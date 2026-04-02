@@ -30,6 +30,6 @@ POST {{baseUrl}}/users/signup-verification HTTP/1.1
 Content-Type: application/json
 
 {
-  "email": "dev.shahjalal@gmail.com",
-  "otp": "7296"
+  "email": "john.doe@example.com",
+  "otp": "3361"
 }
