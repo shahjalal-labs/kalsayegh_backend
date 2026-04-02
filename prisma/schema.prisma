@@ -1,0 +1,59 @@
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String     @id @default(auto()) @map("_id") @db.ObjectId
+  fullName     String
+  email        String     @unique
+  password     String
+  fcmToken     String?
+  profileImage String?
+  profession   String?
+  role         UserRole
+  status       UserStatus @default(ACTIVE)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@map("users")
+}
+
+model PendingUser {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  email      String   @unique
+  password   String
+  role       UserRole
+  fullName   String
+  profession String
+
+  createdAt DateTime @default(now())
+
+  @@map("pending_users")
+}
+
+model Otp {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  email     String   @unique
+  otp       String
+  expiresAt DateTime
+
+  @@index([expiresAt])
+  @@map("otps")
+}
+
+enum UserStatus {
+  ACTIVE
+  BLOCKED
+  DELETED
+}
+
+enum UserRole {
+  WORKER
+  ESTIMATOR
+  ADMIN
+}
