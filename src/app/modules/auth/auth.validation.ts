@@ -1,5 +1,20 @@
 import { z } from "zod";
 
+const loginSchema = z
+  .object({
+    email: z.string().email(),
+    password: z.string(),
+    fcmToken: z.string().optional(),
+  })
+  .strict();
+
+export type TLogin = z.infer<typeof loginSchema>;
+
+const changePasswordSchema = z.object({
+  oldPassword: z.string(),
+  newPassword: z.string().min(6, "Password must be at least 6 characters long"),
+});
+
 const googleLoginSchema = z.object({
   email: z.string().email("Invalid email address"),
   firstName: z.string().min(1, "First Name is required"),
@@ -17,23 +32,18 @@ const locationUpdateSchema = z.object({
     .max(180, "Longitude must be less than or equal to 180"),
 });
 
-const updateProfileSchema = z.object({
-  firstName: z
-    .string()
-    .min(2, "First name must be at least 2 characters long")
-    .optional(),
-  lastName: z
-    .string()
-    .min(2, "Last name must be at least 2 characters long")
-    .optional(),
-  mobile: z
-    .string()
-    .min(10, "Mobile must be at least 10 characters long")
-    .optional(),
-});
+const updateProfileSchema = z
+  .object({
+    fullName: z.string(),
+    profession: z.string(),
+  })
+  .partial()
+  .strict();
 
 export const authValidation = {
   updateProfileSchema,
   googleLoginSchema,
   locationUpdateSchema,
+  loginSchema,
+  changePasswordSchema,
 };

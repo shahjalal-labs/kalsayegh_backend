@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import catchAsync from "../../../shared/catchAsync";
 import { authService } from "./auth.service";
 import sendResponse from "../../../shared/sendResponse";
+import httpStatus from "http-status";
 
 const loginUser = catchAsync(async (req, res) => {
   const result = await authService.loginUserIntoDB(req.body);
@@ -84,14 +85,14 @@ const updateProfile = catchAsync(async (req, res) => {
 });
 
 const changePassword = catchAsync(async (req, res) => {
-  const { id } = req.user;
+  const { id: userId } = req.user;
   await authService.changePassword(
-    req.body.newPassword,
-    id,
+    userId,
     req.body.oldPassword,
+    req.body.newPassword,
   );
   sendResponse(res, {
-    statusCode: 200,
+    statusCode: httpStatus.OK,
     success: true,
     message: "Your password has been updated successfully",
   });

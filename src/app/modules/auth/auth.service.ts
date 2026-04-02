@@ -6,14 +6,11 @@ import config from "../../../config";
 import { User } from "@prisma/client";
 import generateOTP from "../../../helpers/generateOtp";
 import { uploadInSpace } from "../../../helpers/uploadInSpace";
-import { emailQueue } from "../../../queues/emailQueue";
 import sendEmail from "../../../helpers/sendEmail";
+import httpStatus from "http-status";
+import { TLogin } from "./auth.validation";
 
-const loginUserIntoDB = async (payload: {
-  email: string;
-  password: string;
-  fcmToken: string;
-}) => {
+const loginUserIntoDB = async (payload: TLogin) => {
   const user = await prisma.user.findUnique({
     where: {
       email: payload.email,
@@ -21,32 +18,33 @@ const loginUserIntoDB = async (payload: {
   });
 
   if (!user) {
-    throw new ApiError(404, "User not found");
+    throw new ApiError(httpStatus.NOT_FOUND, "User not found");
   }
 
-  const isPasswordValid = await bcrypt.compare(
-    payload.password,
-    user?.password,
-  );
+  const isPasswordValid = await bcrypt.compare(payload.password, user.password);
 
   if (!isPasswordValid) {
-    throw new ApiError(401, "Invalid credentials");
+    throw new ApiError(httpStatus.UNAUTHORIZED, "Invalid credentials");
   }
 
-  await prisma.user.update({
-    where: {
-      email: payload.email,
-    },
-    data: {
-      fcmToken: payload.fcmToken,
-    },
-  });
+  if (payload.fcmToken && payload.fcmToken !== user.fcmToken) {
+    await prisma.user.update({
+      where: {
+        email: payload.email,
+      },
+      data: {
+        fcmToken: payload.fcmToken,
+      },
+    });
+  }
 
   const accessToken = jwtHelpers.generateToken(
     { id: user.id, email: user.email, role: user.role },
     config.jwt.jwt_secret as string,
     config.jwt.expires_in as string,
   );
+
+  console.log(`secret in auth:`, config.jwt.jwt_secret);
 
   return {
     id: user.id,
@@ -84,6 +82,7 @@ const googleLogin = async (payload: {
       email: payload.email,
       fullName: payload.fullName,
       password: "",
+      role: "WORKER",
       fcmToken: payload.fcmToken,
     },
   });
@@ -165,6 +164,12 @@ const verifyForgotPasswordOtpCodeDB = async (payload: {
     config.jwt.expires_in as string,
   );
 
+  await prisma.otp.delete({
+    where: {
+      email,
+    },
+  });
+
   return { forgetToken };
 };
 
@@ -196,12 +201,8 @@ const myProfile = async (userId: string) => {
     select: {
       id: true,
       fullName: true,
-      gender: true,
-      address: true,
-      phoneNumber: true,
-      bio: true,
-      dob: true,
       profileImage: true,
+      profession: true,
       email: true,
     },
   });
@@ -236,16 +237,17 @@ const updateProfileIntoDB = async (
 };
 
 const changePassword = async (
-  newPassword: string,
   userId: string,
   oldPassword: string,
+  newPassword: string,
 ) => {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) throw new ApiError(404, "User not found");
 
   const isPasswordValid = await bcrypt.compare(oldPassword, user.password);
 
-  if (!isPasswordValid) throw new ApiError(401, "Wrong old password");
+  if (!isPasswordValid)
+    throw new ApiError(httpStatus.UNAUTHORIZED, "Wrong old password");
 
   const hashedPassword = await bcrypt.hash(
     newPassword,

@@ -8,12 +8,11 @@ import { jwtHelpers } from "../../helpers/jwtHelpers";
 const auth = (...roles: string[]) => {
   return async (
     req: Request & { user?: JwtPayload },
-    res: Response,
+    _res: Response,
     next: NextFunction,
   ) => {
     try {
       const authorizationHeader = req.headers.authorization;
-      console.log("Authorization Header:", authorizationHeader);
 
       if (!authorizationHeader || !authorizationHeader.startsWith("Bearer ")) {
         throw new ApiError(

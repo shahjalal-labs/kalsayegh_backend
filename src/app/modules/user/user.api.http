@@ -31,5 +31,5 @@ Content-Type: application/json
 
 {
   "email": "john.doe@example.com",
-  "otp": "3361"
+  "otp": "8923"
 }
