@@ -21,6 +21,7 @@ model User {
   updatedAt             DateTime       @updatedAt
   receivedNotifications Notification[] @relation("notificationRecieve")
   sentNotifications     Notification[] @relation("notificationSend")
+  sessions              Session[]
 
   @@map("users")
 }
@@ -37,6 +38,12 @@ model PendingUser {
   createdAt DateTime @default(now())
 
   @@map("pending_users")
+}
+
+enum UserStatus {
+  ACTIVE
+  BLOCKED
+  DELETED
 }
 
 model Otp {
@@ -76,10 +83,18 @@ enum NotificationType {
   SYSTEM
 }
 
-enum UserStatus {
-  ACTIVE
-  BLOCKED
-  DELETED
+model Session {
+  id          String      @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String      @db.ObjectId
+  sessionType SessionType
+  clockInAt   DateTime
+  clockOutAt  DateTime?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  user        User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([createdAt, updatedAt])
+  @@map("sessions")
 }
 
 enum UserRole {
@@ -87,4 +102,9 @@ enum UserRole {
   ESTIMATOR
   ADMIN
   OFFICE_ADMINISTRATOR
+}
+
+enum SessionType {
+  Regular_Hours
+  PW_Hours
 }
