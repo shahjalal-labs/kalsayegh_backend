@@ -1,0 +1,16 @@
+### get employee list | admin
+
+GET {{baseUrl}}/admin/employees?page=1&limit=20 HTTP/1.1
+Authorization: {{admin}}
+
+
+### get overview | admin
+
+GET {{baseUrl}}/admin/overview HTTP/1.1
+Authorization: {{admin}}
+
+
+### get hours trending | admin
+
+GET {{baseUrl}}/admin/hours-trend?period=monthly HTTP/1.1
+Authorization: {{admin}}
