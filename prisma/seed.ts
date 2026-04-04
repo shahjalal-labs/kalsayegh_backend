@@ -18,21 +18,32 @@ async function main() {
       email: "admin@gmail.com",
       fullName: "Admin User",
       password: hashedPassword,
-      role: "Admin",
+      role: "ADMIN",
+    },
+  });
+
+  await prisma.user.upsert({
+    where: { email: "office.administrator@gmail.com" },
+    update: {},
+    create: {
+      email: "office.administrator@gmail.com",
+      fullName: "Office Administrator",
+      password: hashedPassword,
+      role: "OFFICE_ADMINISTRATOR",
     },
   });
 
   // USER
-  await prisma.user.upsert({
+  /* await prisma.user.upsert({
     where: { email: "ruhulamin.et15@gmail.com" },
     update: {},
     create: {
       email: "ruhulamin.et15@gmail.com",
       fullName: "Ruhul Amin",
       password: hashedPassword,
-      role: "User",
+      role: "WORKER",
     },
-  });
+  }); */
 
   console.log("✅ Database seeded successfully");
 }

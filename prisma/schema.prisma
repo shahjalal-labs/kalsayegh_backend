@@ -26,12 +26,13 @@ model User {
 }
 
 model PendingUser {
-  id         String   @id @default(auto()) @map("_id") @db.ObjectId
-  email      String   @unique
-  password   String
-  role       UserRole
-  fullName   String
-  profession String
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  email        String   @unique
+  password     String
+  role         UserRole
+  fullName     String
+  profileImage String?
+  profession   String
 
   createdAt DateTime @default(now())
 
@@ -85,4 +86,5 @@ enum UserRole {
   WORKER
   ESTIMATOR
   ADMIN
+  OFFICE_ADMINISTRATOR
 }

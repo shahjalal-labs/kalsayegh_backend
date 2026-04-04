@@ -6,14 +6,23 @@ import config from "../../../config";
 import sendEmail from "../../../helpers/sendEmail";
 import { TUserRegister } from "./user.validation";
 import httpStatus from "http-status";
+import { uploadInSpace } from "../../../helpers/uploadInSpace";
 
-const createUser = async (payload: TUserRegister) => {
+const createUser = async (
+  payload: TUserRegister,
+  file?: Express.Multer.File,
+) => {
   const existingUser = await prisma.user.findUnique({
     where: { email: payload.email },
   });
 
   if (existingUser) {
     throw new ApiError(409, "User already exists using this email.");
+  }
+
+  let profileImage: string | undefined;
+  if (file) {
+    profileImage = await uploadInSpace(file, "users/profileImage");
   }
 
   const hashedPassword = await bcrypt.hash(
@@ -30,10 +39,12 @@ const createUser = async (payload: TUserRegister) => {
       update: {
         ...payload,
         password: hashedPassword,
+        profileImage,
       },
       create: {
         ...payload,
         password: hashedPassword,
+        profileImage,
       },
     });
 
