@@ -111,7 +111,36 @@ const signupVerification = async (payload: { email: string; otp: string }) => {
   return;
 };
 
+const getUserDetails = async (userId: string) => {
+  const user = await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+    select: {
+      id: true,
+      fullName: true,
+      profession: true,
+      profileImage: true,
+    },
+  });
+
+  if (!user) throw new ApiError(httpStatus.NOT_FOUND, "User not found");
+  return user;
+};
+
+const getAllUsers = async () => {
+  return prisma.user.findMany({
+    omit: {
+      password: true,
+      fcmToken: true,
+      status: true,
+    },
+  });
+};
+
 export const userService = {
   createUser,
   signupVerification,
+  getUserDetails,
+  getAllUsers,
 };

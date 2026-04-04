@@ -23,7 +23,31 @@ const signupVerification = catchAsync(async (req, res) => {
   });
 });
 
-export const UserControllers = {
+const getUserDetails = catchAsync(async (req, res) => {
+  const { id: userId } = req.user;
+
+  const result = await userService.getUserDetails(userId);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "User detais retrieved successfully",
+    data: result,
+  });
+});
+
+const getAllUsers = catchAsync(async (_req, res) => {
+  const result = await userService.getAllUsers();
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "All users retrieved successfully",
+    data: result,
+  });
+});
+
+export const userControllers = {
   createUser,
   signupVerification,
+  getUserDetails,
+  getAllUsers,
 };

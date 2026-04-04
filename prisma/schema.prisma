@@ -8,17 +8,19 @@ generator client {
 }
 
 model User {
-  id           String     @id @default(auto()) @map("_id") @db.ObjectId
-  fullName     String
-  email        String     @unique
-  password     String
-  fcmToken     String?
-  profileImage String?
-  profession   String?
-  role         UserRole
-  status       UserStatus @default(ACTIVE)
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
+  id                    String         @id @default(auto()) @map("_id") @db.ObjectId
+  fullName              String
+  email                 String         @unique
+  password              String
+  fcmToken              String?
+  profileImage          String?
+  profession            String?
+  role                  UserRole
+  status                UserStatus     @default(ACTIVE)
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
+  receivedNotifications Notification[] @relation("notificationRecieve")
+  sentNotifications     Notification[] @relation("notificationSend")
 
   @@map("users")
 }
@@ -44,6 +46,33 @@ model Otp {
 
   @@index([expiresAt])
   @@map("otps")
+}
+
+model Notification {
+  id         String           @id @default(auto()) @map("_id") @db.ObjectId
+  title      String
+  body       String?
+  receiverId String?          @db.ObjectId
+  senderId   String?          @db.ObjectId
+  type       NotificationType
+  isRead     Boolean          @default(false)
+  metaData   Json?
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
+  receiver   User?            @relation("notificationRecieve", fields: [receiverId], references: [id], onDelete: Cascade)
+  sender     User?            @relation("notificationSend", fields: [senderId], references: [id], onDelete: Cascade)
+
+  @@index([isRead])
+  @@map("notifications")
+}
+
+enum NotificationType {
+  ORDER_CREATED
+  CONNECTIONS
+  SCHEDULE
+  GROUP
+  CHECKLISTENDGOAL
+  SYSTEM
 }
 
 enum UserStatus {

@@ -22,8 +22,8 @@ Authorization: {{john}}
 Content-Type: application/json
 
 {
-  "email": "jon",
-  "fullName": "Jabir Al Imran"
+  "fullName": "Jabir Al Imran",
+  "profession": "teacher"
 }
 
 
