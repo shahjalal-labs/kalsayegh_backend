@@ -4,6 +4,7 @@ import { authRoute } from "../modules/auth/auth.routes";
 import { notificationRoutes } from "../modules/notification/notification.routes";
 import { sessionRoutes } from "../modules/session/session.routes";
 import { adminRoutes } from "../modules/admin/admin.routes";
+import { scheduleRoutes } from "../modules/schedule/schedule.routes";
 
 const router = express.Router();
 
@@ -13,6 +14,7 @@ const moduleRoutes = [
   { path: "/notify", route: notificationRoutes },
   { path: "/session", route: sessionRoutes },
   { path: "/admin", route: adminRoutes },
+  { path: "/schedule", route: scheduleRoutes },
 ];
 
 moduleRoutes.forEach((route) => router.use(route.path, route.route));
