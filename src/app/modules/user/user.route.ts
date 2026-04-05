@@ -15,6 +15,7 @@ router.post(
   validateRequest(userValidation.userRegisterValidationSchema),
   userControllers.createUser,
 );
+router.post("/resend-otp", userControllers.resendOtp);
 
 router.post(
   "/signup-verification",

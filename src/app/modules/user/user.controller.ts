@@ -13,6 +13,16 @@ const createUser = catchAsync(async (req, res) => {
   });
 });
 
+const resendOtp = catchAsync(async (req, res) => {
+  const result = await userService.resendOtp(req.body.email);
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "OTP resent successfully",
+    data: result,
+  });
+});
+
 const signupVerification = catchAsync(async (req, res) => {
   const result = await userService.signupVerification(req.body);
   sendResponse(res, {
@@ -47,6 +57,7 @@ const getAllUsers = catchAsync(async (_req, res) => {
 
 export const userControllers = {
   createUser,
+  resendOtp,
   signupVerification,
   getUserDetails,
   getAllUsers,

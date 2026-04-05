@@ -22,7 +22,6 @@ model User {
   receivedNotifications Notification[] @relation("notificationRecieve")
   sentNotifications     Notification[] @relation("notificationSend")
   sessions              Session[]
-  calenders             Calender[]
 
   @@map("users")
 }
@@ -110,17 +109,15 @@ enum SessionType {
   PW_Hours
 }
 
-model Calender {
+model Schedule {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId      String   @db.ObjectId
   title       String
   description String?
   startTime   DateTime
   endTime     DateTime
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([startTime, endTime])
-  @@map("calenders")
+  @@map("schedules")
 }

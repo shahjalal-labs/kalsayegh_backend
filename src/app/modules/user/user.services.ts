@@ -71,6 +71,38 @@ const createUser = async (
   return otp;
 };
 
+const resendOtp = async (email: string) => {
+  const otp = generateOTP();
+  const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+
+  const pendingUser = await prisma.pendingUser.findUnique({
+    where: { email },
+  });
+
+  if (!pendingUser) {
+    throw new ApiError(404, "No pending user found with this email.");
+  }
+
+  await prisma.otp.upsert({
+    where: { email },
+    update: { otp, expiresAt },
+    create: { email, otp, expiresAt },
+  });
+
+  const emailSubject = "OTP Resend";
+  const emailHtml = `<div style="font-family: Arial, sans-serif; color: #333;">
+          <h2>OTP Resend</h2>
+          <p>Hi,</p>
+          <p>Your OTP for account verification is:</p>
+          <h1 style="color: #007BFF;">${otp}</h1>
+          <p>This OTP is valid for <b>5 minutes</b>. If you did not request this, please ignore this email.</p>
+          <p>Thanks, <br>The Support Team</p>
+        </div>`;
+  await sendEmail(email, emailSubject, emailHtml);
+
+  return otp;
+};
+
 const signupVerification = async (payload: { email: string; otp: string }) => {
   const { email, otp } = payload;
 
@@ -156,6 +188,7 @@ const getAllUsers = async () => {
 
 export const userService = {
   createUser,
+  resendOtp,
   signupVerification,
   getUserDetails,
   getAllUsers,
