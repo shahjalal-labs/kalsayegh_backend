@@ -7,6 +7,8 @@ import sendEmail from "../../../helpers/sendEmail";
 import { TUserRegister } from "./user.validation";
 import httpStatus from "http-status";
 import { uploadInSpace } from "../../../helpers/uploadInSpace";
+import { jwtHelpers } from "../../../helpers/jwtHelpers";
+import { Secret } from "jsonwebtoken";
 
 const createUser = async (
   payload: TUserRegister,
@@ -97,8 +99,8 @@ const signupVerification = async (payload: { email: string; otp: string }) => {
     throw new ApiError(401, "Invalid OTP.");
   }
 
-  await prisma.$transaction(async (tx) => {
-    await prisma.user.create({
+  const user = await prisma.$transaction(async (tx) => {
+    const user = await tx.user.create({
       data: {
         email: pendingUser.email,
         fullName: pendingUser.fullName,
@@ -109,17 +111,20 @@ const signupVerification = async (payload: { email: string; otp: string }) => {
     });
     await tx.pendingUser.delete({ where: { email } });
     await tx.otp.delete({ where: { email } });
+    return user;
   });
 
-  await prisma.otp.deleteMany({
-    where: {
-      expiresAt: {
-        lte: now,
-      },
-    },
-  });
+  const accessToken = jwtHelpers.generateToken(
+    { id: user.id, role: user.role },
+    config.jwt.jwt_secret as Secret,
+    config.jwt.expires_in as string,
+  );
 
-  return;
+  return {
+    accessToken: accessToken,
+    id: user.id,
+    role: user.role,
+  };
 };
 
 const getUserDetails = async (userId: string) => {

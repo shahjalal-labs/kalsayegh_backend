@@ -9,6 +9,7 @@ import { uploadInSpace } from "../../../helpers/uploadInSpace";
 import sendEmail from "../../../helpers/sendEmail";
 import httpStatus from "http-status";
 import { TLogin } from "./auth.validation";
+import { Secret } from "jsonwebtoken";
 
 const loginUserIntoDB = async (payload: TLogin) => {
   const user = await prisma.user.findUnique({
@@ -39,16 +40,14 @@ const loginUserIntoDB = async (payload: TLogin) => {
   }
 
   const accessToken = jwtHelpers.generateToken(
-    { id: user.id, email: user.email, role: user.role },
-    config.jwt.jwt_secret as string,
+    { id: user.id, role: user.role },
+    config.jwt.jwt_secret as Secret,
     config.jwt.expires_in as string,
   );
 
-  console.log(`secret in auth:`, config.jwt.jwt_secret);
-
   return {
-    id: user.id,
     accessToken,
+    id: user.id,
     role: user.role,
   };
 };
@@ -66,8 +65,8 @@ const googleLogin = async (payload: {
 
   if (user) {
     const accessToken = jwtHelpers.generateToken(
-      { id: user.id, email: user.email, role: user.role },
-      config.jwt.jwt_secret as string,
+      { id: user.id, role: user.role },
+      config.jwt.jwt_secret as Secret,
       config.jwt.expires_in as string,
     );
     return {
@@ -88,8 +87,8 @@ const googleLogin = async (payload: {
   });
 
   const accessToken = jwtHelpers.generateToken(
-    { id: newUser.id, email: newUser.email, role: newUser.role },
-    config.jwt.jwt_secret as string,
+    { id: newUser.id, role: newUser.role },
+    config.jwt.jwt_secret as Secret,
     config.jwt.expires_in as string,
   );
 
@@ -160,7 +159,7 @@ const verifyForgotPasswordOtpCodeDB = async (payload: {
 
   const forgetToken = jwtHelpers.generateToken(
     { id: userId, email },
-    config.jwt.jwt_secret as string,
+    config.jwt.jwt_secret as Secret,
     config.jwt.expires_in as string,
   );
 

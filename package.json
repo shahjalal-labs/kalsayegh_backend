@@ -1,5 +1,5 @@
 {
-  "name": "Geo Paving",
+  "name": "kalshayegh_backend",
   "version": "1.0.0",
   "main": "server.js",
   "scripts": {
@@ -15,7 +15,7 @@
   "keywords": [],
   "author": "Ruhul-Amin",
   "license": "ISC",
-  "description": "Geo Paving Backend",
+  "description": "kalshayegh Backend",
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
     "@types/cors": "^2.8.17",
