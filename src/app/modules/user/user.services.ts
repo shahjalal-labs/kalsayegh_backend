@@ -105,6 +105,7 @@ const signupVerification = async (payload: { email: string; otp: string }) => {
         password: pendingUser.password,
         role: pendingUser.role,
         profession: pendingUser.profession,
+        profileImage: pendingUser.profileImage,
       },
     });
     await tx.pendingUser.delete({ where: { email } });
