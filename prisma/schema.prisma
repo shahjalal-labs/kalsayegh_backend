@@ -122,3 +122,48 @@ model Schedule {
   @@index([startTime, endTime])
   @@map("schedules")
 }
+
+model Room {
+  id        String    @id @default(auto()) @map("_id") @db.ObjectId
+  roomName  String?
+  roomPhoto String?
+  roomType  RoomType  @default(General)
+  creatorId String    @db.ObjectId
+  memberIds String[]  @db.ObjectId
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  message   Message[]
+
+  @@map("rooms")
+}
+
+enum RoomType {
+  General
+  Group
+}
+
+model Message {
+  id        String     @id @default(auto()) @map("_id") @db.ObjectId
+  roomId    String     @db.ObjectId
+  senderId  String     @db.ObjectId
+  content   String?
+  fileUrl   String[]
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  room      Room       @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  reactions Reaction[]
+
+  @@map("messages")
+}
+
+model Reaction {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  messageId    String   @db.ObjectId
+  userId       String   @db.ObjectId
+  reactionIcon String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  message      Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@map("reactions")
+}

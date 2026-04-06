@@ -3,13 +3,13 @@ import prisma from "../../../shared/prisma";
 import ApiError from "../../../errors/ApiErrors";
 
 const clockIn = async (data: Session, userId: string) => {
-  await prisma.session.create({
+  const session = await prisma.session.create({
     data: {
       ...data,
       userId,
     },
   });
-  return;
+  return session;
 };
 
 const clockOut = async (sessionId: string, clockOut: Date, userId: string) => {
