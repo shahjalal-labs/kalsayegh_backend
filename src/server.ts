@@ -1,16 +1,12 @@
 import { Server } from "http";
 import app from "./app";
 import config from "./config";
-import { setupWebSocketServer } from "./app/socket/socket.service";
+import { setupWebSocketServer } from "./app/modules/socket/socket.service";
 
 async function main() {
   const server: Server = app.listen(config.port, () => {
     console.log("✅ Server is running on port", config.port);
-    // console.log(
-    //   `📊 BullMQ Dashboard at http://localhost:${config.port}/admin/queues`,
-    // );
   });
-
   setupWebSocketServer(server);
 
   const exitHandler = () => {

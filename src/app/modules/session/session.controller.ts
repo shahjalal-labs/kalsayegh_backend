@@ -3,11 +3,12 @@ import sendResponse from "../../../shared/sendResponse";
 import catchAsync from "../../../shared/catchAsync";
 
 const clockIn = catchAsync(async (req, res) => {
-  await sessionServices.clockIn(req.body, req.user.id);
+  const data = await sessionServices.clockIn(req.body, req.user.id);
   sendResponse(res, {
     success: true,
     statusCode: 201,
     message: "The session has been created successfully",
+    data,
   });
 });
 
