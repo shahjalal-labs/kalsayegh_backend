@@ -47,8 +47,34 @@ const getAllTodolist = catchAsync(async (req, res) => {
   });
 });
 
+const getTodoDetails = catchAsync(async (req, res) => {
+  const { id: todoId } = req.params;
+  const result = await todolistService.getTodoDetails(todoId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Todolist retrieved successfully",
+    data: result,
+  });
+});
+
+const updateTodo = catchAsync(async (req, res) => {
+  const { id: todoId } = req.params;
+  const result = await todolistService.updateTodo(todoId, req.body);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Todolist updated successfully",
+    data: result,
+  });
+});
+
 export const todolistController = {
   getOfficeAdministrator,
   createTodolist,
   getAllTodolist,
+  getTodoDetails,
+  updateTodo,
 };

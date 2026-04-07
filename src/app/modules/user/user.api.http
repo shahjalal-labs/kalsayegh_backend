@@ -19,7 +19,8 @@ Content-Type: application/json
 
 {
   "email": "shahjalal.backend@gmail.com",
-  "otp": "1832"
+  "fcmToken": "fcm1",
+  "otp": "8463"
 }
 
 
