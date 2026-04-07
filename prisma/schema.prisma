@@ -22,6 +22,7 @@ model User {
   receivedNotifications Notification[] @relation("notificationRecieve")
   sentNotifications     Notification[] @relation("notificationSend")
   sessions              Session[]
+  clients               Client[]
 
   @@map("users")
 }
@@ -163,6 +164,23 @@ model Message {
   reactions Reaction[]
 
   @@map("messages")
+}
+
+model Client {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  estimatorId String?  @db.ObjectId
+  clientName  String
+  email       String   @unique
+  phoneNumber String
+  address     String
+  city        String
+  zip         String
+  state       String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  estimator   User?    @relation(fields: [estimatorId], references: [id], onDelete: Cascade)
+
+  @@map("clients")
 }
 
 model Reaction {
