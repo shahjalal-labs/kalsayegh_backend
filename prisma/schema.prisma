@@ -23,7 +23,9 @@ model User {
   sentNotifications     Notification[] @relation("notificationSend")
   sessions              Session[]
   clients               Client[]
+  todolists             Todolist[]
 
+  @@index([role, status])
   @@map("users")
 }
 
@@ -83,11 +85,6 @@ model Notification {
 }
 
 enum NotificationType {
-  ORDER_CREATED
-  CONNECTIONS
-  SCHEDULE
-  GROUP
-  CHECKLISTENDGOAL
   SYSTEM
 }
 
@@ -193,4 +190,17 @@ model Reaction {
   message      Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
 
   @@map("reactions")
+}
+
+model Todolist {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  description String
+  assignedId  String?  @db.ObjectId
+  assignedTo  User?    @relation(fields: [assignedId], references: [id], onDelete: SetNull)
+  image       String?
+  isComplete  Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  creatorId   String   @db.ObjectId
 }

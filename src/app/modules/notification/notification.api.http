@@ -16,7 +16,7 @@ Content-Type: application/json
     "messagePreview": "meta message preview"
   },
   "notificationChannel": "BOTH",
-  "receiverId": "69cdf6533266564213c476d3",
+  "receiverId": "69d3549dd104ea1be1dc2ac3",
   "senderId": "69ce3575d5c1d13eeefbf369",
   "title": "Send test notification",
   "type": "SYSTEM"
@@ -46,9 +46,9 @@ Authorization: {{john}}
 ### mark all as read or unread
 
 PATCH {{baseUrl}}/notify/mark-all HTTP/1.1
-Authorization: {{john}}
+Authorization: {{labs}}
 Content-Type: application/json
 
 {
-  "isRead": true
+  "isRead": false
 }

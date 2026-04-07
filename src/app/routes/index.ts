@@ -8,6 +8,7 @@ import { scheduleRoutes } from "../modules/schedule/schedule.routes";
 import { groupRoutes } from "../modules/group/group.routes";
 import { messageRoutes } from "../modules/message/message.routes";
 import { estimateRoutes } from "../modules/estimate/estimate.route";
+import { todolistRoutes } from "../modules/todolist/todolist.routes";
 
 const router = express.Router();
 
@@ -21,6 +22,7 @@ const moduleRoutes = [
   { path: "/group", route: groupRoutes },
   { path: "/message", route: messageRoutes },
   { path: "/estimate", route: estimateRoutes },
+  { path: "/todolist", route: todolistRoutes },
 ];
 
 moduleRoutes.forEach((route) => router.use(route.path, route.route));

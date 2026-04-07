@@ -1,0 +1,23 @@
+### get office administrator | office administrator
+
+GET {{baseUrl}}/todolist?page=1&limit=20&searchTerm=ce ad HTTP/1.1
+Authorization: {{administrator}}
+
+
+### create todolist | office administrator
+
+POST {{baseUrl}}/todolist/create HTTP/1.1
+Authorization: {{administrator}}
+Content-Type: application/json
+
+{
+  "assignedId": "69d4a601d6abcd8d33b7480c",
+  "description": "Resolve JWT expiration issue on refresh",
+  "title": "Fix login bug"
+}
+
+
+### get todolists | office administrator
+
+GET {{baseUrl}}/todolist/all?page=1&limit=20&searchTerm=ce ad HTTP/1.1
+Authorization: {{administrator}}
