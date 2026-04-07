@@ -98,6 +98,7 @@ const mySessionsByGrouping = async (userId: string) => {
           clockInAt: Date;
           clockOutAt: Date | null;
           hrs: number;
+          notes: string | null;
         }>;
       }
     >,
@@ -106,10 +107,6 @@ const mySessionsByGrouping = async (userId: string) => {
   results.forEach((session) => {
     const sessionEnd = session.clockOutAt ?? new Date();
     const dayKey = format(session.clockInAt, "yyyy-MM-dd");
-    const time = `${format(session.clockInAt, "hh:mm a")} - ${format(
-      sessionEnd,
-      "hh:mm a",
-    )}`;
     const hours =
       Math.max(0, differenceInMilliseconds(sessionEnd, session.clockInAt)) /
       (1000 * 60 * 60);
@@ -125,6 +122,7 @@ const mySessionsByGrouping = async (userId: string) => {
       clockInAt: session.clockInAt,
       clockOutAt: session.clockOutAt,
       hrs: Number(hours.toFixed(2)),
+      notes: session.notes,
     });
     groupedSessions[dayKey].totalHours += hours;
   });
@@ -225,6 +223,42 @@ const weeklyOverview = async (userId: string) => {
   };
 };
 
+const weeklySubmitTimesheet = async (userId: string) => {
+  const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
+  const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 });
+
+  await prisma.session.updateMany({
+    where: {
+      userId,
+      clockInAt: {
+        gte: weekStart,
+        lte: weekEnd,
+      },
+    },
+    data: {
+      markStatus: "SUBMITTED",
+    },
+  });
+
+  return;
+};
+
+const addNotes = async (
+  payload: { sessionIds: string[]; notes: string },
+  userId: string,
+) => {
+  const { sessionIds, notes } = payload;
+
+  await prisma.session.updateMany({
+    where: {
+      id: { in: sessionIds },
+      userId,
+    },
+    data: { notes },
+  });
+  return;
+};
+
 const getAllSessions = async () => {
   const results = await prisma.session.findMany();
   return results;
@@ -255,4 +289,6 @@ export const sessionServices = {
   getSessionById,
   updateSession,
   deleteSession,
+  weeklySubmitTimesheet,
+  addNotes,
 };

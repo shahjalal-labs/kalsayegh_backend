@@ -18,6 +18,12 @@ router.get(
   auth(UserRole.WORKER),
   sessionControllers.weeklyOverview,
 );
+router.post(
+  "/weekly-submit-timesheet",
+  auth(UserRole.WORKER),
+  sessionControllers.weeklySubmitTimesheet,
+);
+router.post("/add-notes", auth(UserRole.WORKER), sessionControllers.addNotes);
 router.get("/", sessionControllers.getAllSessions);
 router.get("/:id", sessionControllers.getSessionById);
 router.patch("/:id", sessionControllers.updateSession);

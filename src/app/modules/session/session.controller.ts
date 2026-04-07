@@ -53,6 +53,24 @@ const weeklyOverview = catchAsync(async (req, res) => {
   });
 });
 
+const weeklySubmitTimesheet = catchAsync(async (req, res) => {
+  await sessionServices.weeklySubmitTimesheet(req.user.id);
+  sendResponse(res, {
+    success: true,
+    statusCode: 200,
+    message: "Weekly timesheet has been submitted successfully",
+  });
+});
+
+const addNotes = catchAsync(async (req, res) => {
+  await sessionServices.addNotes(req.body, req.user.id);
+  sendResponse(res, {
+    success: true,
+    statusCode: 200,
+    message: "Notes added successfully",
+  });
+});
+
 const getAllSessions = catchAsync(async (req, res) => {
   const result = await sessionServices.getAllSessions();
   sendResponse(res, {
@@ -97,6 +115,8 @@ export const sessionControllers = {
   mySessions,
   mySessionsByGrouping,
   weeklyOverview,
+  weeklySubmitTimesheet,
+  addNotes,
   getAllSessions,
   getSessionById,
   updateSession,
