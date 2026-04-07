@@ -1,4 +1,14 @@
 import { Session } from "@prisma/client";
+import {
+  addDays,
+  eachDayOfInterval,
+  differenceInMilliseconds,
+  endOfDay,
+  endOfWeek,
+  format,
+  startOfDay,
+  startOfWeek,
+} from "date-fns";
 import prisma from "../../../shared/prisma";
 import ApiError from "../../../errors/ApiErrors";
 
@@ -31,11 +41,188 @@ const clockOut = async (sessionId: string, clockOut: Date, userId: string) => {
 };
 
 const mySessions = async (userId: string) => {
+  const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
+  const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 });
+
   const results = await prisma.session.findMany({
-    where: { userId },
+    where: {
+      userId,
+      clockInAt: {
+        gte: weekStart,
+        lte: weekEnd,
+      },
+    },
     orderBy: { createdAt: "desc" },
   });
   return results;
+};
+
+const mySessionsByGrouping = async (userId: string) => {
+  const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
+  const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 });
+
+  const results = await prisma.session.findMany({
+    where: {
+      userId,
+      clockInAt: {
+        gte: weekStart,
+        lte: weekEnd,
+      },
+    },
+    orderBy: { clockInAt: "asc" },
+  });
+
+  const groupedSessions = eachDayOfInterval({
+    start: weekStart,
+    end: weekEnd,
+  }).reduce(
+    (acc, day) => {
+      const dayKey = format(day, "yyyy-MM-dd");
+      acc[dayKey] = {
+        day: format(day, "EEEE"),
+        date: format(day, "MMM dd"),
+        totalHours: 0,
+        sessions: [],
+      };
+      return acc;
+    },
+    {} as Record<
+      string,
+      {
+        day: string;
+        date: string;
+        totalHours: number;
+        sessions: Array<{
+          id: string;
+          type: string;
+          clockInAt: Date;
+          clockOutAt: Date | null;
+          hrs: number;
+        }>;
+      }
+    >,
+  );
+
+  results.forEach((session) => {
+    const sessionEnd = session.clockOutAt ?? new Date();
+    const dayKey = format(session.clockInAt, "yyyy-MM-dd");
+    const time = `${format(session.clockInAt, "hh:mm a")} - ${format(
+      sessionEnd,
+      "hh:mm a",
+    )}`;
+    const hours =
+      Math.max(0, differenceInMilliseconds(sessionEnd, session.clockInAt)) /
+      (1000 * 60 * 60);
+
+    groupedSessions[dayKey].sessions.push({
+      id: session.id,
+      type:
+        session.sessionType === "Regular_Hours"
+          ? "Regular"
+          : session.sessionType === "PW_Hours"
+            ? "PW Hours"
+            : session.sessionType,
+      clockInAt: session.clockInAt,
+      clockOutAt: session.clockOutAt,
+      hrs: Number(hours.toFixed(2)),
+    });
+    groupedSessions[dayKey].totalHours += hours;
+  });
+
+  return {
+    thisWeek: Object.values(groupedSessions).map((day) => ({
+      ...day,
+      totalHours: Number(day.totalHours.toFixed(2)),
+    })),
+  };
+};
+
+const weeklyOverview = async (userId: string) => {
+  const DAILY_REGULAR_HOUR_LIMIT = 8;
+  const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
+  const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 });
+
+  const sessions = await prisma.session.findMany({
+    where: {
+      userId,
+      clockInAt: {
+        gte: weekStart,
+        lte: weekEnd,
+      },
+    },
+    select: {
+      sessionType: true,
+      clockInAt: true,
+      clockOutAt: true,
+    },
+  });
+
+  const dailyTypeHours = sessions.reduce(
+    (acc, session) => {
+      const sessionEnd = session.clockOutAt ?? new Date();
+      let segmentStart = session.clockInAt;
+
+      // Split sessions that span midnight so daily OT stays accurate.
+      while (segmentStart < sessionEnd) {
+        const currentDayEnd = endOfDay(segmentStart);
+        const segmentEnd =
+          currentDayEnd < sessionEnd ? currentDayEnd : sessionEnd;
+        const hours =
+          Math.max(0, differenceInMilliseconds(segmentEnd, segmentStart)) /
+          (1000 * 60 * 60);
+
+        const dayKey = format(segmentStart, "yyyy-MM-dd");
+
+        if (!acc[dayKey]) {
+          acc[dayKey] = { regularHours: 0, pwHours: 0 };
+        }
+
+        if (session.sessionType === "Regular_Hours") {
+          acc[dayKey].regularHours += hours;
+        }
+
+        if (session.sessionType === "PW_Hours") {
+          acc[dayKey].pwHours += hours;
+        }
+
+        segmentStart = addDays(startOfDay(segmentStart), 1);
+      }
+
+      return acc;
+    },
+    {} as Record<string, { regularHours: number; pwHours: number }>,
+  );
+
+  const totals = Object.values(dailyTypeHours).reduce(
+    (acc, day) => {
+      acc.totalRegularHours += Math.min(
+        day.regularHours,
+        DAILY_REGULAR_HOUR_LIMIT,
+      );
+      acc.totalRegularOTHours += Math.max(
+        0,
+        day.regularHours - DAILY_REGULAR_HOUR_LIMIT,
+      );
+
+      acc.totalPWHours += Math.min(day.pwHours, DAILY_REGULAR_HOUR_LIMIT);
+      acc.totalPWOTHours += Math.max(0, day.pwHours - DAILY_REGULAR_HOUR_LIMIT);
+
+      return acc;
+    },
+    {
+      totalRegularHours: 0,
+      totalRegularOTHours: 0,
+      totalPWHours: 0,
+      totalPWOTHours: 0,
+    },
+  );
+
+  return {
+    totalRegularHours: Number(totals.totalRegularHours.toFixed(2)),
+    totalRegularOTHours: Number(totals.totalRegularOTHours.toFixed(2)),
+    totalPWHours: Number(totals.totalPWHours.toFixed(2)),
+    totalPWOTHours: Number(totals.totalPWOTHours.toFixed(2)),
+  };
 };
 
 const getAllSessions = async () => {
@@ -62,6 +249,8 @@ export const sessionServices = {
   clockIn,
   clockOut,
   mySessions,
+  mySessionsByGrouping,
+  weeklyOverview,
   getAllSessions,
   getSessionById,
   updateSession,

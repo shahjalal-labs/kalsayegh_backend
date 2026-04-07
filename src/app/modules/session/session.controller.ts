@@ -33,6 +33,26 @@ const mySessions = catchAsync(async (req, res) => {
   });
 });
 
+const mySessionsByGrouping = catchAsync(async (req, res) => {
+  const result = await sessionServices.mySessionsByGrouping(req.user.id);
+  sendResponse(res, {
+    success: true,
+    statusCode: 200,
+    message: "My sessions has been grouped successfully",
+    data: result,
+  });
+});
+
+const weeklyOverview = catchAsync(async (req, res) => {
+  const result = await sessionServices.weeklyOverview(req.user.id);
+  sendResponse(res, {
+    success: true,
+    statusCode: 200,
+    message: "Weekly overview has been retrieved successfully",
+    data: result,
+  });
+});
+
 const getAllSessions = catchAsync(async (req, res) => {
   const result = await sessionServices.getAllSessions();
   sendResponse(res, {
@@ -75,6 +95,8 @@ export const sessionControllers = {
   clockIn,
   clockOut,
   mySessions,
+  mySessionsByGrouping,
+  weeklyOverview,
   getAllSessions,
   getSessionById,
   updateSession,
