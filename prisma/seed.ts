@@ -23,11 +23,11 @@ async function main() {
   });
 
   await prisma.user.upsert({
-    where: { email: "office.administrator@gmail.com" },
+    where: { email: "office2.administrator@gmail.com" },
     update: {},
     create: {
-      email: "office.administrator@gmail.com",
-      fullName: "Office Administrator",
+      email: "office2.administrator@gmail.com",
+      fullName: "Office Administrator 2",
       password: hashedPassword,
       role: "OFFICE_ADMINISTRATOR",
     },

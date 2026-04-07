@@ -40,7 +40,7 @@ Content-Type: application/json
 
 ### delete user account | admin
 
-# admin/:userId
+# admin/:userId todolist
 
 DELETE {{baseUrl}}/admin/69d36fa9b7a0cb61ea482473 HTTP/1.1
 Authorization: {{admin}}

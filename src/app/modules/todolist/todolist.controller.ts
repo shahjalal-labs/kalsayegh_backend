@@ -1,0 +1,54 @@
+import httpStatus from "http-status";
+import catchAsync from "../../../shared/catchAsync";
+import { paginationOptions } from "../../../shared/pagination";
+import pick from "../../../shared/pick";
+import sendResponse from "../../../shared/sendResponse";
+import { todolistService } from "./todolist.service";
+
+const getOfficeAdministrator = catchAsync(async (req, res) => {
+  const paginations = pick(req.query, paginationOptions);
+  const filter = pick(req.query, ["searchTerm"]);
+
+  const result = await todolistService.getOfficeAdministrator(
+    paginations,
+    filter,
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Office administrator retrieved successfully",
+    data: result,
+  });
+});
+
+const createTodolist = catchAsync(async (req, res) => {
+  const { id: userId } = req.user;
+
+  const result = await todolistService.createTodolist(userId, req.body);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Todolist created successfully",
+    data: result,
+  });
+});
+
+const getAllTodolist = catchAsync(async (req, res) => {
+  const paginations = pick(req.query, paginationOptions);
+  const result = await todolistService.getAllTodolist(paginations);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Todolist retrieved successfully",
+    data: result,
+  });
+});
+
+export const todolistController = {
+  getOfficeAdministrator,
+  createTodolist,
+  getAllTodolist,
+};
