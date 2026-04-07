@@ -1,4 +1,4 @@
-import { Session } from "@prisma/client";
+import { MarkStatus, Session } from "@prisma/client";
 import {
   addDays,
   eachDayOfInterval,
@@ -11,6 +11,16 @@ import {
 } from "date-fns";
 import prisma from "../../../shared/prisma";
 import ApiError from "../../../errors/ApiErrors";
+
+const formatHoursToHHMM = (hours: number) => {
+  const totalMinutes = Math.round(hours * 60);
+  const formattedHours = Math.floor(totalMinutes / 60)
+    .toString()
+    .padStart(2, "0");
+  const formattedMinutes = (totalMinutes % 60).toString().padStart(2, "0");
+
+  return `${formattedHours}:${formattedMinutes}`;
+};
 
 const clockIn = async (data: Session, userId: string) => {
   const session = await prisma.session.create({
@@ -97,19 +107,23 @@ const mySessionsByGrouping = async (userId: string) => {
           type: string;
           clockInAt: Date;
           clockOutAt: Date | null;
-          hrs: number;
+          hrs: string;
           notes: string | null;
+          markStatus: MarkStatus;
         }>;
       }
     >,
   );
 
   results.forEach((session) => {
-    const sessionEnd = session.clockOutAt ?? new Date();
     const dayKey = format(session.clockInAt, "yyyy-MM-dd");
-    const hours =
-      Math.max(0, differenceInMilliseconds(sessionEnd, session.clockInAt)) /
-      (1000 * 60 * 60);
+    const hours = session.clockOutAt
+      ? Math.max(
+          0,
+          differenceInMilliseconds(session.clockOutAt, session.clockInAt),
+        ) /
+        (1000 * 60 * 60)
+      : 0;
 
     groupedSessions[dayKey].sessions.push({
       id: session.id,
@@ -121,16 +135,20 @@ const mySessionsByGrouping = async (userId: string) => {
             : session.sessionType,
       clockInAt: session.clockInAt,
       clockOutAt: session.clockOutAt,
-      hrs: Number(hours.toFixed(2)),
+      hrs: session.clockOutAt ? formatHoursToHHMM(hours) : "Active",
       notes: session.notes,
+      markStatus: session.markStatus,
     });
-    groupedSessions[dayKey].totalHours += hours;
+
+    if (session.clockOutAt) {
+      groupedSessions[dayKey].totalHours += hours;
+    }
   });
 
   return {
     thisWeek: Object.values(groupedSessions).map((day) => ({
       ...day,
-      totalHours: Number(day.totalHours.toFixed(2)),
+      totalHours: formatHoursToHHMM(day.totalHours),
     })),
   };
 };
@@ -157,7 +175,11 @@ const weeklyOverview = async (userId: string) => {
 
   const dailyTypeHours = sessions.reduce(
     (acc, session) => {
-      const sessionEnd = session.clockOutAt ?? new Date();
+      if (!session.clockOutAt) {
+        return acc;
+      }
+
+      const sessionEnd = session.clockOutAt;
       let segmentStart = session.clockInAt;
 
       // Split sessions that span midnight so daily OT stays accurate.
