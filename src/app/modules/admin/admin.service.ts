@@ -1,6 +1,6 @@
 import prisma from "../../../shared/prisma";
 
-import { SessionType, UserRole } from "@prisma/client";
+import { Prisma, SessionType, UserRole } from "@prisma/client";
 import {
   startOfDay,
   endOfDay,
@@ -18,7 +18,11 @@ import {
   eachMonthOfInterval,
   endOfMonth,
   addDays,
+  isSameDay,
 } from "date-fns";
+import ApiError from "../../../errors/ApiErrors";
+import httpStatus from "http-status";
+import { TUpdateUserDetailsSchema } from "./admin.validation";
 
 // Helper to calculate duration in hours (decimal)
 const calculateHours = (clockIn: Date, clockOut: Date | null): number => {
@@ -33,13 +37,47 @@ const formatClockIn = (date: Date | null): string | null => {
   return format(date, "hh:mm a");
 };
 
-export const getEmployeeList = async (page = 1, limit = 10) => {
+const getEmployeeList = async (
+  page = 1,
+  limit = 10,
+  filter?: {
+    searchTerm?: string;
+  },
+) => {
   const skip = (page - 1) * limit;
   const now = new Date();
 
+  const whereClause: Prisma.UserWhereInput = {
+    role: UserRole.WORKER,
+  };
+
+  const andClause: Prisma.UserWhereInput[] = [];
+
+  if (filter?.searchTerm?.trim()) {
+    andClause.push({
+      OR: [
+        {
+          fullName: {
+            contains: filter.searchTerm,
+            mode: "insensitive",
+          },
+        },
+        {
+          email: {
+            contains: filter.searchTerm,
+            mode: "insensitive",
+          },
+        },
+      ],
+    });
+  }
+
+  if (andClause.length) {
+    whereClause.AND = andClause;
+  }
   // 1. Get users
   const users = await prisma.user.findMany({
-    where: { role: UserRole.WORKER },
+    where: whereClause,
     select: {
       id: true,
       fullName: true,
@@ -130,7 +168,7 @@ export const getEmployeeList = async (page = 1, limit = 10) => {
 
   // 6. Count
   const total = await prisma.user.count({
-    where: { role: UserRole.WORKER },
+    where: whereClause,
   });
 
   return {
@@ -331,8 +369,173 @@ export const getHoursTrend = async (period: string) => {
   return trendObject;
 };
 
-export const AdminService = {
+const getEmployeeDetails = async (userId: string) => {
+  // 1. Get user info
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      fullName: true,
+      email: true,
+      profession: true,
+      profileImage: true,
+      createdAt: true,
+    },
+  });
+
+  if (!user) throw new ApiError(httpStatus.NOT_FOUND, "User not found");
+
+  // 2. Define current week (Monday to Sunday)
+  const now = new Date();
+  const weekStart = startOfWeek(now, { weekStartsOn: 1 }); // Monday
+  const weekEnd = endOfWeek(now, { weekStartsOn: 1 }); // Sunday
+
+  // 3. Fetch all sessions for this user within the week
+  const sessions = await prisma.session.findMany({
+    where: {
+      userId,
+      createdAt: { gte: weekStart, lte: weekEnd },
+      sessionType: { in: [SessionType.Regular_Hours, SessionType.PW_Hours] },
+    },
+    select: {
+      sessionType: true,
+      clockInAt: true,
+      clockOutAt: true,
+    },
+  });
+
+  // 4. Prepare daily data for each day of the week (Mon to Sun)
+  const weekDays = eachDayOfInterval({ start: weekStart, end: weekEnd });
+  const dailyDetails = [];
+  let weeklyRegular = 0;
+  let weeklyPW = 0;
+  let weeklyOvertime = 0;
+
+  for (const day of weekDays) {
+    const daySessions = sessions.filter((s) => isSameDay(s.clockInAt, day));
+    let dayRegular = 0;
+    let dayPW = 0;
+    const sessionsList = [];
+
+    for (const session of daySessions) {
+      const hours = calculateHours(session.clockInAt, session.clockOutAt);
+      if (session.sessionType === SessionType.Regular_Hours) {
+        dayRegular += hours;
+        weeklyRegular += hours;
+      } else if (session.sessionType === SessionType.PW_Hours) {
+        dayPW += hours;
+        weeklyPW += hours;
+      }
+
+      sessionsList.push({
+        startTime: format(session.clockInAt, "hh:mm a"),
+        endTime: session.clockOutAt
+          ? format(session.clockOutAt, "hh:mm a")
+          : null,
+        type:
+          session.sessionType === SessionType.Regular_Hours ? "Regular" : "PW",
+        hours: hours.toFixed(2),
+      });
+    }
+
+    const dayTotal = dayRegular + dayPW;
+    // Overtime for the day: excess over 8 hours from regular, plus excess over 8 from PW
+    let dayOvertime = 0;
+    if (dayRegular > 8) dayOvertime += dayRegular - 8;
+    if (dayPW > 8) dayOvertime += dayPW - 8;
+    weeklyOvertime += dayOvertime;
+
+    dailyDetails.push({
+      dayName: format(day, "EEEE"), // e.g., Monday
+      date: format(day, "dd"), // day of month (e.g., 06)
+      month: format(day, "MMM"), // month abbreviation (e.g., Apr)
+      sessions: sessionsList,
+      totalHours: dayTotal.toFixed(2),
+      overtime: dayOvertime > 0 ? dayOvertime.toFixed(2) : null,
+    });
+  }
+
+  // 5. Build response
+  return {
+    user: {
+      fullName: user.fullName,
+      email: user.email,
+      profession: user.profession,
+      // hiringDate: format(user.createdAt, "MMMM dd, yyyy"),
+      profileImage: user.profileImage,
+      createdAt: user.createdAt,
+    },
+    weeklyTotals: {
+      regularHours: weeklyRegular.toFixed(2),
+      pwHours: weeklyPW.toFixed(2),
+      totalHours: (weeklyRegular + weeklyPW).toFixed(2),
+      overtimeHours: weeklyOvertime.toFixed(2),
+    },
+    dailyDetails,
+  };
+};
+
+const updateUserDetails = async (
+  userId: string,
+  payload: TUpdateUserDetailsSchema,
+) => {
+  const user = await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!user) throw new ApiError(httpStatus.NOT_FOUND, "User not found.");
+
+  if (payload.email) {
+    const isExist = await prisma.user.findUnique({
+      where: {
+        email: payload.email,
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (isExist)
+      throw new ApiError(httpStatus.BAD_REQUEST, "Email already exist");
+  }
+
+  await prisma.user.update({
+    where: {
+      id: userId,
+    },
+    data: payload,
+  });
+};
+
+const deleteUserAccount = async (userId: string) => {
+  const user = await prisma.user.findUnique({
+    where: {
+      id: userId,
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!user) throw new ApiError(httpStatus.NOT_FOUND, "User not found.");
+
+  await prisma.user.delete({
+    where: {
+      id: userId,
+    },
+  });
+};
+
+export const adminService = {
   getEmployeeList,
   getAdminOverview,
   getHoursTrend,
+  getEmployeeDetails,
+  updateUserDetails,
+  deleteUserAccount,
 };

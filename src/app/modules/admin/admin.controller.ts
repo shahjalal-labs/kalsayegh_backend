@@ -1,13 +1,16 @@
 import httpStatus from "http-status";
 import catchAsync from "../../../shared/catchAsync";
 import sendResponse from "../../../shared/sendResponse";
-import { AdminService } from "./admin.service";
+import { adminService } from "./admin.service";
+import pick from "../../../shared/pick";
 
 const getEmployeeList = catchAsync(async (req, res) => {
   const { page = 1, limit = 10 } = req.query;
-  const result = await AdminService.getEmployeeList(
+  const filter = pick(req.query, ["searchTerm"]);
+  const result = await adminService.getEmployeeList(
     Number(page),
     Number(limit),
+    filter,
   );
 
   sendResponse(res, {
@@ -19,7 +22,7 @@ const getEmployeeList = catchAsync(async (req, res) => {
 });
 
 const getAdminOverview = catchAsync(async (_req, res) => {
-  const result = await AdminService.getAdminOverview();
+  const result = await adminService.getAdminOverview();
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -36,7 +39,7 @@ const getHoursTrend = catchAsync(async (req, res) => {
     ? (period as string)
     : "daily";
 
-  const result = await AdminService.getHoursTrend(selectedPeriod);
+  const result = await adminService.getHoursTrend(selectedPeriod);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
@@ -46,8 +49,47 @@ const getHoursTrend = catchAsync(async (req, res) => {
   });
 });
 
-export const AdminController = {
+const getEmployeeDetails = catchAsync(async (req, res) => {
+  const { id: userId } = req.params;
+  const result = await adminService.getEmployeeDetails(userId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Employee details retrieved successfully",
+    data: result,
+  });
+});
+
+const updateUserDetails = catchAsync(async (req, res) => {
+  const { id: userId } = req.params;
+  const result = await adminService.updateUserDetails(userId, req.body);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Employee details updated successfully",
+    data: result,
+  });
+});
+
+const deleteUserAccount = catchAsync(async (req, res) => {
+  const { id: userId } = req.params;
+  const result = await adminService.deleteUserAccount(userId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Employee account deleted successfully",
+    data: result,
+  });
+});
+
+export const adminController = {
   getEmployeeList,
   getAdminOverview,
   getHoursTrend,
+  getEmployeeDetails,
+  updateUserDetails,
+  deleteUserAccount,
 };

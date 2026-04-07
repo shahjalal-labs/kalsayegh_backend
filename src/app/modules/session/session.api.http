@@ -1,0 +1,32 @@
+### Clock in | worker
+
+# Regular_Hours, PW_Hours
+
+POST {{baseUrl}}/session/clock-in HTTP/1.1
+Authorization: {{john}}
+Content-Type: application/json
+
+{
+  "clockInAt": "2026-04-06T00:00:00Z",
+  "sessionType": "PW_Hours"
+}
+
+
+### Clock out | worker
+
+# Regular_Hours, PW_Hours
+# clockout/:sessionId
+
+POST {{baseUrl}}/session/clock-out/69d343a3220414a4a0f8c9bb HTTP/1.1
+Authorization: {{john}}
+Content-Type: application/json
+
+{
+  "clockOutAt": "2026-04-06T08:00:00Z"
+}
+
+
+### My sessions | worker
+
+GET {{baseUrl}}/session/my-sessions HTTP/1.1
+Authorization: {{john}}

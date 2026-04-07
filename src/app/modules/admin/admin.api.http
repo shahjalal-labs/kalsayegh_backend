@@ -1,6 +1,6 @@
 ### get employee list | admin
 
-GET {{baseUrl}}/admin/employees?page=1&limit=20 HTTP/1.1
+GET {{baseUrl}}/admin/employees?page=1&limit=20&searchTerm=dg@gmail HTTP/1.1
 Authorization: {{admin}}
 
 
@@ -13,4 +13,34 @@ Authorization: {{admin}}
 ### get hours trending | admin
 
 GET {{baseUrl}}/admin/hours-trend?period=monthly HTTP/1.1
+Authorization: {{admin}}
+
+
+### get employee details | admin
+
+# admin/userId
+
+GET {{baseUrl}}/admin/69cdf6533266564213c476d3 HTTP/1.1
+Authorization: {{admin}}
+
+
+### update user details
+
+PATCH {{baseUrl}}/admin/69cdf6533266564213c476d3 HTTP/1.1
+Authorization: {{admin}}
+Content-Type: application/json
+
+{
+  "createdAt": "2026-04-06T10:30:00Z",
+  "email": "john201.doe@example.com",
+  "fullName": "Jabir Al Imran2",
+  "profession": "teacher"
+}
+
+
+### delete user account | admin
+
+# admin/:userId
+
+DELETE {{baseUrl}}/admin/69d36fa9b7a0cb61ea482473 HTTP/1.1
 Authorization: {{admin}}
