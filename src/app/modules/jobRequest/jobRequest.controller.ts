@@ -3,6 +3,8 @@ import catchAsync from "../../../shared/catchAsync";
 import sendResponse from "../../../shared/sendResponse";
 import { jobRequestService } from "./jobRequest.service";
 import httpStatus from "http-status";
+import pick from "../../../shared/pick";
+import { paginationOptions } from "../../../shared/pagination";
 
 const createOffice = catchAsync(async (req, res) => {
   const { id: userId } = req.user;
@@ -92,6 +94,19 @@ const updateJobRequest = catchAsync(async (req, res) => {
   });
 });
 
+const getAllJobRequetsForAOffice = catchAsync(async (req, res) => {
+  const paginations = pick(req.query, paginationOptions);
+
+  const result = await jobRequestService.getOffice();
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Office retrieved successfully.",
+    data: result,
+  });
+});
+
 export const jobRequestController = {
   createOffice,
   getOffice,
@@ -99,4 +114,5 @@ export const jobRequestController = {
   getAllJobRequests,
   getJobRequestDetails,
   updateJobRequest,
+  getAllJobRequetsForAOffice,
 };

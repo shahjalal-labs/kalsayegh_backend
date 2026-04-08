@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import ApiError from "../../../errors/ApiErrors";
 import { uploadInSpace } from "../../../helpers/uploadInSpace";
 import { logger } from "../../../shared/logger";
@@ -8,6 +9,7 @@ import {
   TUpdateJobRequest,
 } from "./jobRequest.validation";
 import httpStatus from "http-status";
+import { paginationHelper, TOptions } from "../../../shared/pagination";
 
 const createOffice = async (userId: string, payload: TCreateOffice) => {
   const user = await prisma.user.findUnique({
@@ -181,6 +183,41 @@ const updateJobRequest = async (
   return updated;
 };
 
+const getAllJobRequetsForAOffice = async (
+  officeId: string,
+  paginations: TOptions,
+) => {
+  const { page, skip, limit } = paginationHelper(paginations);
+
+  const whereClause: Prisma.JobRequestWhereInput = {
+    officeId,
+  };
+
+  const [jobRequests, total] = await Promise.all([
+    prisma.jobRequest.findMany({
+      where: whereClause,
+      skip,
+      take: limit,
+      orderBy: {
+        id: "desc",
+      },
+    }),
+
+    prisma.jobRequest.count({
+      where: whereClause,
+    }),
+  ]);
+
+  return {
+    meta: {
+      page,
+      limit,
+      total,
+    },
+    data: jobRequests,
+  };
+};
+
 export const jobRequestService = {
   createOffice,
   getOffice,
@@ -188,4 +225,5 @@ export const jobRequestService = {
   getAllJobRequests,
   getJobRequestDetails,
   updateJobRequest,
+  getAllJobRequetsForAOffice,
 };

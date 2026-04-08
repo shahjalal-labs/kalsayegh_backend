@@ -11,20 +11,20 @@ const router = Router();
 
 router.post(
   "/office-create",
-  auth(UserRole.OFFICE_ADMINISTRATOR, UserRole.ADMIN),
+  auth(UserRole.OFFICE_ADMINISTRATOR, UserRole.ADMIN, UserRole.ESTIMATOR),
   validateRequest(jobRequestValidatin.createOfficeSchema),
   jobRequestController.createOffice,
 );
 
 router.get(
   "/office",
-  auth(UserRole.OFFICE_ADMINISTRATOR, UserRole.ADMIN),
+  auth(UserRole.OFFICE_ADMINISTRATOR, UserRole.ADMIN, UserRole.ESTIMATOR),
   jobRequestController.getOffice,
 );
 
 router.post(
   "/create-job-request",
-  auth(UserRole.OFFICE_ADMINISTRATOR, UserRole.ADMIN),
+  auth(UserRole.OFFICE_ADMINISTRATOR, UserRole.ADMIN, UserRole.ESTIMATOR),
   fileUploader.uploadMultiple,
   parseBodyData,
   validateRequest(jobRequestValidatin.createJobRequestSchema),
@@ -33,19 +33,19 @@ router.post(
 
 router.get(
   "/all",
-  auth(UserRole.OFFICE_ADMINISTRATOR, UserRole.ADMIN),
+  auth(UserRole.OFFICE_ADMINISTRATOR, UserRole.ADMIN, UserRole.ESTIMATOR),
   jobRequestController.getAllJobRequests,
 );
 
 router.get(
   "/details/:id",
-  auth(UserRole.OFFICE_ADMINISTRATOR, UserRole.ADMIN),
+  auth(UserRole.OFFICE_ADMINISTRATOR, UserRole.ADMIN, UserRole.ESTIMATOR),
   jobRequestController.getJobRequestDetails,
 );
 
 router.patch(
   "/update-job-request/:id",
-  auth(UserRole.OFFICE_ADMINISTRATOR, UserRole.ADMIN),
+  auth(UserRole.OFFICE_ADMINISTRATOR, UserRole.ADMIN, UserRole.ESTIMATOR),
   fileUploader.uploadMultiple,
   parseBodyData,
   validateRequest(jobRequestValidatin.updateJobRequestSchema),
