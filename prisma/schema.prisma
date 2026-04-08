@@ -189,6 +189,7 @@ model Reaction {
   updatedAt    DateTime @updatedAt
   message      Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
 
+  @@unique([messageId, userId])
   @@map("reactions")
 }
 

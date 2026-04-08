@@ -31,6 +31,39 @@ export function setupWebSocketServer(server: any) {
     return new Map(users.map((user) => [user.id, user]));
   };
 
+  const getMessageReactions = async (messageIds: string[]) => {
+    if (messageIds.length === 0) return new Map<string, any[]>();
+
+    const reactions = await prisma.reaction.findMany({
+      where: { messageId: { in: messageIds } },
+      select: { messageId: true, userId: true, reactionIcon: true },
+    });
+
+    const reactionMap = new Map<string, any[]>();
+    for (const reaction of reactions) {
+      const existing = reactionMap.get(reaction.messageId) || [];
+      existing.push({
+        userId: reaction.userId,
+        reaction: reaction.reactionIcon,
+      });
+      reactionMap.set(reaction.messageId, existing);
+    }
+
+    return reactionMap;
+  };
+
+  const attachReactionsToMessages = async (messages: any[]) => {
+    const messageIds = messages
+      .map((msg) => msg.id)
+      .filter((id): id is string => Boolean(id));
+    const reactionMap = await getMessageReactions(messageIds);
+
+    return messages.map((message) => ({
+      ...message,
+      reactions: reactionMap.get(message.id) || [],
+    }));
+  };
+
   const buildConversations = async (targetUserId: string) => {
     const rooms = await prisma.room.findMany({
       where: { memberIds: { has: targetUserId } },
@@ -125,6 +158,8 @@ export function setupWebSocketServer(server: any) {
           receiverId,
           content,
           fileUrl,
+          messageId,
+          reaction,
         } = JSON.parse(message.toString());
 
         switch (type) {
@@ -206,13 +241,38 @@ export function setupWebSocketServer(server: any) {
 
             const redisKey = `room:${roomId}:messages`;
             const redisRaw = await redisClient.lrange(redisKey, -15, -1);
-            const messages = redisRaw.reverse().map((msg) => JSON.parse(msg));
+            let messages = redisRaw.reverse().map((msg) => JSON.parse(msg));
+
+            const hasMissingIds = messages.some(
+              (msg) => !msg?.id || typeof msg.id !== "string",
+            );
+
+            if (messages.length === 0 || hasMissingIds) {
+              const dbMessages = await prisma.message.findMany({
+                where: { roomId },
+                orderBy: { createdAt: "desc" },
+                take: 15,
+              });
+
+              messages = dbMessages.map((msg) => ({
+                id: msg.id,
+                content: msg.content,
+                senderId: msg.senderId,
+                roomId: msg.roomId,
+                fileUrl: msg.fileUrl,
+                createdAt: msg.createdAt.toISOString(),
+                updatedAt: msg.updatedAt.toISOString(),
+              }));
+            }
+
+            const messagesWithReactions =
+              await attachReactionsToMessages(messages);
 
             ws.send(
               JSON.stringify({
                 type: "subscribe",
                 roomId,
-                messages,
+                messages: messagesWithReactions,
               }),
             );
 
@@ -248,8 +308,18 @@ export function setupWebSocketServer(server: any) {
               select: { id: true, fullName: true, profileImage: true },
             });
 
+            const createdMessage = await prisma.message.create({
+              data: {
+                roomId,
+                senderId: userId,
+                content: content ?? null,
+                fileUrl: Array.isArray(fileUrl) ? fileUrl : [],
+              },
+            });
+
             const messagePayload = {
-              content,
+              id: createdMessage.id,
+              content: createdMessage.content,
               senderId: userId,
               sender: senderInfo
                 ? {
@@ -259,35 +329,15 @@ export function setupWebSocketServer(server: any) {
                   }
                 : null,
               roomId,
-              fileUrl,
-              createdAt: new Date().toISOString(),
+              fileUrl: createdMessage.fileUrl,
+              createdAt: createdMessage.createdAt.toISOString(),
+              updatedAt: createdMessage.updatedAt.toISOString(),
+              reactions: [],
             };
 
             const redisKey = `room:${roomId}:messages`;
             await redisClient.rpush(redisKey, JSON.stringify(messagePayload));
-            const count = await redisClient.llen(redisKey);
-
-            if (count >= 30) {
-              const messagesToSaveRaw = await redisClient.lrange(
-                redisKey,
-                0,
-                14,
-              );
-              const messagesToSave = messagesToSaveRaw.map((msg) => {
-                const parsed = JSON.parse(msg);
-                return {
-                  roomId: parsed.roomId,
-                  senderId: parsed.senderId,
-                  content: parsed.content ?? null,
-                  fileUrl: parsed.fileUrl ?? [],
-                  createdAt: new Date(parsed.createdAt),
-                  updatedAt: new Date(parsed.createdAt),
-                };
-              });
-
-              await prisma.message.createMany({ data: messagesToSave });
-              await redisClient.ltrim(redisKey, 15, -1);
-            }
+            await redisClient.ltrim(redisKey, -30, -1);
 
             const pipeline = redisClient.multi();
             for (const memberId of room.memberIds) {
@@ -329,6 +379,98 @@ export function setupWebSocketServer(server: any) {
                 );
               }
             }
+
+            break;
+          }
+
+          case "reaction": {
+            if (!roomId) {
+              return ws.send(
+                JSON.stringify({
+                  type: "error",
+                  message: "You are not subscribed to any room",
+                }),
+              );
+            }
+
+            if (!messageId || typeof messageId !== "string") {
+              return ws.send(
+                JSON.stringify({
+                  type: "error",
+                  message: "messageId is required",
+                }),
+              );
+            }
+
+            const messageRecord = await prisma.message.findUnique({
+              where: { id: messageId },
+              select: { id: true, roomId: true },
+            });
+
+            if (!messageRecord || messageRecord.roomId !== roomId) {
+              return ws.send(
+                JSON.stringify({
+                  type: "error",
+                  message: "Message not found in subscribed room",
+                }),
+              );
+            }
+
+            const normalizedReaction =
+              typeof reaction === "string" ? reaction.trim() : "";
+
+            const existingReaction = await prisma.reaction.findFirst({
+              where: { messageId, userId },
+              select: { id: true, reactionIcon: true },
+            });
+
+            if (!normalizedReaction) {
+              if (existingReaction) {
+                await prisma.reaction.delete({
+                  where: { id: existingReaction.id },
+                });
+              }
+            } else if (existingReaction?.reactionIcon === normalizedReaction) {
+              await prisma.reaction.delete({
+                where: { id: existingReaction.id },
+              });
+            } else if (existingReaction) {
+              await prisma.reaction.update({
+                where: { id: existingReaction.id },
+                data: { reactionIcon: normalizedReaction },
+              });
+            } else {
+              await prisma.reaction.create({
+                data: {
+                  messageId,
+                  userId,
+                  reactionIcon: normalizedReaction,
+                },
+              });
+            }
+
+            const reactionsRaw = await prisma.reaction.findMany({
+              where: { messageId },
+              select: { userId: true, reactionIcon: true },
+            });
+
+            const reactions = reactionsRaw.map((item) => ({
+              userId: item.userId,
+              reaction: item.reactionIcon,
+            }));
+
+            roomUsers.get(roomId)?.forEach((client) => {
+              if (client.readyState === WebSocket.OPEN) {
+                client.send(
+                  JSON.stringify({
+                    type: "update-reactions",
+                    messageId,
+                    roomId,
+                    reactions,
+                  }),
+                );
+              }
+            });
 
             break;
           }
