@@ -1,9 +1,20 @@
 import { Message } from "@prisma/client";
 import prisma from "../../../shared/prisma";
+import { uploadInSpace } from "../../../helpers/uploadInSpace";
 
 export const createManyMessage = async (data: Message) => {
   await prisma.message.create({ data });
   return;
+};
+
+const generateUrls = async (files: { urls: Express.Multer.File[] }) => {
+  const processedFiles = await Promise.all(
+    files.urls.map(async (file) => {
+      const url = await uploadInSpace(file, "messages");
+      return { originalName: file.originalname, url };
+    }),
+  );
+  return processedFiles;
 };
 
 const getAllMessages = async () => {
@@ -28,6 +39,7 @@ const deleteMessage = async (id: string) => {
 
 export const messageServices = {
   createManyMessage,
+  generateUrls,
   getAllMessages,
   getMessageById,
   updateMessage,

@@ -11,6 +11,17 @@ const createManyMessage = catchAsync(async (req, res) => {
   });
 });
 
+const generateUrls = catchAsync(async (req, res) => {
+  const files = req.files as { urls: Express.Multer.File[] };
+  const urls = await messageServices.generateUrls(files);
+  sendResponse(res, {
+    success: true,
+    statusCode: 201,
+    message: "URLs generated successfully",
+    data: urls,
+  });
+});
+
 const getAllMessages = catchAsync(async (req, res) => {
   const result = await messageServices.getAllMessages();
   sendResponse(res, {
@@ -51,6 +62,7 @@ const deleteMessage = catchAsync(async (req, res) => {
 
 export const messageControllers = {
   createManyMessage,
+  generateUrls,
   getAllMessages,
   getMessageById,
   updateMessage,
