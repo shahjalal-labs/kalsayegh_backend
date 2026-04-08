@@ -37,8 +37,8 @@ const groupPhoto = upload.single("groupPhoto");
 
 // upload multiple image
 const uploadMultiple = upload.fields([
-  { name: "thumbnail", maxCount: 1 },
   { name: "classVideo", maxCount: 1 },
+  { name: "jobRequestsImage", maxCount: 5 },
 ]);
 
 export const fileUploader = {
