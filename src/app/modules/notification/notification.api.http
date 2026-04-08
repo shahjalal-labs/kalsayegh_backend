@@ -16,8 +16,8 @@ Content-Type: application/json
     "messagePreview": "meta message preview"
   },
   "notificationChannel": "BOTH",
-  "receiverId": "69d3549dd104ea1be1dc2ac3",
-  "senderId": "69ce3575d5c1d13eeefbf369",
+  "receiverId": "69d4d602435b7b9eb3f426ef",
+  "senderId": "69d4d168435b7b9eb3f426e9",
   "title": "Send test notification",
   "type": "SYSTEM"
 }

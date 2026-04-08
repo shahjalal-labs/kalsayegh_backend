@@ -16,6 +16,7 @@ export type TUserRegister = z.infer<typeof userRegisterValidationSchema>;
 const verificationSchema = z.object({
   email: z.string().min(10, "Phone Number min 10 Digit"),
   otp: z.string().min(4, "OTP must be at least 4 characters long"),
+  fcmToken: z.string().optional(),
 });
 
 const userUpdateValidationSchema = z.object({

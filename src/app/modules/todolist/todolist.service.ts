@@ -1,11 +1,11 @@
 import { Prisma } from "@prisma/client";
 import { paginationHelper, TOptions } from "../../../shared/pagination";
 import prisma from "../../../shared/prisma";
-import { logger } from "../../../shared/logger";
 import { uploadInSpace } from "../../../helpers/uploadInSpace";
 import ApiError from "../../../errors/ApiErrors";
 import httpStatus from "http-status";
-import { TCreateTodolist } from "./todolist.validation";
+import { TCreateTodolist, TupdateTodo } from "./todolist.validation";
+import { logger } from "../../../shared/logger";
 
 const getOfficeAdministrator = async (
   paginations: TOptions,
@@ -165,7 +165,7 @@ const getAllTodolist = async (paginations: TOptions) => {
   };
 };
 
-const todoDetails = async (todoId: string) => {
+const getTodoDetails = async (todoId: string) => {
   const todo = await prisma.todolist.findUnique({
     where: {
       id: todoId,
@@ -192,9 +192,26 @@ const todoDetails = async (todoId: string) => {
   return todo;
 };
 
+const updateTodo = async (todoId: string, payload: TupdateTodo) => {
+  const updated = await prisma.todolist.update({
+    where: {
+      id: todoId,
+    },
+    data: payload,
+    select: {
+      id: true,
+      title: true,
+    },
+  });
+
+  if (!updated) throw new ApiError(httpStatus.NOT_FOUND, "Todo not found");
+  return updated;
+};
+
 export const todolistService = {
   getOfficeAdministrator,
   createTodolist,
   getAllTodolist,
-  todoDetails,
+  getTodoDetails,
+  updateTodo,
 };

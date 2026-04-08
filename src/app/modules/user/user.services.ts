@@ -103,7 +103,11 @@ const resendOtp = async (email: string) => {
   return otp;
 };
 
-const signupVerification = async (payload: { email: string; otp: string }) => {
+const signupVerification = async (payload: {
+  email: string;
+  otp: string;
+  fcmToken?: string;
+}) => {
   const { email, otp } = payload;
 
   const pendingUser = await prisma.pendingUser.findUnique({
@@ -140,6 +144,7 @@ const signupVerification = async (payload: { email: string; otp: string }) => {
         role: pendingUser.role,
         profession: pendingUser.profession,
         profileImage: pendingUser.profileImage,
+        fcmToken: payload.fcmToken,
       },
     });
     await tx.pendingUser.delete({ where: { email } });
