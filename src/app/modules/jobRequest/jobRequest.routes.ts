@@ -52,4 +52,10 @@ router.patch(
   jobRequestController.updateJobRequest,
 );
 
+router.get(
+  "/requests-for-office/:id",
+  auth(UserRole.OFFICE_ADMINISTRATOR, UserRole.ADMIN, UserRole.ESTIMATOR),
+  jobRequestController.getAllJobRequetsForAOffice,
+);
+
 export const jobRequestRoutes = router;

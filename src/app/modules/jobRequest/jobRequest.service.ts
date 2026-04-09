@@ -1,7 +1,6 @@
 import { Prisma } from "@prisma/client";
 import ApiError from "../../../errors/ApiErrors";
 import { uploadInSpace } from "../../../helpers/uploadInSpace";
-import { logger } from "../../../shared/logger";
 import prisma from "../../../shared/prisma";
 import {
   TCreateJobRequest,
@@ -196,6 +195,12 @@ const getAllJobRequetsForAOffice = async (
   const [jobRequests, total] = await Promise.all([
     prisma.jobRequest.findMany({
       where: whereClause,
+      select: {
+        id: true,
+        title: true,
+        date: true,
+        status: true,
+      },
       skip,
       take: limit,
       orderBy: {
@@ -213,6 +218,7 @@ const getAllJobRequetsForAOffice = async (
       page,
       limit,
       total,
+      totalPages: Math.ceil(total / limit),
     },
     data: jobRequests,
   };

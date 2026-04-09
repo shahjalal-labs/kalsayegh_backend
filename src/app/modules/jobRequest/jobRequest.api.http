@@ -64,3 +64,11 @@ Content-Type: application/json
   "status": "REVIEWED",
   "title": "10 Storyed building for school"
 }
+
+
+### get all job requests for a office
+
+# requests-for-office/:officeId
+
+GET {{baseUrl}}/job-request/requests-for-office/69d5edc0810a2cd30c06ee1c HTTP/1.1
+Authorization: {{administrator}}

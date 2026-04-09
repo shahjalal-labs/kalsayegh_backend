@@ -1,4 +1,3 @@
-import { http } from "winston";
 import catchAsync from "../../../shared/catchAsync";
 import sendResponse from "../../../shared/sendResponse";
 import { jobRequestService } from "./jobRequest.service";
@@ -95,14 +94,18 @@ const updateJobRequest = catchAsync(async (req, res) => {
 });
 
 const getAllJobRequetsForAOffice = catchAsync(async (req, res) => {
+  const { id: officeId } = req.params;
   const paginations = pick(req.query, paginationOptions);
 
-  const result = await jobRequestService.getOffice();
+  const result = await jobRequestService.getAllJobRequetsForAOffice(
+    officeId,
+    paginations,
+  );
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Office retrieved successfully.",
+    message: "Job requests for a office retrieved successfully.",
     data: result,
   });
 });
