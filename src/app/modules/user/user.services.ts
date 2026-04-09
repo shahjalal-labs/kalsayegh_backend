@@ -152,17 +152,17 @@ const signupVerification = async (payload: {
     return user;
   });
 
-  /* const accessToken = jwtHelpers.generateToken(
+  const accessToken = jwtHelpers.generateToken(
     { id: user.id, role: user.role },
     config.jwt.jwt_secret as Secret,
     config.jwt.expires_in as string,
-  ); */
+  );
 
-  return; /* {
+  return {
     accessToken: accessToken,
     id: user.id,
     role: user.role,
-  }; */
+  };
 };
 
 const getUserDetails = async (userId: string) => {
