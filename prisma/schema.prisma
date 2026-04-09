@@ -16,7 +16,7 @@ model User {
   profileImage          String?
   profession            String?
   role                  UserRole
-  status                UserStatus     @default(ACTIVE)
+  status                UserStatus     @default(PENDING)
   createdAt             DateTime       @default(now())
   updatedAt             DateTime       @updatedAt
   receivedNotifications Notification[] @relation("notificationRecieve")
@@ -44,9 +44,9 @@ model PendingUser {
 }
 
 enum UserStatus {
+  PENDING
   ACTIVE
-  BLOCKED
-  DELETED
+  INACTIVE
 }
 
 enum UserRole {

@@ -4,8 +4,8 @@ POST {{baseUrl}}/users/create HTTP/1.1
 Content-Type: application/json
 
 {
-  "email": "shahjalal.backend@gmail.com",
-  "fullName": "John Doe",
+  "email": "jabirbinhasan@gmail.com",
+  "fullName": "Jabir Bin Hasan",
   "password": "Aw32@320",
   "profession": "Developer",
   "role": "WORKER"
@@ -18,9 +18,9 @@ POST {{baseUrl}}/users/signup-verification HTTP/1.1
 Content-Type: application/json
 
 {
-  "email": "shahjalal.backend@gmail.com",
+  "email": "jabirbinhasan@gmail.com",
   "fcmToken": "fcm1",
-  "otp": "8463"
+  "otp": "1767"
 }
 
 

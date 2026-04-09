@@ -7,6 +7,7 @@ const createSchedule = async (data: Schedule) => {
       scheduleDate: data.scheduleDate,
     },
   });
+
   if (isExistingSchedule) {
     throw new Error("A schedule already exists for this date.");
   }

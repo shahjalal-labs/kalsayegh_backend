@@ -1,3 +1,4 @@
+import { UserStatus } from "@prisma/client";
 import z from "zod";
 
 const updateUserDetailsSchema = z
@@ -5,9 +6,8 @@ const updateUserDetailsSchema = z
     fullName: z.string(),
     profession: z.string(),
     email: z.string().email(),
-    createdAt: z.string().datetime({
-      offset: false,
-    }),
+    status: z.nativeEnum(UserStatus),
+    createdAt: z.string().datetime(),
   })
   .partial()
   .strict();

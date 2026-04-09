@@ -28,7 +28,7 @@ const signupVerification = catchAsync(async (req, res) => {
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.OK,
-    message: "OTP verification successful",
+    message: "OTP verification successful. Please login",
     data: result,
   });
 });

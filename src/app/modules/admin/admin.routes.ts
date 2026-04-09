@@ -29,6 +29,13 @@ router.patch(
   validateRequest(adminValidation.updateUserDetailsSchema),
   adminController.updateUserDetails,
 );
+
 router.delete("/:id", auth(UserRole.ADMIN), adminController.deleteUserAccount);
+
+router.get(
+  "/estimator/all",
+  auth(UserRole.ADMIN, UserRole.OFFICE_ADMINISTRATOR),
+  adminController.getAllEstimator,
+);
 
 export const adminRoutes = router;

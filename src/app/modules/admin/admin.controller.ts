@@ -3,6 +3,7 @@ import catchAsync from "../../../shared/catchAsync";
 import sendResponse from "../../../shared/sendResponse";
 import { adminService } from "./admin.service";
 import pick from "../../../shared/pick";
+import { paginationOptions } from "../../../shared/pagination";
 
 const getEmployeeList = catchAsync(async (req, res) => {
   const { page = 1, limit = 10 } = req.query;
@@ -85,6 +86,19 @@ const deleteUserAccount = catchAsync(async (req, res) => {
   });
 });
 
+const getAllEstimator = catchAsync(async (req, res) => {
+  const paginations = pick(req.query, paginationOptions);
+  const filter = pick(req.query, ["searchTerm"]);
+  const result = await adminService.getAllEstimator(paginations, filter);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "All estimators retrieved successfully",
+    data: result,
+  });
+});
+
 export const adminController = {
   getEmployeeList,
   getAdminOverview,
@@ -92,4 +106,5 @@ export const adminController = {
   getEmployeeDetails,
   updateUserDetails,
   deleteUserAccount,
+  getAllEstimator,
 };

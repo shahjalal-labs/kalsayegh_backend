@@ -1,6 +1,6 @@
 ### get employee list | admin
 
-GET {{baseUrl}}/admin/employees?page=1&limit=20&searchTerm=dg@gmail HTTP/1.1
+GET {{baseUrl}}/admin/employees?page=1&limit=20&searchTerm=jabir HTTP/1.1
 Authorization: {{admin}}
 
 
@@ -26,7 +26,7 @@ Authorization: {{admin}}
 
 ### update user details
 
-PATCH {{baseUrl}}/admin/69cdf6533266564213c476d3 HTTP/1.1
+PATCH {{baseUrl}}/admin/69d728708e5601b07a3b716e HTTP/1.1
 Authorization: {{admin}}
 Content-Type: application/json
 
@@ -34,7 +34,19 @@ Content-Type: application/json
   "createdAt": "2026-04-06T10:30:00Z",
   "email": "john201.doe@example.com",
   "fullName": "Jabir Al Imran2",
-  "profession": "teacher"
+  "profession": "teacher",
+  "status": "ACTIVE"
+}
+
+
+### update user details
+
+PATCH {{baseUrl}}/admin/69d728708e5601b07a3b716e HTTP/1.1
+Authorization: {{admin}}
+Content-Type: application/json
+
+{
+  "status": "ACTIVE"
 }
 
 
@@ -43,4 +55,10 @@ Content-Type: application/json
 # admin/:userId todolist
 
 DELETE {{baseUrl}}/admin/69d36fa9b7a0cb61ea482473 HTTP/1.1
+Authorization: {{admin}}
+
+
+### get all estimator
+
+GET {{baseUrl}}/admin/estimator/all?page=1&limit=20&searchTerm=xvc HTTP/1.1
 Authorization: {{admin}}

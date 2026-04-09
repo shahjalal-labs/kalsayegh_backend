@@ -23,6 +23,7 @@ import {
 import ApiError from "../../../errors/ApiErrors";
 import httpStatus from "http-status";
 import { TUpdateUserDetailsSchema } from "./admin.validation";
+import { paginationHelper, TOptions } from "../../../shared/pagination";
 
 // Helper to calculate duration in hours (decimal)
 const calculateHours = (clockIn: Date, clockOut: Date | null): number => {
@@ -531,6 +532,82 @@ const deleteUserAccount = async (userId: string) => {
   });
 };
 
+const getAllEstimator = async (
+  paginations: TOptions,
+  filter?: {
+    searchTerm?: string;
+  },
+) => {
+  const { page, skip, limit } = paginationHelper(paginations);
+  const whereClause: Prisma.UserWhereInput = {
+    role: "ESTIMATOR",
+  };
+
+  const andClause: Prisma.UserWhereInput[] = [];
+  const searchTerm = filter?.searchTerm?.trim();
+
+  if (searchTerm) {
+    andClause.push({
+      OR: [
+        {
+          fullName: {
+            contains: searchTerm,
+            mode: "insensitive",
+          },
+        },
+        {
+          email: {
+            contains: searchTerm,
+            mode: "insensitive",
+          },
+        },
+        {
+          profession: {
+            contains: searchTerm,
+            mode: "insensitive",
+          },
+        },
+      ],
+    });
+  }
+
+  if (andClause.length) {
+    whereClause.AND = andClause;
+  }
+
+  const [estimators, total] = await Promise.all([
+    prisma.user.findMany({
+      where: whereClause,
+      skip,
+      take: limit,
+      orderBy: {
+        id: "desc", // same as created:"desc"
+      },
+
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        status: true,
+      },
+    }),
+
+    prisma.user.count({
+      where: whereClause,
+    }),
+  ]);
+
+  return {
+    meta: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+    data: estimators,
+  };
+};
+
 export const adminService = {
   getEmployeeList,
   getAdminOverview,
@@ -538,4 +615,5 @@ export const adminService = {
   getEmployeeDetails,
   updateUserDetails,
   deleteUserAccount,
+  getAllEstimator,
 };
