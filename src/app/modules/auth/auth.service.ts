@@ -217,6 +217,7 @@ const myProfile = async (userId: string) => {
       profileImage: true,
       profession: true,
       email: true,
+      role: true,
     },
   });
   if (!user) {
