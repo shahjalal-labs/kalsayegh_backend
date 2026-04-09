@@ -32,7 +32,7 @@ const createClientInDB = async (clientData: Client, userId: string) => {
     },
   });
 
-  return newClient.id;
+  return newClient;
 };
 
 const getMyClientsFromDB = async (userId: string) => {
