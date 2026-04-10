@@ -24,6 +24,7 @@ import ApiError from "../../../errors/ApiErrors";
 import httpStatus from "http-status";
 import { TUpdateUserDetailsSchema } from "./admin.validation";
 import { paginationHelper, TOptions } from "../../../shared/pagination";
+import { logger } from "../../../shared/logger";
 
 // Helper to calculate duration in hours (decimal)
 const calculateHours = (clockIn: Date, clockOut: Date | null): number => {
@@ -589,6 +590,7 @@ const getAllEstimator = async (
         fullName: true,
         email: true,
         status: true,
+        role: true,
       },
     }),
 
@@ -608,6 +610,82 @@ const getAllEstimator = async (
   };
 };
 
+const getAllOfficeAdmin = async (
+  paginations: TOptions,
+  filter?: {
+    searchTerm?: string;
+  },
+) => {
+  const { page, skip, limit } = paginationHelper(paginations);
+
+  const whereClause: Prisma.UserWhereInput = {
+    role: "OFFICE_ADMINISTRATOR",
+  };
+
+  const andClause: Prisma.UserWhereInput[] = [];
+
+  const searchTerm = filter?.searchTerm?.trim();
+
+  if (searchTerm)
+    andClause.push({
+      OR: [
+        {
+          fullName: {
+            contains: searchTerm,
+            mode: "insensitive",
+          },
+        },
+        {
+          email: {
+            contains: searchTerm,
+            mode: "insensitive",
+          },
+        },
+        {
+          profession: {
+            contains: searchTerm,
+            mode: "insensitive",
+          },
+        },
+      ],
+    });
+
+  if (andClause.length) whereClause.AND = andClause;
+
+  const [officeAdmins, total] = await Promise.all([
+    prisma.user.findMany({
+      where: whereClause,
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        status: true,
+        role: true,
+      },
+      skip,
+      take: limit,
+      orderBy: {
+        id: "desc", //same as createdAt:"desc"
+      },
+    }),
+
+    prisma.user.count({
+      where: whereClause,
+    }),
+  ]);
+
+  return {
+    meta: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+
+    data: officeAdmins,
+  };
+};
+
 export const adminService = {
   getEmployeeList,
   getAdminOverview,
@@ -616,4 +694,5 @@ export const adminService = {
   updateUserDetails,
   deleteUserAccount,
   getAllEstimator,
+  getAllOfficeAdmin,
 };

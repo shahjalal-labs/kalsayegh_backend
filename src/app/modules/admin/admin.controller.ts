@@ -99,6 +99,19 @@ const getAllEstimator = catchAsync(async (req, res) => {
   });
 });
 
+const getAllOfficeAdmin = catchAsync(async (req, res) => {
+  const paginations = pick(req.query, paginationOptions);
+  const filter = pick(req.query, ["searchTerm"]);
+  const result = await adminService.getAllOfficeAdmin(paginations, filter);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "All office admin retrieved successfully",
+    data: result,
+  });
+});
+
 export const adminController = {
   getEmployeeList,
   getAdminOverview,
@@ -107,4 +120,5 @@ export const adminController = {
   updateUserDetails,
   deleteUserAccount,
   getAllEstimator,
+  getAllOfficeAdmin,
 };

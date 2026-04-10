@@ -38,4 +38,10 @@ router.get(
   adminController.getAllEstimator,
 );
 
+router.get(
+  "/office-admin/all",
+  auth(UserRole.ADMIN, UserRole.OFFICE_ADMINISTRATOR),
+  adminController.getAllOfficeAdmin,
+);
+
 export const adminRoutes = router;

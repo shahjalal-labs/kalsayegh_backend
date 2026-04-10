@@ -60,5 +60,11 @@ Authorization: {{admin}}
 
 ### get all estimator
 
-GET {{baseUrl}}/admin/estimator/all?page=1&limit=20&searchTerm=xvc HTTP/1.1
+GET {{baseUrl}}/admin/estimator/all?page=1&limit=20&searchTerm=a HTTP/1.1
+Authorization: {{admin}}
+
+
+### get all office admin
+
+GET {{baseUrl}}/admin/office-admin/all?page=1&limit=20&searchTerm=office2 HTTP/1.1
 Authorization: {{admin}}
