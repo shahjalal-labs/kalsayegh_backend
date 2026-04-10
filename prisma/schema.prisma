@@ -166,18 +166,19 @@ model Message {
 }
 
 model Client {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  estimatorId String?  @db.ObjectId
+  id          String     @id @default(auto()) @map("_id") @db.ObjectId
+  estimatorId String?    @db.ObjectId
   clientName  String
-  email       String   @unique
+  email       String     @unique
   phoneNumber String
   address     String
   city        String
   zip         String
   state       String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  estimator   User?    @relation(fields: [estimatorId], references: [id], onDelete: Cascade)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  estimator   User?      @relation(fields: [estimatorId], references: [id], onDelete: Cascade)
+  estimates   Estimate[]
 
   @@map("clients")
 }
@@ -218,16 +219,17 @@ model Item {
 
   @@map("items")
 }
+
 model Estimate {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  clientId    String   @db.ObjectId
+  id           String @id @default(auto()) @map("_id") @db.ObjectId
+  clientId     String @db.ObjectId
   estimateName String
-  date String
-  endDate String
-  
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  client      Client  @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  date         String
+  endDate      String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
 
   @@map("estimates")
 }
