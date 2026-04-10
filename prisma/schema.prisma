@@ -182,6 +182,56 @@ model Client {
   @@map("clients")
 }
 
+model MarkUp {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  name       String   @unique
+  percentage Int?
+  amount     Int?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  items      Item[]
+
+  @@map("markups")
+}
+
+model Tax {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  name       String   @unique
+  percentage Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("taxes")
+}
+
+model Item {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  itemName    String
+  markUpId    String?  @db.ObjectId
+  rate        Int
+  taxes       String[] @default([])
+  description String?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  markUp      MarkUp?  @relation(fields: [markUpId], references: [id], onDelete: SetNull)
+
+  @@map("items")
+}
+model Estimate {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  clientId    String   @db.ObjectId
+  estimateName String
+  date String
+  endDate String
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  client      Client  @relation(fields: [clientId], references: [id], onDelete: SetNull)
+
+  @@map("estimates")
+}
+
 model Reaction {
   id           String   @id @default(auto()) @map("_id") @db.ObjectId
   messageId    String   @db.ObjectId
