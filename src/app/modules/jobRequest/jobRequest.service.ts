@@ -124,6 +124,7 @@ const getJobRequestDetails = async (jobReqId: string) => {
       id: true,
       title: true,
       date: true,
+      images: true,
       note: true,
       officeLatitude: true,
       officeLongitude: true,
