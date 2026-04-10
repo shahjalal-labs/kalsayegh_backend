@@ -26,7 +26,7 @@ async function main() {
     where: { email: "office2.administrator@gmail.com" },
     update: {},
     create: {
-      email: "office2.administrator@gmail.com",
+      email: "office.administrator@gmail.com",
       fullName: "Office Administrator 2",
       password: hashedPassword,
       role: "OFFICE_ADMINISTRATOR",
