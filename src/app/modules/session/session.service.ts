@@ -23,6 +23,19 @@ const formatHoursToHHMM = (hours: number) => {
 };
 
 const clockIn = async (data: Session, userId: string) => {
+  const userInfo = await prisma.user.findUnique({ where: { id: userId } });
+  if (!userInfo) throw new ApiError(404, "User not found");
+  if (userInfo.status === "INACTIVE")
+    throw new ApiError(
+      403,
+      "Your account is inactive. Please contact an administrator.",
+    );
+  if (userInfo.status === "BLOCKED")
+    throw new ApiError(
+      403,
+      "Your account is blocked. Please contact an administrator.",
+    );
+
   const session = await prisma.session.create({
     data: {
       ...data,
