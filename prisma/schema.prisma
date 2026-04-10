@@ -166,20 +166,72 @@ model Message {
 }
 
 model Client {
-  id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  estimatorId String?  @db.ObjectId
+  id          String     @id @default(auto()) @map("_id") @db.ObjectId
+  estimatorId String?    @db.ObjectId
   clientName  String
-  email       String   @unique
+  email       String     @unique
   phoneNumber String
   address     String
   city        String
   zip         String
   state       String
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  estimator   User?    @relation(fields: [estimatorId], references: [id], onDelete: Cascade)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  estimator   User?      @relation(fields: [estimatorId], references: [id], onDelete: Cascade)
+  estimates   Estimate[]
 
   @@map("clients")
+}
+
+model MarkUp {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  name       String   @unique
+  percentage Int?
+  amount     Int?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  items      Item[]
+
+  @@map("markups")
+}
+
+model Tax {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  name       String   @unique
+  percentage Int
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("taxes")
+}
+
+model Item {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  itemName    String
+  markUpId    String?  @db.ObjectId
+  rate        Int
+  taxes       String[] @default([])
+  description String?
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  markUp      MarkUp?  @relation(fields: [markUpId], references: [id], onDelete: SetNull)
+
+  @@map("items")
+}
+
+model Estimate {
+  id           String @id @default(auto()) @map("_id") @db.ObjectId
+  clientId     String @db.ObjectId
+  estimateName String
+  date         String
+  endDate      String
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@map("estimates")
 }
 
 model Reaction {

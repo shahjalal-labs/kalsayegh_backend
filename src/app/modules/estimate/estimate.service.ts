@@ -1,4 +1,4 @@
-import { Client } from "@prisma/client";
+import { Client, Item, MarkUp, Tax } from "@prisma/client";
 import prisma from "../../../shared/prisma";
 import ApiError from "../../../errors/ApiErrors";
 
@@ -8,7 +8,7 @@ const createClientInDB = async (clientData: Client, userId: string) => {
       id: userId,
     },
   });
- 
+
   const client = await prisma.client.findUnique({
     where: {
       email: clientData.email,
@@ -43,9 +43,9 @@ const getMyClientsFromDB = async (userId: string) => {
   });
 
   const clients = await prisma.client.findMany({
-    where: {
-      estimatorId: user.role === "ESTIMATOR" ? userId : undefined,
-    },
+    // where: {
+    //   estimatorId: user.role === "ESTIMATOR" ? userId : undefined,
+    // },
     select: {
       id: true,
       clientName: true,
@@ -53,13 +53,200 @@ const getMyClientsFromDB = async (userId: string) => {
       city: true,
       address: true,
       state: true,
-      zip: true,    
+      zip: true,
     },
   });
   return clients;
 };
 
+const createNewMarkUpInDB = async (payload: MarkUp) => {
+  const existingMarkUp = await prisma.markUp.findUnique({
+    where: {
+      name: payload.name,
+    },
+  });
+
+  if (existingMarkUp) {
+    throw new ApiError(400, "MarkUp with this name already exists");
+  }
+
+  if (!payload.percentage && !payload.amount) {
+    throw new ApiError(400, "Either percentage or amount must be provided");
+  }
+
+  if (payload.percentage && payload.amount) {
+    throw new ApiError(400, "Only one of percentage or amount can be provided");
+  }
+
+  const newMarkUp = await prisma.markUp.create({
+    data: {
+      name: payload.name,
+      percentage: payload.percentage,
+      amount: payload.amount,
+    },
+  });
+
+  return newMarkUp;
+};
+
+const getAllMarkUpsFromDB = async () => {
+  const markUps = await prisma.markUp.findMany({
+    select: {
+      id: true,
+      name: true,
+      percentage: true,
+      amount: true,
+    },
+  });
+  return markUps;
+};
+
+const createNewItemInDB = async (payload: Item) => {
+  const existingItem = await prisma.item.findFirst({
+    where: {
+      itemName: payload.itemName,
+    },
+  });
+
+  if (existingItem) {
+    throw new ApiError(400, "Item with this name already exists");
+  }
+
+  if (payload.markUpId) {
+    const markUp = await prisma.markUp.findUnique({
+      where: {
+        id: payload.markUpId,
+      },
+    });
+    if (!markUp) {
+      throw new ApiError(400, "MarkUp does not exist");
+    }
+  }
+
+  if (payload.taxes?.length > 0) {
+    const existingTaxes = await prisma.tax.findMany({
+      where: {
+        id: {
+          in: payload.taxes,
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    const existingTaxIds = new Set(existingTaxes.map((tax) => tax.id));
+    const invalidTaxIds = payload.taxes.filter(
+      (taxId) => !existingTaxIds.has(taxId),
+    );
+
+    if (invalidTaxIds.length) {
+      throw new ApiError(400, `Invalid tax id(s): ${invalidTaxIds.join(", ")}`);
+    }
+  }
+
+  const newItem = await prisma.item.create({
+    data: {
+      itemName: payload.itemName,
+      markUpId: payload.markUpId,
+      rate: payload.rate,
+      description: payload.description,
+      notes: payload.notes,
+      taxes: payload.taxes,
+    },
+  });
+  return newItem;
+};
+
+const getItemListFromDB = async () => {
+  const items = await prisma.item.findMany({
+    select: {
+      id: true,
+      itemName: true,
+      description: true,
+      markUp: {
+        select: {
+          id: true,
+          name: true,
+          percentage: true,
+          amount: true,
+        },
+      },
+      taxes: true,
+    },
+  });
+
+  const taxIds = [...new Set(items.flatMap((item) => item.taxes ?? []))];
+
+  const taxList =
+    taxIds.length > 0
+      ? await prisma.tax.findMany({
+          where: {
+            id: {
+              in: taxIds,
+            },
+          },
+          select: {
+            id: true,
+            name: true,
+            percentage: true,
+          },
+        })
+      : [];
+
+  const taxMap = new Map(taxList.map((tax) => [tax.id, tax]));
+
+  const itemsWithTaxData = items.map((item) => ({
+    ...item,
+    taxes: (item.taxes ?? []).map((taxId) => taxMap.get(taxId)).filter(Boolean),
+  }));
+
+  return itemsWithTaxData;
+};
+
+const createNewTaxInDB = async (payload: Tax) => {
+  const existingTax = await prisma.tax.findUnique({
+    where: {
+      name: payload.name,
+    },
+  });
+
+  if (existingTax) {
+    throw new ApiError(400, "Tax with this name already exists");
+  }
+
+  if (!payload.percentage) {
+    throw new ApiError(400, "Percentage must be provided");
+  }
+
+  const newTax = await prisma.tax.create({
+    data: {
+      name: payload.name,
+      percentage: payload.percentage,
+    },
+  });
+
+  return newTax;
+};
+
+const getAllTaxesFromDB = async () => {
+  const taxes = await prisma.tax.findMany({
+    select: {
+      id: true,
+      name: true,
+      percentage: true,
+    },
+  });
+  return taxes;
+};
+
 export const estimateService = {
   createClientInDB,
   getMyClientsFromDB,
+  createNewMarkUpInDB,
+  getAllMarkUpsFromDB,
+  createNewItemInDB,
+  createNewTaxInDB,
+  getItemListFromDB,
+  getAllTaxesFromDB,
 };
