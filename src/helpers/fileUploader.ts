@@ -41,6 +41,7 @@ const uploadMultiple = upload.fields([
   { name: "urls", maxCount: 10 },
   { name: "map", maxCount: 1 },
   { name: "jobRequestsImage", maxCount: 5 },
+  { name: "todolistImages", maxCount: 10 },
 ]);
 
 export const fileUploader = {

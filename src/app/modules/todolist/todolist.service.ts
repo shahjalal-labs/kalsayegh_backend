@@ -82,7 +82,7 @@ const getOfficeAdministrator = async (
 const createTodolist = async (
   userId: string,
   payload: TCreateTodolist,
-  file?: Express.Multer.File,
+  files?: Express.Multer.File[],
 ) => {
   const [user, assingedUser] = await Promise.all([
     prisma.user.findUnique({
@@ -109,17 +109,19 @@ const createTodolist = async (
   if (!assingedUser)
     throw new ApiError(httpStatus.NOT_FOUND, "AssignedTo user not found");
 
-  let todolistImage;
+  let todolistImages: string[] = [];
 
-  if (file) {
-    todolistImage = await uploadInSpace(file, "users/todolistImage");
+  if (files?.length) {
+    await Promise.all(
+      files.map(async (f) => await uploadInSpace(f, "users/todolistImage")),
+    );
   }
 
   return prisma.todolist.create({
     data: {
       ...payload,
       creatorId: userId,
-      image: todolistImage,
+      image: todolistImages,
     },
     select: {
       id: true,

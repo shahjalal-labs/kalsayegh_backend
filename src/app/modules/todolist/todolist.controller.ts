@@ -24,9 +24,16 @@ const getOfficeAdministrator = catchAsync(async (req, res) => {
 
 const createTodolist = catchAsync(async (req, res) => {
   const { id: userId } = req.user;
-  const file = req.file;
 
-  const result = await todolistService.createTodolist(userId, req.body, file);
+  const files = req.files as {
+    todolistImages?: Express.Multer.File[];
+  };
+
+  const result = await todolistService.createTodolist(
+    userId,
+    req.body,
+    files.todolistImages,
+  );
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
