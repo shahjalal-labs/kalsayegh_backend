@@ -24,6 +24,7 @@ model User {
   sessions              Session[]
   clients               Client[]
   todolists             Todolist[]
+  estimates             Estimate[]
 
   @@index([role, status])
   @@map("users")
@@ -221,17 +222,38 @@ model Item {
 }
 
 model Estimate {
-  id           String @id @default(auto()) @map("_id") @db.ObjectId
-  clientId     String @db.ObjectId
-  estimateName String
-  date         String
-  endDate      String
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  id               String         @id @default(auto()) @map("_id") @db.ObjectId
+  clientId         String         @db.ObjectId
+  estimatorId      String         @db.ObjectId
+  estimateName     String
+  date             String
+  endDate          String
+  sideMap          String?
+  fileUrls         String[]
+  items            TItemType[]
+  additionalMarkUp Float?
+  grandTotal       Int
+  discountAmount   Float?
+  depositAmount    Float?
+  status           EstimateStatus @default(Pending)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  client           Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  estimator        User           @relation(fields: [estimatorId], references: [id], onDelete: Cascade)
 
   @@map("estimates")
+}
+
+enum EstimateStatus {
+  Pending
+  Approved
+  Declined
+}
+
+type TItemType {
+  id       String @db.ObjectId
+  quantity Int
+  subTotal Int
 }
 
 model Reaction {

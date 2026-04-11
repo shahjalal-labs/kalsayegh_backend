@@ -1,6 +1,72 @@
 import { Client, Item, MarkUp, Tax } from "@prisma/client";
 import prisma from "../../../shared/prisma";
 import ApiError from "../../../errors/ApiErrors";
+import { Request } from "express";
+import { uploadInSpace } from "../../../helpers/uploadInSpace";
+
+const createEstimateInDB = async (req: Request) => {
+  const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+  const payload = req.body;
+  const estimatorId = req.user.id
+
+  const existingClient = await prisma.client.findUnique({
+    where: {
+      id: payload.clientId,
+    },
+  });
+
+  if (!existingClient) {
+    throw new ApiError(400, "Client does not exist");
+  }
+
+  const items = payload.items;
+
+  for (const item of items) {
+    const existingItem = await prisma.item.findUnique({
+      where: {
+        id: item.id,
+      },
+    });
+
+    if (!existingItem) {
+      throw new ApiError(400, `Item with id ${item.id} does not exist`);
+    }
+  }
+
+  const processImages = async (
+    files: Express.Multer.File[] | undefined,
+    folder: string,
+  ) => {
+    if (!files || files.length === 0) return null;
+    return Promise.all(
+      files.map((file) => uploadInSpace(file, `courses/${folder}`)),
+    );
+  };
+
+  const [map, urls] = await Promise.all([
+    processImages(files?.map, "map"),
+    processImages(files?.urls, "urls"),
+  ]);
+
+  const newEstimate = await prisma.estimate.create({
+    data: {
+      clientId: payload.clientId,
+      estimatorId: estimatorId,
+      date: payload.date,
+      endDate: payload.endDate,
+      estimateName: payload.estimateName,
+      items: payload.items,
+      grandTotal: payload.grandTotal,
+      additionalMarkUp: payload.additionalMarkUp,
+      sideMap: map ? map[0] : undefined,
+      fileUrls: urls ? urls : undefined,
+      depositAmount: payload.depositAmount,
+      discountAmount: payload.discountAmount,
+    },
+  });
+
+  return newEstimate;
+};
 
 const createClientInDB = async (clientData: Client, userId: string) => {
   const user = await prisma.user.findUniqueOrThrow({
@@ -249,4 +315,5 @@ export const estimateService = {
   createNewTaxInDB,
   getItemListFromDB,
   getAllTaxesFromDB,
+  createEstimateInDB,
 };

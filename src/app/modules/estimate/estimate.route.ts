@@ -5,13 +5,23 @@ import { UserRole } from "@prisma/client";
 import { estimateControllers } from "./estimate.controller";
 import validateRequest from "../../middlewares/validateRequest";
 import { estimateValidation } from "./estimate.validation";
+import { fileUploader } from "../../../helpers/fileUploader";
+import { parseBodyData } from "../../middlewares/parseBodyData";
 
 const router = express.Router();
 
 router.post(
+  "/create-estimate",
+  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  fileUploader.uploadMultiple,
+  parseBodyData,
+  validateRequest(estimateValidation.estimateValidationSchema),
+  estimateControllers.createEstimate,
+);
+router.post(
   "/create-client",
   auth(UserRole.ADMIN, UserRole.ESTIMATOR),
-  estimateControllers.createEstimate,
+  estimateControllers.createClient,
 );
 router.get(
   "/my-clients",

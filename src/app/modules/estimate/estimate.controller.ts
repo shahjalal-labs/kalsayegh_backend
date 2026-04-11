@@ -3,6 +3,15 @@ import sendResponse from "../../../shared/sendResponse";
 import { estimateService } from "./estimate.service";
 
 const createEstimate = catchAsync(async (req, res) => {
+  const result = await estimateService.createEstimateInDB(req);
+  sendResponse(res, {
+    success: true,
+    statusCode: 201,
+    message: "Estimate has been created successfully",
+    data: result,
+  });
+});
+const createClient = catchAsync(async (req, res) => {
   const userId = req.user.id;
 
   const result = await estimateService.createClientInDB(req.body, userId);
@@ -84,7 +93,7 @@ const allTaxes = catchAsync(async (req, res) => {
 });
 
 export const estimateControllers = {
-  createEstimate,
+  createClient,
   myClients,
   createMarkUp,
   allMarkUps,
@@ -92,4 +101,5 @@ export const estimateControllers = {
   createTax,
   allTaxes,
   itemList,
+  createEstimate,
 };
