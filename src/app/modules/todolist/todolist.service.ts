@@ -55,7 +55,7 @@ const getOfficeAdministrator = async (
         profileImage: true,
       },
       skip,
-      take: limit,
+      // take: limit,
       orderBy: {
         id: "desc", // same as createdAt:"desc"
       },
@@ -66,7 +66,9 @@ const getOfficeAdministrator = async (
     }),
   ]);
 
-  return {
+  return administrator;
+
+  /* return {
     meta: {
       page,
       limit,
@@ -74,7 +76,7 @@ const getOfficeAdministrator = async (
       totalPages: Math.ceil(total / limit),
     },
     data: administrator,
-  };
+  }; */
 };
 
 const createTodolist = async (
