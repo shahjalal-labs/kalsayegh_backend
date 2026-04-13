@@ -232,7 +232,7 @@ model Estimate {
   fileUrls         String[]
   items            TItemType[]
   additionalMarkUp Float?
-  grandTotal       Int
+  grandTotal       Float
   discountAmount   Float?
   depositAmount    Float?
   status           EstimateStatus @default(Pending)
