@@ -18,7 +18,7 @@ router.get(
 router.post(
   "/create",
   auth(UserRole.OFFICE_ADMINISTRATOR),
-  fileUploader.upload.single("image"),
+  fileUploader.uploadMultiple,
   parseBodyData,
   validateRequest(todolistValidation.createTodolistSchema),
   todolistController.createTodolist,

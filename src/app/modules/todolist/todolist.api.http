@@ -27,7 +27,7 @@ Authorization: {{administrator}}
 
 # details/:todoId
 
-GET {{baseUrl}}/todolist/details/69d4bd4305122ee84934a4bb HTTP/1.1
+GET {{baseUrl}}/todolist/details/69da29e5dfa5d73a33f69e07 HTTP/1.1
 Authorization: {{administrator}}
 
 
