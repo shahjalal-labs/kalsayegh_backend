@@ -394,6 +394,9 @@ const getEstimateDetails = async (estimateId: string) => {
     where: {
       id: estimateId,
     },
+    include: {
+      client: true,
+    },
     omit: {
       createdAt: true,
     },
