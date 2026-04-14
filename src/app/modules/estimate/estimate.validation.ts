@@ -1,10 +1,12 @@
 import { cli } from "winston/lib/winston/config";
 import { z } from "zod";
 
-const objectId = z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid ObjectId");
+export const objectId = z
+  .string()
+  .regex(/^[0-9a-fA-F]{24}$/, "Invalid ObjectId");
 export const EstimateStatusEnum = z.enum(["Pending", "Approved", "Declined"]);
 
-const TItemTypeSchema = z.object({
+export const TItemTypeSchema = z.object({
   id: objectId,
   quantity: z.number().int().positive("Quantity must be greater than 0"),
   subTotal: z.number().int().nonnegative("Subtotal must be >= 0"),

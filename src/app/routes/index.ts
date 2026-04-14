@@ -10,6 +10,7 @@ import { messageRoutes } from "../modules/message/message.routes";
 import { estimateRoutes } from "../modules/estimate/estimate.route";
 import { todolistRoutes } from "../modules/todolist/todolist.routes";
 import { jobRequestRoutes } from "../modules/jobRequest/jobRequest.routes";
+import { invoiceRoutes } from "../modules/invoice/invoice.routes";
 
 const router = express.Router();
 
@@ -23,6 +24,7 @@ const moduleRoutes = [
   { path: "/group", route: groupRoutes },
   { path: "/message", route: messageRoutes },
   { path: "/estimate", route: estimateRoutes },
+  { path: "/invoice", route: invoiceRoutes },
   { path: "/todolist", route: todolistRoutes },
   { path: "/job-request", route: jobRequestRoutes },
 ];
