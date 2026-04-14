@@ -1,4 +1,7 @@
+import httpStatus from "http-status";
 import catchAsync from "../../../shared/catchAsync";
+import { paginationOptions } from "../../../shared/pagination";
+import pick from "../../../shared/pick";
 import sendResponse from "../../../shared/sendResponse";
 import { estimateService } from "./estimate.service";
 
@@ -82,13 +85,38 @@ const createTax = catchAsync(async (req, res) => {
   });
 });
 
-const allTaxes = catchAsync(async (req, res) => {
+const allTaxes = catchAsync(async (_req, res) => {
   const taxes = await estimateService.getAllTaxesFromDB();
   sendResponse(res, {
     success: true,
     statusCode: 200,
     message: "All taxes retrieved successfully",
     data: taxes,
+  });
+});
+
+const getAllEstimate = catchAsync(async (req, res) => {
+  const pagination = pick(req.query, paginationOptions);
+  const filter = pick(req.query, ["searchTerm", "status"]);
+  const result = await estimateService.getAllEstimate(pagination, filter);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Estimates retrieved successfully.",
+    data: result,
+  });
+});
+
+const getEstimateDetails = catchAsync(async (req, res) => {
+  const { id: estimateId } = req.params;
+  const result = await estimateService.getEstimateDetails(estimateId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Estimate details retrieved successfully.",
+    data: result,
   });
 });
 
@@ -102,4 +130,6 @@ export const estimateControllers = {
   allTaxes,
   itemList,
   createEstimate,
+  getAllEstimate,
+  getEstimateDetails,
 };

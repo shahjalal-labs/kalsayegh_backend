@@ -62,4 +62,16 @@ router.get(
   estimateControllers.allTaxes,
 );
 
+router.get(
+  "/all-estimates",
+  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  estimateControllers.getAllEstimate,
+);
+
+router.get(
+  "/estimate/:id",
+  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  estimateControllers.getEstimateDetails,
+);
+
 export const estimateRoutes = router;
