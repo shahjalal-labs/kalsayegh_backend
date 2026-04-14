@@ -1,0 +1,130 @@
+### create estimate
+
+POST {{baseUrl}}/estimate/create-estimate HTTP/1.1
+Authorization: {{estMir}}
+Content-Type: application/json
+
+{
+  "additionalMarkUp": 5.5,
+  "clientId": "69dc92eb0dc5477223a0ff0f",
+  "date": "2026-04-01",
+  "depositAmount": 300,
+  "discountAmount": 100,
+  "endDate": "2026-04-30",
+  "estimateName": "Residential Painting Project",
+  "grandTotal": 1500,
+  "items": [
+    {
+      "id": "69d87eb901d75586feffc495",
+      "quantity": 3,
+      "subTotal": 450
+    }
+  ]
+}
+
+
+### create client
+
+POST {{baseUrl}}/estimate/create-client HTTP/1.1
+Authorization: {{estMir}}
+Content-Type: application/json
+
+{
+  "address": "123 Main Street",
+  "city": "Dhaka",
+  "clientName": "John Doe",
+  "email": "johndoe@example.com",
+  "phoneNumber": "+8801712345678",
+  "state": "Dhaka Division",
+  "zip": "1216"
+}
+
+
+### get my clients
+
+GET {{baseUrl}}/estimate/my-clients HTTP/1.1
+Authorization: {{estMir}}
+
+
+### create markup
+
+POST {{baseUrl}}/estimate/create-markup HTTP/1.1
+Authorization: {{estMir}}
+Content-Type: application/json
+
+{
+  "name": "Standard Markup",
+  "percentage": 15
+}
+
+
+### create markup with amount
+
+POST {{baseUrl}}/estimate/create-markup HTTP/1.1
+Authorization: {{estMir}}
+Content-Type: application/json
+
+{
+  "amount": 200,
+  "name": "Flat Fee Markup"
+}
+
+
+### get all markups
+
+GET {{baseUrl}}/estimate/all-markups HTTP/1.1
+Authorization: {{estMir}}
+
+
+### create item
+
+POST {{baseUrl}}/estimate/create-item HTTP/1.1
+Authorization: {{estMir}}
+Content-Type: application/json
+
+{
+  "description": "Premium interior wall paint per gallon",
+  "itemName": "Interior Wall Paint",
+  "markUpId": "60d5ec49f1a2b3c4d5e6f7c2",
+  "notes": "Includes labor",
+  "rate": 150,
+  "taxes": [
+    "60d5ec49f1a2b3c4d5e6f7d3"
+  ]
+}
+
+
+### get all items
+
+GET {{baseUrl}}/estimate/all-items HTTP/1.1
+Authorization: {{estMir}}
+
+
+### create tax
+
+POST {{baseUrl}}/estimate/create-tax HTTP/1.1
+Authorization: {{estMir}}
+Content-Type: application/json
+
+{
+  "name": "State Tax",
+  "percentage": 8
+}
+
+
+### get all taxes
+
+GET {{baseUrl}}/estimate/all-taxes HTTP/1.1
+Authorization: {{estMir}}
+
+
+### get all estimates
+
+GET {{baseUrl}}/estimate/all-estimates?page=1&limit=20&searchTerm=kitchen&status=Approved HTTP/1.1
+Authorization: {{estMir}}
+
+
+### get estimate details
+
+GET {{baseUrl}}/estimate/estimate/69d9eec4531af0c6f2ebc13a HTTP/1.1
+Authorization: {{estMir}}
