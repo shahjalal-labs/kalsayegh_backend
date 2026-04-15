@@ -43,4 +43,13 @@ router.patch(
   todolistController.updateTodo,
 );
 
+router.patch(
+  "/update-image/:id",
+  fileUploader.uploadMultiple,
+  parseBodyData,
+  validateRequest(todolistValidation.updateTodoImage),
+  auth(UserRole.OFFICE_ADMINISTRATOR),
+  todolistController.updateTodoImage,
+);
+
 export const todolistRoutes = router;

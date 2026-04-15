@@ -79,10 +79,33 @@ const updateTodo = catchAsync(async (req, res) => {
   });
 });
 
+const updateTodoImage = catchAsync(async (req, res) => {
+  const { id: todoId } = req.params;
+
+  const files = req.files as {
+    todolistImages?: Express.Multer.File[];
+  };
+
+  const result = await todolistService.updateTodoImage(
+    todoId,
+    req.body,
+    files?.todolistImages,
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Todolist image updated successfully",
+    data: result,
+  });
+});
+
 export const todolistController = {
   getOfficeAdministrator,
   createTodolist,
   getAllTodolist,
   getTodoDetails,
   updateTodo,
+
+  updateTodoImage,
 };

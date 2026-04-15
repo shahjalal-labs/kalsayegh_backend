@@ -4,6 +4,8 @@ import sendResponse from "../../../shared/sendResponse";
 import { invoiceService } from "./invoice.service";
 import pick from "../../../shared/pick";
 import { paginationOptions } from "../../../shared/pagination";
+import { InvoiceStatus } from "@prisma/client";
+import ApiError from "../../../errors/ApiErrors";
 
 const createInvoice = catchAsync(async (req, res) => {
   const result = await invoiceService.createInvoice(req);
@@ -40,8 +42,34 @@ const getInvoiceDetails = catchAsync(async (req, res) => {
   });
 });
 
+const changeInvoiceStatus = catchAsync(async (req, res) => {
+  const { id: invoiceId } = req.params;
+  const { id: userId } = req.user;
+
+  const { status } = req.body;
+  if (!status || (status !== "PAID" && status !== "ACTIVE"))
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      "Invalid status. Accept only PAID | ACTIVE",
+    );
+
+  const result = await invoiceService.changeInvoiceStatus(
+    userId,
+    invoiceId,
+    status,
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Invoice status changed successfully",
+    data: result,
+  });
+});
+
 export const invoiceController = {
   createInvoice,
   getAllInvoices,
   getInvoiceDetails,
+  changeInvoiceStatus,
 };

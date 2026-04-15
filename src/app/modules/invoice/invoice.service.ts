@@ -4,7 +4,7 @@ import ApiError from "../../../errors/ApiErrors";
 import httpStatus from "http-status";
 import { uploadInSpace } from "../../../helpers/uploadInSpace";
 import { TCreateInvoice } from "./invoice.validation";
-import { InvoiceStatus, Prisma } from "@prisma/client";
+import { InvoiceStatus, Prisma, UserRole } from "@prisma/client";
 import { paginationHelper, TOptions } from "../../../shared/pagination";
 
 const createInvoice = async (req: Request) => {
@@ -163,8 +163,56 @@ const getInvoiceDetails = async (invoiceId: string) => {
   return invoice;
 };
 
+const changeInvoiceStatus = async (
+  userId: string,
+  invoiceId: string,
+  status: InvoiceStatus,
+) => {
+  const [user, invoice] = await Promise.all([
+    prisma.user.findUnique({
+      where: {
+        id: userId,
+      },
+      select: {
+        id: true,
+        role: true,
+      },
+    }),
+
+    prisma.invoice.findUnique({
+      where: {
+        id: invoiceId,
+      },
+    }),
+  ]);
+
+  if (!user) throw new ApiError(httpStatus.NOT_FOUND, "User not found");
+  /* if (user.role !== UserRole.ADMIN && user.role !== UserRole.ESTIMATOR)
+    throw new ApiError(
+      httpStatus.UNAUTHORIZED,
+      "You have no access to  change the stautus",
+    ); */
+
+  if (!invoice) throw new ApiError(httpStatus.NOT_FOUND, "Invoice not found");
+
+  return prisma.invoice.update({
+    where: {
+      id: invoiceId,
+    },
+    data: {
+      status,
+    },
+    select: {
+      id: true,
+      invoiceName: true,
+      status: true,
+    },
+  });
+};
+
 export const invoiceService = {
   createInvoice,
   getAllInvoices,
   getInvoiceDetails,
+  changeInvoiceStatus,
 };

@@ -27,7 +27,7 @@ Authorization: {{administrator}}
 
 # details/:todoId
 
-GET {{baseUrl}}/todolist/details/69da29e5dfa5d73a33f69e07 HTTP/1.1
+GET {{baseUrl}}/todolist/details/69de169ecc7e6fef6b5d6ba2 HTTP/1.1
 Authorization: {{administrator}}
 
 
@@ -43,4 +43,19 @@ Content-Type: application/json
   "description": "Resolve JWT expiration issue on refresh",
   "isComplete": true,
   "title": "Fix login bug"
+}
+
+
+### update todo image
+
+PATCH {{baseUrl}}/todolist/update-image/69de169ecc7e6fef6b5d6ba2 HTTP/1.1
+Authorization: {{administrator}}
+Content-Type: application/json
+
+{
+  "action": "remove",
+  "imgUrls": [
+    "https://api.zenexcloud.com/emdadullah/uploads/users/todolistImage/1776162461253-d8foeihdxrb.jpeg",
+    "https://cdn.example.com/img2.jpg"
+  ]
 }

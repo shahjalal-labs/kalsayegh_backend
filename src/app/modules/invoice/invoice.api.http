@@ -33,3 +33,16 @@ Authorization: {{estMir}}
 
 GET {{baseUrl}}/invoice/details/69ddf702378f36b27a299483 HTTP/1.1
 Authorization: {{estMir}}
+
+
+### change invoice status
+
+# change-status/invoiceId
+
+PATCH {{baseUrl}}/invoice/change-status/69ddf702378f36b27a299483 HTTP/1.1
+Authorization: {{estMir}} HTTP/1.1
+Content-Type: application/json
+
+{
+  "status": "PAID"
+}

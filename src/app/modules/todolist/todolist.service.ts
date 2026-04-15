@@ -4,8 +4,11 @@ import prisma from "../../../shared/prisma";
 import { uploadInSpace } from "../../../helpers/uploadInSpace";
 import ApiError from "../../../errors/ApiErrors";
 import httpStatus from "http-status";
-import { TCreateTodolist, TupdateTodo } from "./todolist.validation";
-import { logger } from "../../../shared/logger";
+import {
+  TCreateTodolist,
+  TupdateTodo,
+  TUpdateTodoImage,
+} from "./todolist.validation";
 
 const getOfficeAdministrator = async (
   paginations: TOptions,
@@ -112,7 +115,7 @@ const createTodolist = async (
   let todolistImages: string[] = [];
 
   if (files?.length) {
-    await Promise.all(
+    todolistImages = await Promise.all(
       files.map(async (f) => await uploadInSpace(f, "users/todolistImage")),
     );
   }
@@ -212,10 +215,94 @@ const updateTodo = async (todoId: string, payload: TupdateTodo) => {
   return updated;
 };
 
+const updateTodoImage = async (
+  todoId: string,
+  payload: TUpdateTodoImage,
+  files?: Express.Multer.File[],
+) => {
+  const todo = await prisma.todolist.findUnique({
+    where: { id: todoId },
+    select: { id: true, image: true },
+  });
+
+  if (!todo) {
+    throw new ApiError(httpStatus.NOT_FOUND, "Todo not found");
+  }
+
+  const currentImages = todo.image ?? [];
+  const imgUrls = payload.imgUrls ?? [];
+  let urls: string[] = [];
+
+  switch (payload.action) {
+    case "remove": {
+      urls = currentImages.filter((image) => !imgUrls.includes(image));
+      break;
+    }
+
+    case "add": {
+      if (!files?.length) {
+        throw new ApiError(httpStatus.BAD_REQUEST, "No image provided");
+      }
+
+      const uploadedUrls = await Promise.all(
+        files.map((f) => uploadInSpace(f, "todolist-image")),
+      );
+
+      urls = [...currentImages, ...uploadedUrls];
+      break;
+    }
+
+    case "replace": {
+      if (!files?.length) {
+        throw new ApiError(
+          httpStatus.BAD_REQUEST,
+          "No image provided to replace",
+        );
+      }
+
+      if (imgUrls.length !== files.length) {
+        throw new ApiError(
+          httpStatus.BAD_REQUEST,
+          "Mismatch between images and uploads",
+        );
+      }
+
+      const uploadedUrls = await Promise.all(
+        files.map((f) => uploadInSpace(f, "todolist-image")),
+      );
+
+      const map = new Map<string, string>();
+      imgUrls.forEach((oldUrl, i) => {
+        map.set(oldUrl, uploadedUrls[i]);
+      });
+
+      urls = currentImages.map((img) => (map.has(img) ? map.get(img)! : img));
+
+      break;
+    }
+
+    default: {
+      throw new ApiError(httpStatus.BAD_REQUEST, "Invalid action");
+    }
+  }
+
+  return prisma.todolist.update({
+    where: { id: todoId },
+    data: { image: urls },
+    select: {
+      id: true,
+      title: true,
+      image: true,
+    },
+  });
+};
+
 export const todolistService = {
   getOfficeAdministrator,
   createTodolist,
   getAllTodolist,
   getTodoDetails,
   updateTodo,
+
+  updateTodoImage,
 };

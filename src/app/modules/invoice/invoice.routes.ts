@@ -30,4 +30,10 @@ router.get(
   invoiceController.getInvoiceDetails,
 );
 
+router.patch(
+  "/change-status/:id",
+  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  invoiceController.changeInvoiceStatus,
+);
+
 export const invoiceRoutes = router;
