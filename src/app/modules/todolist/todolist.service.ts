@@ -6,8 +6,8 @@ import ApiError from "../../../errors/ApiErrors";
 import httpStatus from "http-status";
 import {
   TCreateTodolist,
+  TUpdateImageSchema,
   TupdateTodo,
-  TUpdateTodoImage,
 } from "./todolist.validation";
 
 const getOfficeAdministrator = async (
@@ -217,7 +217,7 @@ const updateTodo = async (todoId: string, payload: TupdateTodo) => {
 
 const updateTodoImage = async (
   todoId: string,
-  payload: TUpdateTodoImage,
+  payload: TUpdateImageSchema,
   files?: Express.Multer.File[],
 ) => {
   const todo = await prisma.todolist.findUnique({

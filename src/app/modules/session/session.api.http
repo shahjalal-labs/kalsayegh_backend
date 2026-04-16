@@ -1,32 +1,101 @@
-### Clock in | worker
-
-# Regular_Hours, PW_Hours
+### clock in
 
 POST {{baseUrl}}/session/clock-in HTTP/1.1
-Authorization: {{john}}
+Authorization: {{worker}}
 Content-Type: application/json
 
 {
-  "clockInAt": "2026-04-06T00:00:00Z",
+  "clockInAt": "2026-04-15T08:00:00Z",
+  "sessionType": "Regular_Hours"
+}
+
+
+### clock in PW hours
+
+POST {{baseUrl}}/session/clock-in HTTP/1.1
+Authorization: {{worker}}
+Content-Type: application/json
+
+{
+  "clockInAt": "2026-04-15T08:00:00Z",
   "sessionType": "PW_Hours"
 }
 
 
-### Clock out | worker
+### clock out
 
-# Regular_Hours, PW_Hours
-# clockout/:sessionId
-
-POST {{baseUrl}}/session/clock-out/69d343a3220414a4a0f8c9bb HTTP/1.1
-Authorization: {{john}}
+POST {{baseUrl}}/session/clock-out/69d5e22bc6771df1addec900 HTTP/1.1
+Authorization: {{worker}}
 Content-Type: application/json
 
 {
-  "clockOutAt": "2026-04-06T08:00:00Z"
+  "clockOutAt": "2026-04-15T17:00:00Z"
 }
 
 
-### My sessions | worker
+### get my sessions (current week)
 
 GET {{baseUrl}}/session/my-sessions HTTP/1.1
-Authorization: {{john}}
+Authorization: {{worker}}
+
+
+### get my sessions grouped by day (current week)
+
+GET {{baseUrl}}/session/my-sessions-grouped HTTP/1.1
+Authorization: {{worker}}
+
+
+### get weekly overview
+
+GET {{baseUrl}}/session/weekly-overview HTTP/1.1
+Authorization: {{worker}}
+
+
+### weekly submit timesheet
+
+POST {{baseUrl}}/session/weekly-submit-timesheet HTTP/1.1
+Authorization: {{worker}}
+
+
+### add notes to sessions
+
+POST {{baseUrl}}/session/add-notes HTTP/1.1
+Authorization: {{worker}}
+Content-Type: application/json
+
+{
+  "notes": "Worked on 3rd floor interior painting and prep work",
+  "sessionIds": [
+    "69d5e22bc6771df1addec900",
+    "69d5e22bc6771df1addec901"
+  ]
+}
+
+
+### get all sessions
+
+GET {{baseUrl}}/session HTTP/1.1
+
+
+### get session by id
+
+GET {{baseUrl}}/session/69d5e22bc6771df1addec900 HTTP/1.1
+
+
+### update session
+
+PATCH {{baseUrl}}/session/69d5e22bc6771df1addec900 HTTP/1.1
+Content-Type: application/json
+
+{
+  "clockInAt": "2026-04-15T09:00:00Z",
+  "clockOutAt": "2026-04-15T18:00:00Z",
+  "markStatus": "APPROVED",
+  "notes": "Updated session notes",
+  "sessionType": "PW_Hours"
+}
+
+
+### delete session
+
+DELETE {{baseUrl}}/session/69d5e22bc6771df1addec900 HTTP/1.1

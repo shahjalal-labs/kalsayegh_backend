@@ -24,7 +24,7 @@ Content-Type: application/json
 }
 
 
-### get user detais
+### get user details
 
 # user/:userId
 

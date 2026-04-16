@@ -9,6 +9,7 @@ import {
 } from "./jobRequest.validation";
 import httpStatus from "http-status";
 import { paginationHelper, TOptions } from "../../../shared/pagination";
+import { TUpdateImageSchema } from "../todolist/todolist.validation";
 
 const createOffice = async (userId: string, payload: TCreateOffice) => {
   const user = await prisma.user.findUnique({
@@ -225,6 +226,88 @@ const getAllJobRequetsForAOffice = async (
   };
 };
 
+const updateJobRequestImage = async (
+  jobReqId: string,
+  payload: TUpdateImageSchema,
+  files?: Express.Multer.File[],
+) => {
+  const jobRequest = await prisma.jobRequest.findUnique({
+    where: { id: jobReqId },
+    select: { id: true, images: true },
+  });
+
+  if (!jobRequest) {
+    throw new ApiError(httpStatus.NOT_FOUND, "Todo not found");
+  }
+
+  const currentImages = jobRequest.images ?? [];
+  const imgUrls = payload.imgUrls ?? [];
+  let urls: string[] = [];
+
+  switch (payload.action) {
+    case "remove": {
+      urls = currentImages.filter((image) => !imgUrls.includes(image));
+      break;
+    }
+
+    case "add": {
+      if (!files?.length) {
+        throw new ApiError(httpStatus.BAD_REQUEST, "No image provided");
+      }
+
+      const uploadedUrls = await Promise.all(
+        files.map((f) => uploadInSpace(f, "todolist-image")),
+      );
+
+      urls = [...currentImages, ...uploadedUrls];
+      break;
+    }
+
+    case "replace": {
+      if (!files?.length) {
+        throw new ApiError(
+          httpStatus.BAD_REQUEST,
+          "No image provided to replace",
+        );
+      }
+
+      if (imgUrls.length !== files.length) {
+        throw new ApiError(
+          httpStatus.BAD_REQUEST,
+          "Mismatch between images and uploads",
+        );
+      }
+
+      const uploadedUrls = await Promise.all(
+        files.map((f) => uploadInSpace(f, "todolist-image")),
+      );
+
+      const map = new Map<string, string>();
+      imgUrls.forEach((oldUrl, i) => {
+        map.set(oldUrl, uploadedUrls[i]);
+      });
+
+      urls = currentImages.map((img) => (map.has(img) ? map.get(img)! : img));
+
+      break;
+    }
+
+    default: {
+      throw new ApiError(httpStatus.BAD_REQUEST, "Invalid action");
+    }
+  }
+
+  return prisma.jobRequest.update({
+    where: { id: jobReqId },
+    data: { images: urls },
+    select: {
+      id: true,
+      title: true,
+      images: true,
+    },
+  });
+};
+
 export const jobRequestService = {
   createOffice,
   getOffice,
@@ -233,4 +316,5 @@ export const jobRequestService = {
   getJobRequestDetails,
   updateJobRequest,
   getAllJobRequetsForAOffice,
+  updateJobRequestImage,
 };

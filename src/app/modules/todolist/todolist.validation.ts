@@ -22,17 +22,17 @@ export type TupdateTodo = z.infer<typeof updateTodoSchema>;
 
 export type TCreateTodolist = z.infer<typeof createTodolistSchema>;
 
-const updateTodoImage = z
+const updateImageSchema = z
   .object({
     action: z.enum(["add", "replace", "remove"]),
     imgUrls: z.array(z.string().url()).optional(),
   })
   .strict();
 
-export type TUpdateTodoImage = z.infer<typeof updateTodoImage>;
+export type TUpdateImageSchema = z.infer<typeof updateImageSchema>;
 
 export const todolistValidation = {
   createTodolistSchema,
   updateTodoSchema,
-  updateTodoImage,
+  updateImageSchema,
 };
