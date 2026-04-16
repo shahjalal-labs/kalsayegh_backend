@@ -413,7 +413,35 @@ const getEstimateDetails = async (estimateId: string) => {
   });
 
   if (!estimate) throw new ApiError(httpStatus.NOT_FOUND, "Estimate not found");
-  return estimate;
+
+  const estimateItems = Array.isArray(estimate.items) ? estimate.items : [];
+
+  const itemIds = estimateItems
+    .map((item) => {
+      if (typeof item !== "object" || item === null) return undefined;
+      const currentItem = item as { id?: unknown };
+      return typeof currentItem.id === "string" ? currentItem.id : undefined;
+    })
+    .filter((id): id is string => Boolean(id));
+
+  const items =
+    itemIds.length > 0
+      ? await prisma.item.findMany({
+          where: {
+            id: {
+              in: itemIds,
+            },
+          },
+          select: {
+            description: true,
+          },
+        })
+      : [];
+
+  return {
+    ...estimate,
+    items,
+  };
 };
 
 export const estimateService = {
@@ -429,4 +457,3 @@ export const estimateService = {
   getAllEstimate,
   getEstimateDetails,
 };
-
