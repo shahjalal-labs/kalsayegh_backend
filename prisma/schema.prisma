@@ -123,6 +123,7 @@ enum MarkStatus {
 model Schedule {
   id           String    @id @default(auto()) @map("_id") @db.ObjectId
   workScope    String
+  title        String?
   scheduleDate DateTime  @unique
   location     String?
   startTime    DateTime?
