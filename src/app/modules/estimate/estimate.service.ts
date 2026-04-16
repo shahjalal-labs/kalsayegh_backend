@@ -373,6 +373,7 @@ const getAllEstimate = async (
   const [estimates, total] = await Promise.all([
     prisma.estimate.findMany({
       where: whereClause,
+      include: { client: true },
       omit: {
         items: true,
       },
