@@ -1,8 +1,17 @@
-import { Client, Item, MarkUp, Tax } from "@prisma/client";
+import {
+  Client,
+  EstimateStatus,
+  Item,
+  MarkUp,
+  Prisma,
+  Tax,
+} from "@prisma/client";
 import prisma from "../../../shared/prisma";
 import ApiError from "../../../errors/ApiErrors";
 import { Request } from "express";
 import { uploadInSpace } from "../../../helpers/uploadInSpace";
+import { paginationHelper, TOptions } from "../../../shared/pagination";
+import httpStatus from "http-status";
 
 const createEstimateInDB = async (req: Request) => {
   const files = req.files as { [fieldname: string]: Express.Multer.File[] };
@@ -316,6 +325,97 @@ const getAllTaxesFromDB = async () => {
   return taxes;
 };
 
+const getAllEstimate = async (
+  paginations: TOptions,
+  filter?: {
+    status?: EstimateStatus;
+    searchTerm?: string;
+  },
+) => {
+  const { page, limit, skip } = paginationHelper(paginations);
+
+  const whereClause: Prisma.EstimateWhereInput = {};
+
+  const andClause: Prisma.EstimateWhereInput[] = [];
+
+  if (filter?.status) {
+    andClause.push({
+      status: filter.status,
+    });
+  }
+
+  const searchTerm = filter?.searchTerm?.trim();
+  if (searchTerm)
+    andClause.push({
+      OR: [
+        {
+          estimateName: {
+            contains: searchTerm,
+            mode: "insensitive",
+          },
+        },
+
+        {
+          client: {
+            OR: [
+              { clientName: { contains: searchTerm, mode: "insensitive" } },
+              { email: { contains: searchTerm, mode: "insensitive" } },
+              { phoneNumber: { contains: searchTerm, mode: "insensitive" } },
+              { address: { contains: searchTerm, mode: "insensitive" } },
+            ],
+          },
+        },
+      ],
+    });
+
+  if (andClause.length) whereClause.AND = andClause;
+
+  const [estimates, total] = await Promise.all([
+    prisma.estimate.findMany({
+      where: whereClause,
+      omit: {
+        items: true,
+      },
+      skip,
+      take: limit,
+      orderBy: {
+        id: "desc", // same as createdAt:"desc"
+      },
+    }),
+
+    prisma.estimate.count({
+      where: whereClause,
+    }),
+  ]);
+
+  return {
+    meta: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+    data: estimates,
+  };
+};
+
+const getEstimateDetails = async (estimateId: string) => {
+  const estimate = await prisma.estimate.findUnique({
+    where: {
+      id: estimateId,
+    },
+    include: {
+      client: true,
+    },
+    omit: {
+      createdAt: true,
+    },
+  });
+
+  if (!estimate) throw new ApiError(httpStatus.NOT_FOUND, "Estimate not found");
+  return estimate;
+};
+
 export const estimateService = {
   createClientInDB,
   getMyClientsFromDB,
@@ -326,4 +426,7 @@ export const estimateService = {
   getItemListFromDB,
   getAllTaxesFromDB,
   createEstimateInDB,
+  getAllEstimate,
+  getEstimateDetails,
 };
+
