@@ -47,7 +47,7 @@ router.patch(
   "/update-image/:id",
   fileUploader.uploadMultiple,
   parseBodyData,
-  validateRequest(todolistValidation.updateTodoImage),
+  validateRequest(todolistValidation.updateImageSchema),
   auth(UserRole.OFFICE_ADMINISTRATOR),
   todolistController.updateTodoImage,
 );
