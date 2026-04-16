@@ -74,7 +74,7 @@ const createEstimateInDB = async (req: Request) => {
 
   return {
     ...newEstimate,
-    itemss
+    itemss,
   };
 };
 
