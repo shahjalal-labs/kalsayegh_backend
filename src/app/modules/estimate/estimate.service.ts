@@ -7,7 +7,7 @@ import { uploadInSpace } from "../../../helpers/uploadInSpace";
 const createEstimateInDB = async (req: Request) => {
   const files = req.files as { [fieldname: string]: Express.Multer.File[] };
   const payload = req.body;
-  const estimatorId = req.user.id
+  const estimatorId = req.user.id;
 
   const existingClient = await prisma.client.findUnique({
     where: {
@@ -65,7 +65,17 @@ const createEstimateInDB = async (req: Request) => {
     },
   });
 
-  return newEstimate;
+  const itemss = await prisma.item.findMany({
+    where: { id: { in: payload.items.map((item: any) => item.id) } },
+    select: {
+      description: true,
+    },
+  });
+
+  return {
+    ...newEstimate,
+    itemss
+  };
 };
 
 const createClientInDB = async (clientData: Client, userId: string) => {
