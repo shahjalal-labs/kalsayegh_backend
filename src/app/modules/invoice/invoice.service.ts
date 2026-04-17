@@ -147,7 +147,7 @@ const getAllInvoices = async (
   };
 };
 
-const getInvoiceDetails = async (invoiceId: string) => {
+/* const getInvoiceDetails = async (invoiceId: string) => {
   const invoice = await prisma.invoice.findUnique({
     where: {
       id: invoiceId,
@@ -162,6 +162,51 @@ const getInvoiceDetails = async (invoiceId: string) => {
 
   if (!invoice) throw new ApiError(httpStatus.NOT_FOUND, "Invoice not found");
   return invoice;
+}; */
+
+const getInvoiceDetails = async (invoiceId: string) => {
+  const invoice = await prisma.invoice.findUnique({
+    where: {
+      id: invoiceId,
+    },
+    include: {
+      client: true,
+    },
+    omit: {
+      createdAt: true,
+    },
+  });
+
+  if (!invoice) throw new ApiError(httpStatus.NOT_FOUND, "Estimate not found");
+
+  const invoiceItems = Array.isArray(invoice.items) ? invoice.items : [];
+
+  const itemIds = invoiceItems
+    .map((item) => {
+      if (typeof item !== "object" || item === null) return undefined;
+      const currentItem = item as { id?: unknown };
+      return typeof currentItem.id === "string" ? currentItem.id : undefined;
+    })
+    .filter((id): id is string => Boolean(id));
+
+  const items =
+    itemIds.length > 0
+      ? await prisma.item.findMany({
+          where: {
+            id: {
+              in: itemIds,
+            },
+          },
+          select: {
+            description: true,
+          },
+        })
+      : [];
+
+  return {
+    ...invoice,
+    items,
+  };
 };
 
 const changeInvoiceStatus = async (
