@@ -9,7 +9,7 @@ const createInvoiceSchema = z
     endDate: z.string().min(1, "End date is required"),
     items: z.array(TItemTypeSchema).min(1, "At least one item is required"),
     additionalMarkUp: z.number().optional(),
-    grandTotal: z.number().int().nonnegative("Grand total must be >= 0"),
+    grandTotal: z.number().nonnegative("Grand total must be >= 0"),
     discountAmount: z.number().optional(),
     depositAmount: z.number().optional(),
   })
