@@ -117,9 +117,10 @@ const getAllInvoices = async (
 
   if (andClause.length) whereClause.AND = andClause;
 
-  const [estimates, total] = await Promise.all([
+  const [invoice, total] = await Promise.all([
     prisma.invoice.findMany({
       where: whereClause,
+      include: { client: true },
       omit: {
         items: true,
       },
@@ -142,7 +143,7 @@ const getAllInvoices = async (
       total,
       totalPages: Math.ceil(total / limit),
     },
-    data: estimates,
+    data: invoice,
   };
 };
 
