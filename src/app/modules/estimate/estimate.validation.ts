@@ -49,10 +49,26 @@ const itemValidationSchema = z.object({
   notes: z.string().optional(),
   taxes: z.array(z.string()).optional(),
 });
+const itemUpdateValidationSchema = z.object({
+  itemId: z.string(),
+  itemName: z.string().optional(),
+  markUpId: z.string().optional(),
+  rate: z
+    .number({
+      required_error: "Rate is required",
+      invalid_type_error: "Rate must be a number",
+    })
+    .int("Rate must be an integer")
+    .nonnegative("Rate cannot be negative"),
+  description: z.string().optional(),
+  notes: z.string().optional(),
+  taxes: z.array(z.string()).optional(),
+});
 
 export const estimateValidation = {
   estimateValidationSchema,
   markUpValidationSchema,
   itemValidationSchema,
   taxValidationSchema,
+  itemUpdateValidationSchema,
 };

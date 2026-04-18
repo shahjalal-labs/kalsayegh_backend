@@ -65,6 +65,16 @@ const createItem = catchAsync(async (req, res) => {
     data: newItem,
   });
 });
+const updateItem = catchAsync(async (req, res) => {
+  const itemData = req.body;
+  const updatedItem = await estimateService.updateItemInDb(itemData);
+  sendResponse(res, {
+    success: true,
+    statusCode: 200,
+    message: "Item updated successfully",
+    data: updatedItem,
+  });
+});
 const itemList = catchAsync(async (req, res) => {
   const items = await estimateService.getItemListFromDB();
   sendResponse(res, {
@@ -132,4 +142,5 @@ export const estimateControllers = {
   createEstimate,
   getAllEstimate,
   getEstimateDetails,
+  updateItem,
 };

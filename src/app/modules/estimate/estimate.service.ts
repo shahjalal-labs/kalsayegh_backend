@@ -243,14 +243,91 @@ const createNewItemInDB = async (payload: Item) => {
   return newItem;
 };
 
+const updateItemInDb = async (payload: any) => {
+  const existingItem = await prisma.item.findUnique({
+    where: {
+      id: payload.itemId,
+    },
+  });
+
+  if (!existingItem) {
+    throw new ApiError(404, "Item does not exist");
+  }
+
+  if (payload.itemName) {
+    const duplicateItem = await prisma.item.findFirst({
+      where: {
+        itemName: payload.itemName,
+        id: {
+          not: payload.itemId,
+        },
+      },
+    });
+
+    if (duplicateItem) {
+      throw new ApiError(400, "Item with this name already exists");
+    }
+  }
+
+  if (payload.markUpId) {
+    const markUp = await prisma.markUp.findUnique({
+      where: {
+        id: payload.markUpId,
+      },
+    });
+
+    if (!markUp) {
+      throw new ApiError(400, "MarkUp does not exist");
+    }
+  }
+
+  if (payload.taxes?.length) {
+    const existingTaxes = await prisma.tax.findMany({
+      where: {
+        id: {
+          in: payload.taxes,
+        },
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    const existingTaxIds = new Set(existingTaxes.map((tax) => tax.id));
+    const invalidTaxIds = payload.taxes.filter(
+      (taxId:any) => !existingTaxIds.has(taxId),
+    );
+
+    if (invalidTaxIds.length) {
+      throw new ApiError(400, `Invalid tax id(s): ${invalidTaxIds.join(", ")}`);
+    }
+  }
+
+  const updatedItem = await prisma.item.update({
+    where: {
+      id: payload.itemId,
+    },
+    data: {
+      itemName: payload.itemName,
+      markUpId: payload.markUpId,
+      rate: payload.rate,
+      description: payload.description,
+      notes: payload.notes,
+      taxes: payload.taxes,
+    },
+  });
+
+  return updatedItem;
+};
+
 const getItemListFromDB = async () => {
   const items = await prisma.item.findMany({
     select: {
       id: true,
       itemName: true,
       description: true,
-      rate:true,
-      notes:true,      
+      rate: true,
+      notes: true,
       markUp: {
         select: {
           id: true,
@@ -453,6 +530,7 @@ export const estimateService = {
   createNewMarkUpInDB,
   getAllMarkUpsFromDB,
   createNewItemInDB,
+  updateItemInDb,
   createNewTaxInDB,
   getItemListFromDB,
   getAllTaxesFromDB,

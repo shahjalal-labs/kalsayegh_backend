@@ -45,6 +45,12 @@ router.post(
   validateRequest(estimateValidation.itemValidationSchema),
   estimateControllers.createItem,
 );
+router.post(
+  "/update-item",
+  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  validateRequest(estimateValidation.itemUpdateValidationSchema),
+  estimateControllers.updateItem,
+);
 router.get(
   "/all-items",
   auth(UserRole.ADMIN, UserRole.ESTIMATOR),
