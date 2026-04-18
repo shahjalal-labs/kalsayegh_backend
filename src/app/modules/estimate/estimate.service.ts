@@ -249,6 +249,8 @@ const getItemListFromDB = async () => {
       id: true,
       itemName: true,
       description: true,
+      rate:true,
+      notes:true,      
       markUp: {
         select: {
           id: true,
