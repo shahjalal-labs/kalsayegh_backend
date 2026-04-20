@@ -4,7 +4,7 @@ import ApiError from "../../../errors/ApiErrors";
 import httpStatus from "http-status";
 import { uploadInSpace } from "../../../helpers/uploadInSpace";
 import { TCreateInvoice } from "./invoice.validation";
-import { InvoiceStatus, Prisma, UserRole } from "@prisma/client";
+import { EmailStatus, InvoiceStatus, Prisma, UserRole } from "@prisma/client";
 import { paginationHelper, TOptions } from "../../../shared/pagination";
 import { invoiceEmail } from "../../../shared/emailTemplate";
 import sendEmail from "../../../helpers/sendEmail";
@@ -292,8 +292,10 @@ const sendInvoiceEmail = async (invoiceId: string) => {
 
   try {
     await sendEmail(invoice.client.email, "Invoice Email", emailBody);
-
-    return { message: "Invoice email sent successfully" };
+    await prisma.invoice.update({
+      where: { id: invoiceId },
+      data: { emailStatus: EmailStatus.SENT },
+    });
   } catch (err: any) {
     console.error("EMAIL ERROR:", err);
 
