@@ -90,6 +90,56 @@ const createEstimateInDB = async (req: Request) => {
   };
 };
 
+const getEstimateByIdFromDB = async (estimateId: string) => {
+  const estimate = await prisma.estimate.findUnique({
+    where: {
+      id: estimateId,
+    },
+    include: {
+      client: true,
+    },
+  });
+  if (!estimate) throw new ApiError(httpStatus.NOT_FOUND, "Estimate not found");
+  const items = estimate.items;
+
+  const itemsIds = items.map((item) => {
+    return item.id;
+  });
+
+  const itemsData = await prisma.item.findMany({
+    where: {
+      id: {
+        in: itemsIds,
+      },
+    },
+    include: {
+      markUp: true,
+    },
+  });
+
+  const taxIds = itemsData.flatMap((item) => item.taxes ?? []);
+  const uniqueTaxIds = Array.from(new Set(taxIds));
+
+  const taxesData = await prisma.tax.findMany({
+    where: {
+      id: {
+        in: uniqueTaxIds,
+      },
+    },
+  });
+  const taxMap = new Map(taxesData.map((tax) => [tax.id, tax]));
+
+  const itemsDataWithTax = itemsData.map((item) => ({
+    ...item,
+    taxes: (item.taxes ?? []).map((taxId) => taxMap.get(taxId)).filter(Boolean),
+  }));
+
+  return {
+    ...estimate,
+    itemsData: itemsDataWithTax,
+  };
+};
+
 const createClientInDB = async (clientData: Client, userId: string) => {
   const user = await prisma.user.findUniqueOrThrow({
     where: {
@@ -569,6 +619,7 @@ const sendEstimateEmail = async (estimateId: string) => {
 
 export const estimateService = {
   createClientInDB,
+  getEstimateByIdFromDB,
   getMyClientsFromDB,
   createNewMarkUpInDB,
   getAllMarkUpsFromDB,

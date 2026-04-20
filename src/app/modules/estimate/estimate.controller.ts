@@ -14,6 +14,18 @@ const createEstimate = catchAsync(async (req, res) => {
     data: result,
   });
 });
+
+const getEstimateById = catchAsync(async (req, res) => {
+  const { id } = req.params;
+  const result = await estimateService.getEstimateByIdFromDB(id);
+  sendResponse(res, {
+    success: true,
+    statusCode: 200,
+    message: "Estimate retrieved successfully",
+    data: result,
+  });
+});
+
 const createClient = catchAsync(async (req, res) => {
   const userId = req.user.id;
 
@@ -153,6 +165,7 @@ export const estimateControllers = {
   itemList,
   createEstimate,
   getAllEstimate,
+  getEstimateById,
   getEstimateDetails,
   updateItem,
   sendEstimateEmail,

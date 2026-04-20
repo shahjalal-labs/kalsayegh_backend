@@ -18,6 +18,11 @@ router.post(
   validateRequest(estimateValidation.estimateValidationSchema),
   estimateControllers.createEstimate,
 );
+router.get(
+  "/single-estimate/:id",
+  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  estimateControllers.getEstimateById,
+);
 router.post(
   "/create-client",
   auth(UserRole.ADMIN, UserRole.ESTIMATOR),
