@@ -2,31 +2,39 @@ import multer from "multer";
 
 const storage = multer.memoryStorage();
 
+const ALLOWED_MIME_TYPES = new Set([
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+  "video/mpeg",
+  "video/mp4",
+  "video/quicktime",
+  "video/x-matroska",
+  "audio/mpeg",
+  "audio/mp3",
+  "audio/m4a",
+  "audio/mp4",
+  "video/m4a",
+  "application/zip",
+  "application/x-zip-compressed",
+  "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+]);
+
 const upload = multer({
   storage: storage,
   limits: { fileSize: 3000 * 1024 * 1024 }, // 3000 MB limit
   fileFilter: (_req, file, cb) => {
-    const allowedMimeTypes = [
-      "image/jpeg",
-      "image/jpg",
-      "image/png",
-      "image/gif",
-      "image/webp",
-      "video/mpeg",
-      "video/mp4",
-      "audio/mpeg",
-      "audio/mp3",
-      "audio/m4a",
-      "video/m4a",
-      "video/x-matroska",
-      "audio/mpeg",
-      "application/zip",
-      "application/pdf",
-      "application/msword",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    ];
-    if (!allowedMimeTypes.includes(file.mimetype)) {
-      return cb(new Error("File type not allowed") as unknown as null, false);
+    const mimeType = (file.mimetype || "").toLowerCase().trim();
+
+    if (!ALLOWED_MIME_TYPES.has(mimeType)) {
+      return cb(
+        new Error(`File type not allowed: ${mimeType}`) as unknown as null,
+        false,
+      );
     }
     cb(null, true);
   },

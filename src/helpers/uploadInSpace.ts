@@ -26,7 +26,7 @@ const s3 = new S3Client(s3Config);
 const MAX_FILE_SIZE = 3000 * 1024 * 1024; // 3000 MB
 
 // Allowed MIME types
-const ALLOWED_MIME_TYPES = [
+const ALLOWED_MIME_TYPES = new Set([
   "image/jpeg",
   "image/jpg",
   "image/png",
@@ -34,17 +34,19 @@ const ALLOWED_MIME_TYPES = [
   "image/webp",
   "video/mpeg",
   "video/mp4",
+  "video/quicktime",
   "audio/mpeg",
   "audio/m4a",
+  "audio/mp4",
   "video/m4a",
   "audio/mp3",
   "video/x-matroska",
-  "audio/mpeg",
   "application/zip",
+  "application/x-zip-compressed",
   "application/pdf",
   "application/msword",
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-];
+]);
 
 export const uploadInSpace = async (
   file: Express.Multer.File,
@@ -64,8 +66,9 @@ export const uploadInSpace = async (
     }
 
     // Validate file type
-    if (!ALLOWED_MIME_TYPES.includes(file.mimetype)) {
-      throw new ApiError(400, "File type not allowed");
+    const mimeType = (file.mimetype || "").toLowerCase().trim();
+    if (!ALLOWED_MIME_TYPES.has(mimeType)) {
+      throw new ApiError(400, `File type not allowed: ${mimeType}`);
     }
 
     // Generate a unique filename with original extension
@@ -79,7 +82,7 @@ export const uploadInSpace = async (
       Key: fileName,
       Body: file.buffer,
       ACL: "public-read" as ObjectCannedACL,
-      ContentType: file.mimetype,
+      ContentType: mimeType,
     };
 
     const upload = new Upload({
