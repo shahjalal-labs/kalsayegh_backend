@@ -132,6 +132,8 @@ Authorization: {{estMir}}
 
 ### send estimate mail
 
+# send-mail/:estimateId
+
 POST {{baseUrl}}/estimate/send-mail/69d9eec4531af0c6f2ebc13a HTTP/1.1
 Authorization: {{estMir}}
 Content-Type: application/json

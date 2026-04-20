@@ -257,6 +257,7 @@ enum EstimateStatus {
 enum EmailStatus {
   SENT
   NOT_SENT
+  READ
 }
 
 type TItemType {
@@ -281,10 +282,10 @@ model Invoice {
   depositAmount    Float?
   status           InvoiceStatus @default(ACTIVE)
   emailStatus      EmailStatus   @default(NOT_SENT)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  estimator User     @relation(fields: [estimatorId], references: [id], onDelete: Cascade)
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
+  client           Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  estimator        User          @relation(fields: [estimatorId], references: [id], onDelete: Cascade)
 
   @@map("invoices")
 }
