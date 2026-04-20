@@ -79,14 +79,145 @@ const createEstimateInDB = async (req: Request) => {
 
   const itemss = await prisma.item.findMany({
     where: { id: { in: payload.items.map((item: any) => item.id) } },
-    select: {
-      description: true,
-    },
   });
 
   return {
     ...newEstimate,
     itemss,
+  };
+};
+
+const editEstimateInDB = async (estimateId: string, req: Request) => {
+  const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+  const payload = req.body;
+  const estimatorId = req.user.id;
+
+  const existingEstimate = await prisma.estimate.findUnique({
+    where: {
+      id: estimateId,
+    },
+  });
+
+  if (!existingEstimate) {
+    throw new ApiError(httpStatus.NOT_FOUND, "Estimate not found");
+  }
+
+  const existingClient = await prisma.client.findUnique({
+    where: {
+      id: payload.clientId,
+    },
+  });
+
+  if (!existingClient) {
+    throw new ApiError(400, "Client does not exist");
+  }
+
+  const items = payload.items;
+
+  for (const item of items) {
+    const existingItem = await prisma.item.findUnique({
+      where: {
+        id: item.id,
+      },
+    });
+
+    if (!existingItem) {
+      throw new ApiError(400, `Item with id ${item.id} does not exist`);
+    }
+  }
+
+  const processImages = async (
+    files: Express.Multer.File[] | undefined,
+    folder: string,
+  ) => {
+    if (!files || files.length === 0) return null;
+    return Promise.all(
+      files.map((file) => uploadInSpace(file, `courses/${folder}`)),
+    );
+  };
+
+  const [map, urls] = await Promise.all([
+    processImages(files?.map, "map"),
+    processImages(files?.urls, "urls"),
+  ]);
+
+  const updatedEstimate = await prisma.estimate.update({
+    where: {
+      id: estimateId,
+    },
+    data: {
+      clientId: payload.clientId,
+      estimatorId: estimatorId,
+      date: payload.date,
+      endDate: payload.endDate,
+      estimateName: payload.estimateName,
+      items: payload.items,
+      grandTotal: payload.grandTotal,
+      additionalMarkUp: payload.additionalMarkUp,
+      sideMap: map ? map[0] : undefined,
+      fileUrls: urls ? urls : undefined,
+      depositAmount: payload.depositAmount,
+      discountAmount: payload.discountAmount,
+    },
+  });
+
+  const itemss = await prisma.item.findMany({
+    where: { id: { in: payload.items.map((item: any) => item.id) } },
+  });
+
+  return {
+    ...updatedEstimate,
+    itemss,
+  };
+};
+
+const getEstimateByIdFromDB = async (estimateId: string) => {
+  const estimate = await prisma.estimate.findUnique({
+    where: {
+      id: estimateId,
+    },
+    include: {
+      client: true,
+    },
+  });
+  if (!estimate) throw new ApiError(httpStatus.NOT_FOUND, "Estimate not found");
+  const items = estimate.items;
+
+  const itemsIds = items.map((item) => {
+    return item.id;
+  });
+
+  const itemsData = await prisma.item.findMany({
+    where: {
+      id: {
+        in: itemsIds,
+      },
+    },
+    include: {
+      markUp: true,
+    },
+  });
+
+  const taxIds = itemsData.flatMap((item) => item.taxes ?? []);
+  const uniqueTaxIds = Array.from(new Set(taxIds));
+
+  const taxesData = await prisma.tax.findMany({
+    where: {
+      id: {
+        in: uniqueTaxIds,
+      },
+    },
+  });
+  const taxMap = new Map(taxesData.map((tax) => [tax.id, tax]));
+
+  const itemsDataWithTax = itemsData.map((item) => ({
+    ...item,
+    taxes: (item.taxes ?? []).map((taxId) => taxMap.get(taxId)).filter(Boolean),
+  }));
+
+  return {
+    ...estimate,
+    itemsData: itemsDataWithTax,
   };
 };
 
@@ -569,6 +700,7 @@ const sendEstimateEmail = async (estimateId: string) => {
 
 export const estimateService = {
   createClientInDB,
+  getEstimateByIdFromDB,
   getMyClientsFromDB,
   createNewMarkUpInDB,
   getAllMarkUpsFromDB,
@@ -578,6 +710,7 @@ export const estimateService = {
   getItemListFromDB,
   getAllTaxesFromDB,
   createEstimateInDB,
+  editEstimateInDB,
   getAllEstimate,
   getEstimateDetails,
   sendEstimateEmail,
