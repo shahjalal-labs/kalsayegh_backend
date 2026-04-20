@@ -35,6 +35,8 @@ const ALLOWED_MIME_TYPES = [
   "video/mpeg",
   "video/mp4",
   "audio/mpeg",
+  "audio/m4a",
+  "video/m4a",
   "audio/mp3",
   "video/x-matroska",
   "audio/mpeg",
