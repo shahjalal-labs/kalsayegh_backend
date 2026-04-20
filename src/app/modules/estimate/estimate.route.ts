@@ -18,6 +18,15 @@ router.post(
   validateRequest(estimateValidation.estimateValidationSchema),
   estimateControllers.createEstimate,
 );
+
+router.patch(
+  "/edit-estimate/:id",
+  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  fileUploader.uploadMultiple,
+  parseBodyData,
+  validateRequest(estimateValidation.estimateValidationSchema),
+  estimateControllers.editEstimate,
+);
 router.get(
   "/single-estimate/:id",
   auth(UserRole.ADMIN, UserRole.ESTIMATOR),

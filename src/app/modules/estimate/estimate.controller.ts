@@ -15,6 +15,17 @@ const createEstimate = catchAsync(async (req, res) => {
   });
 });
 
+const editEstimate = catchAsync(async (req, res) => {
+  const { id: estimateId } = req.params;
+  const result = await estimateService.editEstimateInDB(estimateId, req);
+  sendResponse(res, {
+    success: true,
+    statusCode: 200,
+    message: "Estimate has been updated successfully",
+    data: result,
+  });
+});
+
 const getEstimateById = catchAsync(async (req, res) => {
   const { id } = req.params;
   const result = await estimateService.getEstimateByIdFromDB(id);
@@ -164,6 +175,7 @@ export const estimateControllers = {
   allTaxes,
   itemList,
   createEstimate,
+  editEstimate,
   getAllEstimate,
   getEstimateById,
   getEstimateDetails,
