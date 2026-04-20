@@ -280,10 +280,11 @@ model Invoice {
   discountAmount   Float?
   depositAmount    Float?
   status           InvoiceStatus @default(ACTIVE)
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
-  client           Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  estimator        User          @relation(fields: [estimatorId], references: [id], onDelete: Cascade)
+  emailStatus      EmailStatus   @default(NOT_SENT)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  estimator User     @relation(fields: [estimatorId], references: [id], onDelete: Cascade)
 
   @@map("invoices")
 }
