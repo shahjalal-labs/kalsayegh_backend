@@ -6,6 +6,8 @@ import { uploadInSpace } from "../../../helpers/uploadInSpace";
 import { TCreateInvoice } from "./invoice.validation";
 import { InvoiceStatus, Prisma, UserRole } from "@prisma/client";
 import { paginationHelper, TOptions } from "../../../shared/pagination";
+import { invoiceEmail } from "../../../shared/emailTemplate";
+import sendEmail from "../../../helpers/sendEmail";
 
 const createInvoice = async (req: Request) => {
   const files = req.files as { [fieldname: string]: Express.Multer.File[] };
@@ -256,9 +258,56 @@ const changeInvoiceStatus = async (
   });
 };
 
+const sendInvoiceEmail = async (invoiceId: string) => {
+  const invoice = await prisma.invoice.findUnique({
+    where: { id: invoiceId },
+    select: {
+      id: true,
+      invoiceName: true,
+      grandTotal: true,
+      date: true,
+      endDate: true,
+      client: {
+        select: {
+          email: true,
+          clientName: true,
+        },
+      },
+    },
+  });
+
+  if (!invoice) {
+    throw new ApiError(httpStatus.NOT_FOUND, "Invoice not found");
+  }
+
+  const emailBody = invoiceEmail({
+    clientName: invoice.client.clientName,
+    invoiceName: invoice.invoiceName,
+    total: invoice.grandTotal,
+    date: invoice.date,
+    endDate: invoice.endDate,
+  });
+
+  console.log(invoice.client.email);
+
+  try {
+    await sendEmail(invoice.client.email, "Invoice Email", emailBody);
+
+    return { message: "Invoice email sent successfully" };
+  } catch (err: any) {
+    console.error("EMAIL ERROR:", err);
+
+    throw new ApiError(
+      httpStatus.INTERNAL_SERVER_ERROR,
+      err?.message || "Invoice email failed",
+    );
+  }
+};
+
 export const invoiceService = {
   createInvoice,
   getAllInvoices,
   getInvoiceDetails,
   changeInvoiceStatus,
+  sendInvoiceEmail,
 };

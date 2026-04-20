@@ -1,5 +1,6 @@
 import {
   Client,
+  EmailStatus,
   EstimateStatus,
   Item,
   MarkUp,
@@ -12,6 +13,8 @@ import { Request } from "express";
 import { uploadInSpace } from "../../../helpers/uploadInSpace";
 import { paginationHelper, TOptions } from "../../../shared/pagination";
 import httpStatus from "http-status";
+import sendEmail from "../../../helpers/sendEmail";
+import { estimateEmail } from "../../../shared/emailTemplate";
 
 const createEstimateInDB = async (req: Request) => {
   const files = req.files as { [fieldname: string]: Express.Multer.File[] };
@@ -295,7 +298,7 @@ const updateItemInDb = async (payload: any) => {
 
     const existingTaxIds = new Set(existingTaxes.map((tax) => tax.id));
     const invalidTaxIds = payload.taxes.filter(
-      (taxId:any) => !existingTaxIds.has(taxId),
+      (taxId: any) => !existingTaxIds.has(taxId),
     );
 
     if (invalidTaxIds.length) {
@@ -524,6 +527,46 @@ const getEstimateDetails = async (estimateId: string) => {
   };
 };
 
+const sendEstimateEmail = async (estimateId: string) => {
+  const estimate = await prisma.estimate.findUnique({
+    where: { id: estimateId },
+    select: {
+      id: true,
+      estimateName: true,
+      grandTotal: true,
+      date: true,
+      endDate: true,
+      client: {
+        select: {
+          email: true,
+          clientName: true,
+        },
+      },
+    },
+  });
+
+  if (!estimate) throw new ApiError(httpStatus.NOT_FOUND, "Estimate not found");
+
+  const emailBody = estimateEmail({
+    clientName: estimate.client.clientName,
+    estimateName: estimate.estimateName,
+    total: estimate.grandTotal,
+    date: estimate.date,
+    endDate: estimate.endDate,
+  });
+
+  try {
+    await sendEmail(estimate.client.email, "Estimate Email", emailBody);
+
+    await prisma.estimate.update({
+      where: { id: estimateId },
+      data: { emailStatus: EmailStatus.SENT },
+    });
+  } catch (err) {
+    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, "Email failed");
+  }
+};
+
 export const estimateService = {
   createClientInDB,
   getMyClientsFromDB,
@@ -537,4 +580,5 @@ export const estimateService = {
   createEstimateInDB,
   getAllEstimate,
   getEstimateDetails,
+  sendEstimateEmail,
 };

@@ -67,9 +67,23 @@ const changeInvoiceStatus = catchAsync(async (req, res) => {
   });
 });
 
+const sendInvoiceEmail = catchAsync(async (req, res) => {
+  const { id: invoiceId } = req.params;
+
+  const result = await invoiceService.sendInvoiceEmail(invoiceId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Invoice email sent successfully.",
+    data: result,
+  });
+});
+
 export const invoiceController = {
   createInvoice,
   getAllInvoices,
   getInvoiceDetails,
   changeInvoiceStatus,
+  sendInvoiceEmail,
 };

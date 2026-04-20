@@ -80,4 +80,10 @@ router.get(
   estimateControllers.getEstimateDetails,
 );
 
+router.post(
+  "/send-mail/:id",
+  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  estimateControllers.sendEstimateEmail,
+);
+
 export const estimateRoutes = router;

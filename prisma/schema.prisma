@@ -243,6 +243,7 @@ model Estimate {
   updatedAt        DateTime       @updatedAt
   client           Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
   estimator        User           @relation(fields: [estimatorId], references: [id], onDelete: Cascade)
+  emailStatus      EmailStatus    @default(NOT_SENT)
 
   @@map("estimates")
 }
@@ -251,6 +252,11 @@ enum EstimateStatus {
   Pending
   Approved
   Declined
+}
+
+enum EmailStatus {
+  SENT
+  NOT_SENT
 }
 
 type TItemType {

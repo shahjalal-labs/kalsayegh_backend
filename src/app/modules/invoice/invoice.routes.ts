@@ -36,4 +36,10 @@ router.patch(
   invoiceController.changeInvoiceStatus,
 );
 
+router.post(
+  "/send-mail/:id",
+  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  invoiceController.sendInvoiceEmail,
+);
+
 export const invoiceRoutes = router;

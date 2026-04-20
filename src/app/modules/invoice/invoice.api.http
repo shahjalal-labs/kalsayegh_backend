@@ -46,3 +46,10 @@ Content-Type: application/json
 {
   "status": "PAID"
 }
+
+
+### send estimate mail
+
+POST {{baseUrl}}/invoice/send-mail/69ddf772378f36b27a299484 HTTP/1.1
+Authorization: {{estMir}}
+Content-Type: application/json
