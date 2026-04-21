@@ -31,6 +31,15 @@ router.post(
   jobRequestController.createJobRequest,
 );
 
+router.post(
+  "/create-job-request-by-image",
+  auth(UserRole.OFFICE_ADMINISTRATOR, UserRole.ADMIN, UserRole.ESTIMATOR),
+  fileUploader.jobRequestByImage,
+  parseBodyData,
+  validateRequest(jobRequestValidatin.createJobRequestByImageSchema),
+  jobRequestController.createJobRequestByImage,
+);
+
 router.get(
   "/all",
   auth(UserRole.OFFICE_ADMINISTRATOR, UserRole.ADMIN, UserRole.ESTIMATOR),

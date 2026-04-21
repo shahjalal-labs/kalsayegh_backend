@@ -44,6 +44,7 @@ const upload = multer({
 const profileImage = upload.single("profileImage");
 const coverPhoto = upload.single("coverPhoto");
 const groupPhoto = upload.single("groupPhoto");
+const jobRequestByImage = upload.single("jobRequestImage");
 
 // upload multiple image
 const uploadMultiple = upload.fields([
@@ -60,4 +61,5 @@ export const fileUploader = {
   groupPhoto,
   profileImage,
   coverPhoto,
+  jobRequestByImage,
 };

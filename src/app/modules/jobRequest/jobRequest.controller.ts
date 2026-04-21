@@ -48,6 +48,23 @@ const createJobRequest = catchAsync(async (req, res) => {
   });
 });
 
+const createJobRequestByImage = catchAsync(async (req, res) => {
+  const { id: userId } = req.user;
+  const file = req.file;
+  const result = await jobRequestService.createJobRequestByImage(
+    userId,
+    req.body,
+    file!,
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.CREATED,
+    success: true,
+    message: "Job request created by image successfully.",
+    data: result,
+  });
+});
+
 const getAllJobRequests = catchAsync(async (_req, res) => {
   const result = await jobRequestService.getAllJobRequests();
 
@@ -118,4 +135,5 @@ export const jobRequestController = {
   getJobRequestDetails,
   updateJobRequest,
   getAllJobRequetsForAOffice,
+  createJobRequestByImage,
 };

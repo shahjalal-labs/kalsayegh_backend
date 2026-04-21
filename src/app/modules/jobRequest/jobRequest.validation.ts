@@ -37,8 +37,22 @@ const updateJobRequestSchema = createJobRequestSchema
 
 export type TUpdateJobRequest = z.infer<typeof updateJobRequestSchema>;
 
+const createJobRequestByImageSchema = createJobRequestSchema.omit({
+  note: true,
+  officeLatitude: true,
+  officeLongitude: true,
+  address: true,
+  contact: true,
+  email: true,
+});
+
+export type TCreateJobRequestByImage = z.infer<
+  typeof createJobRequestByImageSchema
+>;
+
 export const jobRequestValidatin = {
   createOfficeSchema,
   createJobRequestSchema,
   updateJobRequestSchema,
+  createJobRequestByImageSchema,
 };

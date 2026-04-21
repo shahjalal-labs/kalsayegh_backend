@@ -19,7 +19,8 @@ Content-Type: application/json
       "quantity": 3,
       "subTotal": 450
     }
-  ]
+  ],
+  "legendary": "legendary"
 }
 
 
@@ -48,7 +49,7 @@ Content-Type: application/json
 }
 
 
-### send estimate mail
+### send invoice mail
 
 POST {{baseUrl}}/invoice/send-mail/69ddf772378f36b27a299484 HTTP/1.1
 Authorization: {{estMir}}

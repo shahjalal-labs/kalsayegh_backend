@@ -19,7 +19,8 @@ Content-Type: application/json
       "quantity": 3,
       "subTotal": 450
     }
-  ]
+  ],
+  "legendary": "legendary"
 }
 
 
@@ -126,11 +127,13 @@ Authorization: {{estMir}}
 
 ### get estimate details
 
-GET {{baseUrl}}/estimate/estimate/69d9eec4531af0c6f2ebc13a HTTP/1.1
+GET {{baseUrl}}/estimate/estimate/69e71ad3eb445ea74ae9a561 HTTP/1.1
 Authorization: {{estMir}}
 
 
 ### send estimate mail
+
+# send-mail/:estimateId
 
 POST {{baseUrl}}/estimate/send-mail/69d9eec4531af0c6f2ebc13a HTTP/1.1
 Authorization: {{estMir}}

@@ -35,6 +35,19 @@ Content-Type: application/json
 }
 
 
+### create job request by image
+
+POST {{baseUrl}}/job-request/create-job-request-by-image HTTP/1.1
+Authorization: {{administrator}}
+Content-Type: application/json
+
+{
+  "date": "2026-01-01T10:00:00Z",
+  "officeId": "69d5edc0810a2cd30c06ee1c",
+  "title": "new job request title2"
+}
+
+
 ### get all job requests
 
 GET {{baseUrl}}/job-request/all HTTP/1.1

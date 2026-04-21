@@ -16,6 +16,7 @@ export const TItemTypeSchema = z.object({
 const estimateValidationSchema = z.object({
   clientId: objectId,
   estimateName: z.string().min(1, "Estimate name is required"),
+  legendary: z.string(),
   date: z.string().min(1, "Start date is required"),
   endDate: z.string().min(1, "End date is required"),
   items: z.array(TItemTypeSchema).min(1, "At least one item is required"),
