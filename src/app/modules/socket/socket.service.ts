@@ -128,13 +128,11 @@ export function setupWebSocketServer(server: any) {
   };
 
   wss.on("connection", async (ws: CustomWebSocket, req: Request) => {
-    const { query } = parse(req.url, true);
-    let authToken = req.headers["x-token"] as string;
-    if (!authToken && query["x-token"]) {
-      authToken = Array.isArray(query["x-token"])
-        ? query["x-token"][0]
-        : query["x-token"];
-    }
+    const baseUrl = `http://${req.headers.host || "localhost"}`;
+    const url = new URL(req.url || "/", baseUrl);
+    let authToken =
+      url.searchParams.get("x-token") ?? (req.headers["x-token"] as string);
+
     const decoded = verifyWebSocketToken(ws, authToken);
     if (!decoded) {
       ws.close();
