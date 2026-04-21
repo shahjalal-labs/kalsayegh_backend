@@ -4,6 +4,7 @@ import { uploadInSpace } from "../../../helpers/uploadInSpace";
 import prisma from "../../../shared/prisma";
 import {
   TCreateJobRequest,
+  TCreateJobRequestByImage,
   TCreateOffice,
   TUpdateJobRequest,
 } from "./jobRequest.validation";
@@ -87,6 +88,37 @@ const createJobRequest = async (
       title: true,
     },
   });
+};
+
+const createJobRequestByImage = async (
+  userId: string,
+  payload: TCreateJobRequestByImage,
+  file: Express.Multer.File,
+) => {
+  const [user, office] = await Promise.all([
+    prisma.user.findUnique({
+      where: {
+        id: userId,
+      },
+      select: {
+        id: true,
+      },
+    }),
+
+    prisma.office.findUnique({
+      where: {
+        id: payload.officeId,
+      },
+      select: {
+        id: true,
+      },
+    }),
+  ]);
+
+  if (!user) throw new ApiError(httpStatus.NOT_FOUND, "User not found");
+  if (!office) throw new ApiError(httpStatus.NOT_FOUND, "Office not found.");
+
+  const fileUrl = "";
 };
 
 const getAllJobRequests = async () => {
@@ -317,4 +349,5 @@ export const jobRequestService = {
   updateJobRequest,
   getAllJobRequetsForAOffice,
   updateJobRequestImage,
+  createJobRequestByImage,
 };

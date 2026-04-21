@@ -64,6 +64,7 @@ const createEstimateInDB = async (req: Request) => {
     data: {
       clientId: payload.clientId,
       estimatorId: estimatorId,
+      legendary: payload.legendary,
       date: payload.date,
       endDate: payload.endDate,
       estimateName: payload.estimateName,
