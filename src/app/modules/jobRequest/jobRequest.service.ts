@@ -118,7 +118,17 @@ const createJobRequestByImage = async (
   if (!user) throw new ApiError(httpStatus.NOT_FOUND, "User not found");
   if (!office) throw new ApiError(httpStatus.NOT_FOUND, "Office not found.");
 
-  const fileUrl = "";
+  if (!file) throw new ApiError(httpStatus.BAD_REQUEST, "No image provided");
+
+  const fileUrl = await uploadInSpace(file, "job-request-images");
+
+  await prisma.jobRequest.create({
+    data: {
+      ...payload,
+      creatorId: userId,
+      jobImage: fileUrl,
+    },
+  });
 };
 
 const getAllJobRequests = async () => {
