@@ -3,6 +3,7 @@ import { Request } from "express";
 import prisma from "../../../shared/prisma";
 import redisClient from "../../../helpers/redis";
 import { verifyWebSocketToken } from "./socket.verifyToken";
+import { parse } from "url";
 
 interface CustomWebSocket extends WebSocket {
   userId?: string;
@@ -127,7 +128,13 @@ export function setupWebSocketServer(server: any) {
   };
 
   wss.on("connection", async (ws: CustomWebSocket, req: Request) => {
-    const authToken = req.headers["x-token"] as string;
+    const { query } = parse(req.url, true);
+    let authToken = req.headers["x-token"] as string;
+    if (!authToken && query["x-token"]) {
+      authToken = Array.isArray(query["x-token"])
+        ? query["x-token"][0]
+        : query["x-token"];
+    }
     const decoded = verifyWebSocketToken(ws, authToken);
     if (!decoded) {
       ws.close();
