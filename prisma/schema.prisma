@@ -342,7 +342,6 @@ model JobRequest {
   note            String?
   officeLatitude  Float?
   officeLongitude Float?
-  jobImage        String[]
   images          String[]
   address         String?
   contact         String?

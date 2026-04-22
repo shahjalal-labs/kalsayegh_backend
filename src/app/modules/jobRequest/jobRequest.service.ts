@@ -128,7 +128,7 @@ const createJobRequestByImage = async (
     data: {
       ...payload,
       creatorId: userId,
-      jobImage: imageUrls,
+      images: imageUrls,
     },
   });
 };
