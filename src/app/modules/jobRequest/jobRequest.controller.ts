@@ -50,11 +50,13 @@ const createJobRequest = catchAsync(async (req, res) => {
 
 const createJobRequestByImage = catchAsync(async (req, res) => {
   const { id: userId } = req.user;
-  const file = req.file;
+  const files = req.files as {
+    jobRequestsImage?: Express.Multer.File[];
+  };
   const result = await jobRequestService.createJobRequestByImage(
     userId,
     req.body,
-    file!,
+    files.jobRequestsImage,
   );
 
   sendResponse(res, {

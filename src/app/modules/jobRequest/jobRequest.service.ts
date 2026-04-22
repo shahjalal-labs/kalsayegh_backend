@@ -93,7 +93,7 @@ const createJobRequest = async (
 const createJobRequestByImage = async (
   userId: string,
   payload: TCreateJobRequestByImage,
-  file: Express.Multer.File,
+  files?: Express.Multer.File[],
 ) => {
   const [user, office] = await Promise.all([
     prisma.user.findUnique({
@@ -118,15 +118,17 @@ const createJobRequestByImage = async (
   if (!user) throw new ApiError(httpStatus.NOT_FOUND, "User not found");
   if (!office) throw new ApiError(httpStatus.NOT_FOUND, "Office not found.");
 
-  if (!file) throw new ApiError(httpStatus.BAD_REQUEST, "No image provided");
+  let imageUrls: string[] = [];
 
-  const fileUrl = await uploadInSpace(file, "job-request-images");
-
+  if (files?.length)
+    imageUrls = await Promise.all(
+      files.map((file) => uploadInSpace(file, "job-rquests")),
+    );
   await prisma.jobRequest.create({
     data: {
       ...payload,
       creatorId: userId,
-      jobImage: fileUrl,
+      jobImage: imageUrls,
     },
   });
 };

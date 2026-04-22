@@ -34,7 +34,7 @@ router.post(
 router.post(
   "/create-job-request-by-image",
   auth(UserRole.OFFICE_ADMINISTRATOR, UserRole.ADMIN, UserRole.ESTIMATOR),
-  fileUploader.jobRequestByImage,
+  fileUploader.uploadMultiple,
   parseBodyData,
   validateRequest(jobRequestValidatin.createJobRequestByImageSchema),
   jobRequestController.createJobRequestByImage,

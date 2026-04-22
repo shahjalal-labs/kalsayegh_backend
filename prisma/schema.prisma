@@ -337,12 +337,12 @@ model JobRequest {
   id              String           @id @default(auto()) @map("_id") @db.ObjectId
   title           String
   officeId        String           @db.ObjectId
-  office          Office           @relation(fields: [officeId], references: [id], onDelete: Cascade)
+  office          Office?          @relation(fields: [officeId], references: [id], onDelete: Cascade)
   date            DateTime
   note            String?
   officeLatitude  Float?
   officeLongitude Float?
-  jobImage        String?
+  jobImage        String[]
   images          String[]
   address         String?
   contact         String?
