@@ -165,6 +165,55 @@ const sendEstimateEmail = catchAsync(async (req, res) => {
   });
 });
 
+const updateEstimateStatus = catchAsync(async (req, res) => {
+  const { id: estimateId } = req.params;
+  const { status } = req.body;
+
+  const result = await estimateService.updateEstimateStatus(estimateId, status);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Estimate status updated successfully.",
+    data: result,
+  });
+});
+
+const updateEstimateEmailAndSign = catchAsync(async (req, res) => {
+  const { id: estimateId } = req.params;
+  const { emailStatus, signedName } = req.body;
+
+  const result = await estimateService.updateEstimateEmailAndSign(
+    estimateId,
+    emailStatus,
+    signedName,
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Estimate email/signature updated successfully.",
+    data: result,
+  });
+});
+
+const sendEstimateEmailFlexible = catchAsync(async (req, res) => {
+  const { id: estimateId } = req.params;
+  const payload = req.body;
+
+  const result = await estimateService.sendEstimateEmailFlexible(
+    estimateId,
+    payload,
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Estimate email(s) sent successfully.",
+    data: result,
+  });
+});
+
 export const estimateControllers = {
   createClient,
   myClients,
@@ -181,4 +230,7 @@ export const estimateControllers = {
   getEstimateDetails,
   updateItem,
   sendEstimateEmail,
+  updateEstimateStatus,
+  updateEstimateEmailAndSign,
+  sendEstimateEmailFlexible,
 };

@@ -90,7 +90,7 @@ router.get(
 
 router.get(
   "/estimate/:id",
-  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  // auth(UserRole.ADMIN, UserRole.ESTIMATOR),
   estimateControllers.getEstimateDetails,
 );
 
@@ -98,6 +98,26 @@ router.post(
   "/send-mail/:id",
   auth(UserRole.ADMIN, UserRole.ESTIMATOR),
   estimateControllers.sendEstimateEmail,
+);
+
+router.patch(
+  "/update-status/:id",
+  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  validateRequest(estimateValidation.updateEstimateStatusSchema),
+  estimateControllers.updateEstimateStatus,
+);
+
+router.patch(
+  "/update-email-sign/:id",
+  validateRequest(estimateValidation.updateEmailSignSchema),
+  estimateControllers.updateEstimateEmailAndSign,
+);
+
+router.post(
+  "/send-email/:id",
+  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  validateRequest(estimateValidation.sendEstimateEmailSchema),
+  estimateControllers.sendEstimateEmailFlexible,
 );
 
 export const estimateRoutes = router;

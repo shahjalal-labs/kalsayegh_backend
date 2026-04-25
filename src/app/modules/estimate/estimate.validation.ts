@@ -66,10 +66,41 @@ const itemUpdateValidationSchema = z.object({
   taxes: z.array(z.string()).optional(),
 });
 
+const updateEstimateStatusSchema = z
+  .object({
+    status: EstimateStatusEnum, // "Pending", "Approved", "Declined"
+  })
+  .strict();
+
+const updateEmailSignSchema = z
+  .object({
+    emailStatus: z.enum(["READ"]).optional(), // only allow READ
+    signedName: z
+      .string()
+      .min(1, "Signed name is required if provided")
+      .optional(),
+  })
+  .strict();
+
+const sendEstimateEmailSchema = z.object({
+  to: z
+    .array(z.string().email("Invalid recipient email"))
+    .min(1, "At least one recipient is required"),
+  cc: z.array(z.string().email("Invalid CC email")).optional(),
+  bcc: z.array(z.string().email("Invalid BCC email")).optional(),
+  subject: z.string().optional(),
+  message: z.string().optional(),
+  sendMeCopy: z.boolean().optional().default(false),
+  isOnlinePayment: z.boolean().optional(),
+});
+
 export const estimateValidation = {
   estimateValidationSchema,
   markUpValidationSchema,
   itemValidationSchema,
   taxValidationSchema,
   itemUpdateValidationSchema,
+  updateEstimateStatusSchema,
+  updateEmailSignSchema,
+  sendEstimateEmailSchema,
 };

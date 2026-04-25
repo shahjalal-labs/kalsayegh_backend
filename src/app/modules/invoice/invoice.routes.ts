@@ -37,9 +37,22 @@ router.patch(
 );
 
 router.post(
-  "/send-mail/:id",
-  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  "/send-email/:id",
+  auth(UserRole.ADMIN, UserRole.ESTIMATOR), // adjust roles as needed
+  validateRequest(invoiceValidation.sendInvoiceEmailSchema),
   invoiceController.sendInvoiceEmail,
+);
+
+router.patch(
+  "/update-email-sign/:id",
+  validateRequest(invoiceValidation.updateInvoiceEmailSignSchema),
+  invoiceController.updateInvoiceEmailAndSign,
+);
+
+router.post(
+  "/generate-from-estimate/:estimateId",
+  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  invoiceController.generateInvoiceFromEstimate,
 );
 
 export const invoiceRoutes = router;

@@ -69,13 +69,44 @@ const changeInvoiceStatus = catchAsync(async (req, res) => {
 
 const sendInvoiceEmail = catchAsync(async (req, res) => {
   const { id: invoiceId } = req.params;
+  const payload = req.body;
 
-  const result = await invoiceService.sendInvoiceEmail(invoiceId);
+  const result = await invoiceService.sendInvoiceEmail(invoiceId, payload);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Invoice email sent successfully.",
+    message: "Invoice email(s) sent successfully.",
+    data: result,
+  });
+});
+
+const updateInvoiceEmailAndSign = catchAsync(async (req, res) => {
+  const { id: invoiceId } = req.params;
+  const { emailStatus, signedName } = req.body;
+
+  const result = await invoiceService.updateInvoiceEmailAndSign(
+    invoiceId,
+    emailStatus,
+    signedName,
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Invoice email/signature updated successfully.",
+    data: result,
+  });
+});
+
+const generateInvoiceFromEstimate = catchAsync(async (req, res) => {
+  const { estimateId } = req.params; // assuming route param :estimateId
+  const result = await invoiceService.generateInvoiceFromEstimate(estimateId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.CREATED,
+    success: true,
+    message: "Invoice generated successfully from estimate.",
     data: result,
   });
 });
@@ -86,4 +117,6 @@ export const invoiceController = {
   getInvoiceDetails,
   changeInvoiceStatus,
   sendInvoiceEmail,
+  updateInvoiceEmailAndSign,
+  generateInvoiceFromEstimate,
 };

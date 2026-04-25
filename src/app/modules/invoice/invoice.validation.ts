@@ -18,6 +18,30 @@ const createInvoiceSchema = z
 
 export type TCreateInvoice = z.infer<typeof createInvoiceSchema>;
 
+const sendInvoiceEmailSchema = z.object({
+  to: z
+    .array(z.string().email("Invalid recipient email"))
+    .min(1, "At least one recipient is required"),
+  subject: z.string().optional(),
+  message: z.string().optional(),
+  sendMeCopy: z.boolean().optional().default(false),
+});
+
+const updateInvoiceEmailSignSchema = z.object({
+  emailStatus: z.enum(["READ"]).optional(),
+  signedName: z
+    .string()
+    .min(1, "Signed name is required if provided")
+    .optional(),
+});
+
+const generateInvoiceSchema = z.object({
+  estimateId: z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid estimate ID"),
+});
+
 export const invoiceValidation = {
   createInvoiceSchema,
+  sendInvoiceEmailSchema,
+  updateInvoiceEmailSignSchema,
+  generateInvoiceSchema,
 };

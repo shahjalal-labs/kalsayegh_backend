@@ -13,6 +13,7 @@ Content-Type: application/json
   "endDate": "2026-04-30",
   "estimateName": "Residential Painting Project",
   "grandTotal": 1500,
+  "isOnlinePayment": true,
   "items": [
     {
       "id": "69d87eb901d75586feffc495",
@@ -138,3 +139,48 @@ Authorization: {{estMir}}
 POST {{baseUrl}}/estimate/send-mail/69d9eec4531af0c6f2ebc13a HTTP/1.1
 Authorization: {{estMir}}
 Content-Type: application/json
+
+
+### update estimate status (Pending / Approved / Declined)
+
+# update-status/:estimateId
+
+PATCH {{baseUrl}}/estimate/update-status/69e71ad3eb445ea74ae9a561 HTTP/1.1
+Authorization: {{estMir}}
+Content-Type: application/json
+
+{
+  "status": "Approved"
+}
+
+
+### update email status and sign estimate
+
+# update-email-sign/:estimateId
+
+PATCH {{baseUrl}}/estimate/update-email-sign/69e71ad3eb445ea74ae9a561 HTTP/1.1
+Content-Type: application/json
+
+{
+  "emailStatus": "READ",
+  "signedName": "Mir Bin Mota"
+}
+
+
+### Send estimate email with custom recipients, CC, BCC, and copy to me
+
+POST {{baseUrl}}/estimate/send-email/69e71ad3eb445ea74ae9a561 HTTP/1.1
+Authorization: {{estMir}}
+Content-Type: application/json
+
+{
+  "bcc": [],
+  "cc": [],
+  "message": "We are pleased to work with you. Please review the estimate.",
+  "sendMeCopy": true,
+  "subject": "Your Estimate #2525 from Geo Paving and Sealcoating",
+  "to": [
+    "dev.shahjalal@gmail.com",
+    "muhommodshahjalal@gmail.com"
+  ]
+}

@@ -6,8 +6,12 @@ import { uploadInSpace } from "../../../helpers/uploadInSpace";
 import { TCreateInvoice } from "./invoice.validation";
 import { EmailStatus, InvoiceStatus, Prisma, UserRole } from "@prisma/client";
 import { paginationHelper, TOptions } from "../../../shared/pagination";
-import { invoiceEmail } from "../../../shared/emailTemplate";
+import {
+  invoiceEmail,
+  invoiceEmailWithPayment,
+} from "../../../shared/emailTemplate";
 import sendEmail from "../../../helpers/sendEmail";
+import sendEmailAdvanced from "../../../helpers/sendEmailAdvanced";
 
 const createInvoice = async (req: Request) => {
   const files = req.files as { [fieldname: string]: Express.Multer.File[] };
@@ -149,23 +153,6 @@ const getAllInvoices = async (
   };
 };
 
-/* const getInvoiceDetails = async (invoiceId: string) => {
-  const invoice = await prisma.invoice.findUnique({
-    where: {
-      id: invoiceId,
-    },
-    include: {
-      client: true,
-    },
-    omit: {
-      createdAt: true,
-    },
-  });
-
-  if (!invoice) throw new ApiError(httpStatus.NOT_FOUND, "Invoice not found");
-  return invoice;
-}; */
-
 const getInvoiceDetails = async (invoiceId: string) => {
   const invoice = await prisma.invoice.findUnique({
     where: {
@@ -258,21 +245,20 @@ const changeInvoiceStatus = async (
   });
 };
 
-const sendInvoiceEmail = async (invoiceId: string) => {
+const sendInvoiceEmail = async (
+  invoiceId: string,
+  payload: {
+    to: string[];
+    subject?: string;
+    message?: string;
+    sendMeCopy?: boolean;
+  },
+) => {
+  // Fetch invoice with client details
   const invoice = await prisma.invoice.findUnique({
     where: { id: invoiceId },
-    select: {
-      id: true,
-      invoiceName: true,
-      grandTotal: true,
-      date: true,
-      endDate: true,
-      client: {
-        select: {
-          email: true,
-          clientName: true,
-        },
-      },
+    include: {
+      client: { select: { clientName: true } },
     },
   });
 
@@ -280,36 +266,160 @@ const sendInvoiceEmail = async (invoiceId: string) => {
     throw new ApiError(httpStatus.NOT_FOUND, "Invoice not found");
   }
 
-  const emailBody = invoiceEmail({
+  // Prepare recipients
+  let to = [...payload.to];
+  const cc: string[] = [];
+
+  if (payload.sendMeCopy) {
+    cc.push("shahjalal.backend@gmail.com");
+  }
+
+  // Default subject
+  const defaultSubject = `Your Invoice #${invoice.invoiceName || invoiceId.slice(-6)} from Geo Paving and Sealcoating`;
+  const subject = payload.subject || defaultSubject;
+
+  // Generate payment link
+  const frontendUrl = process.env.FRONTEND_URL || "https://yourfrontend.com";
+  const paymentLink = `${frontendUrl}/invoice/${invoiceId}/pay`;
+
+  // Generate HTML
+  const html = invoiceEmailWithPayment({
     clientName: invoice.client.clientName,
-    invoiceName: invoice.invoiceName,
-    total: invoice.grandTotal,
+    invoiceName: invoice.invoiceName || invoiceId.slice(-6),
+    grandTotal: invoice.grandTotal,
     date: invoice.date,
-    endDate: invoice.endDate,
+    dueDate: invoice.endDate, // using endDate as due date
+    customMessage: payload.message,
+    paymentLink,
   });
 
-  console.log(invoice.client.email);
+  // Send email
+  await sendEmailAdvanced({
+    to,
+    cc: cc.length ? cc : undefined,
+    subject,
+    html,
+  });
 
-  try {
-    await sendEmail(invoice.client.email, "Invoice Email", emailBody);
-    await prisma.invoice.update({
-      where: { id: invoiceId },
-      data: { emailStatus: EmailStatus.SENT },
-    });
-  } catch (err: any) {
-    console.error("EMAIL ERROR:", err);
+  // Update email status if your Invoice model has emailStatus (add if needed)
+  await prisma.invoice.update({
+    where: { id: invoiceId },
+    data: { emailStatus: EmailStatus.SENT, stage: "ISSUED" },
+  });
 
-    throw new ApiError(
-      httpStatus.INTERNAL_SERVER_ERROR,
-      err?.message || "Invoice email failed",
-    );
-  }
+  return { success: true, to, cc };
 };
 
+// Add to invoice.service.ts
+
+const updateInvoiceEmailAndSign = async (
+  invoiceId: string,
+  emailStatus?: "READ",
+  signedName?: string,
+) => {
+  const existingInvoice = await prisma.invoice.count({
+    where: { id: invoiceId },
+  });
+
+  if (!existingInvoice) {
+    throw new ApiError(httpStatus.NOT_FOUND, "Invoice not found");
+  }
+
+  const updateData: Prisma.InvoiceUpdateInput = {};
+
+  if (emailStatus) {
+    updateData.emailStatus = emailStatus;
+  }
+
+  if (signedName) {
+    updateData.isSigned = true;
+    updateData.signedAt = new Date();
+    updateData.signedName = signedName;
+  }
+
+  if (Object.keys(updateData).length === 0) {
+    throw new ApiError(httpStatus.BAD_REQUEST, "No valid fields to update");
+  }
+
+  const updatedInvoice = await prisma.invoice.update({
+    where: { id: invoiceId },
+    data: updateData,
+    select: {
+      id: true,
+      invoiceName: true,
+      emailStatus: true,
+      isSigned: true,
+      signedName: true,
+      signedAt: true,
+    },
+  });
+
+  return updatedInvoice;
+};
+
+const generateInvoiceFromEstimate = async (estimateId: string) => {
+  const estimate = await prisma.estimate.findUnique({
+    where: { id: estimateId },
+  });
+
+  if (!estimate) {
+    throw new ApiError(httpStatus.NOT_FOUND, "Estimate not found");
+  }
+
+  // block if already generated
+  /* if (estimate.isInvoiced) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      "Invoice already generated for this estimate",
+    );
+  } */
+
+  // 3. Prepare invoice data (copy from estimate)
+  const invoiceData: Prisma.InvoiceCreateInput = {
+    client: { connect: { id: estimate.clientId } },
+    estimator: { connect: { id: estimate.estimatorId } },
+    invoiceName: estimate.estimateName, // or generate unique invoice number
+    legendary: estimate.legendary,
+    date: estimate.date,
+    endDate: estimate.endDate,
+    sideMap: estimate.sideMap,
+    fileUrls: estimate.fileUrls,
+    items: estimate.items,
+    additionalMarkUp: estimate.additionalMarkUp,
+    grandTotal: estimate.grandTotal,
+    discountAmount: estimate.discountAmount,
+    depositAmount: estimate.depositAmount,
+    // Default status/stage for new invoice
+    status: "ACTIVE",
+    stage: "DRAFT",
+    emailStatus: "NOT_SENT",
+    // Signature fields (copy if signed)
+    isSigned: estimate.isSigned,
+    signedAt: estimate.signedAt,
+    signedName: estimate.signedName,
+    // Link back to estimate
+    estimate: { connect: { id: estimateId } },
+  };
+
+  // 4. Create invoice
+  const newInvoice = await prisma.invoice.create({
+    data: invoiceData,
+  });
+
+  // 5. Update estimate: mark as invoiced
+  await prisma.estimate.update({
+    where: { id: estimateId },
+    data: { isInvoiced: true },
+  });
+
+  return newInvoice;
+};
 export const invoiceService = {
   createInvoice,
   getAllInvoices,
   getInvoiceDetails,
   changeInvoiceStatus,
   sendInvoiceEmail,
+  updateInvoiceEmailAndSign,
+  generateInvoiceFromEstimate,
 };

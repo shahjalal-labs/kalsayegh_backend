@@ -49,8 +49,37 @@ Content-Type: application/json
 }
 
 
-### send invoice mail
+### Send invoice email
 
-POST {{baseUrl}}/invoice/send-mail/69ddf772378f36b27a299484 HTTP/1.1
+POST {{baseUrl}}/invoice/send-email/69e71abbeb445ea74ae9a560 HTTP/1.1
+Authorization: {{estMir}}
+Content-Type: application/json
+
+{
+  "message": "Thanks for your business!",
+  "sendMeCopy": true,
+  "subject": "Your Invoice from Geo Paving and Sealcoating",
+  "to": [
+    "dev.shahjalal@gmail.com",
+    "muhommodshahjalal@gmail.com"
+  ]
+}
+
+
+### Update invoice email status to READ and sign invoice
+
+PATCH {{baseUrl}}/invoice/update-email-sign/69e71abbeb445ea74ae9a560 HTTP/1.1
+Authorization: {{estMir}}
+Content-Type: application/json
+
+{
+  "emailStatus": "READ",
+  "signedName": "John Doe"
+}
+
+
+### Generate invoice from estimate
+
+POST {{baseUrl}}/invoice/generate-from-estimate/69e71ad3eb445ea74ae9a561 HTTP/1.1
 Authorization: {{estMir}}
 Content-Type: application/json

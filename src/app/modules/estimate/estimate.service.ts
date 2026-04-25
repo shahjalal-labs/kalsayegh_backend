@@ -699,6 +699,157 @@ const sendEstimateEmail = async (estimateId: string) => {
   }
 };
 
+const updateEstimateStatus = async (
+  estimateId: string,
+  status: EstimateStatus,
+) => {
+  const existingEstimate = await prisma.estimate.findUnique({
+    where: { id: estimateId },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!existingEstimate)
+    throw new ApiError(httpStatus.NOT_FOUND, "Estimate not found");
+
+  // Update the status
+  const updatedEstimate = await prisma.estimate.update({
+    where: { id: estimateId },
+    data: { status },
+    select: {
+      id: true,
+      estimateName: true,
+      status: true,
+    },
+  });
+
+  return updatedEstimate;
+};
+
+// In estimate.service.ts
+
+const updateEstimateEmailAndSign = async (
+  estimateId: string,
+  emailStatus?: "READ",
+  signedName?: string,
+) => {
+  // Check if estimate exists
+  const existingEstimate = await prisma.estimate.count({
+    where: { id: estimateId },
+  });
+
+  if (!existingEstimate) {
+    throw new ApiError(httpStatus.NOT_FOUND, "Estimate not found");
+  }
+
+  // Build update data
+  const updateData: Prisma.EstimateUpdateInput = {};
+
+  if (emailStatus) {
+    updateData.emailStatus = emailStatus;
+  }
+
+  if (signedName) {
+    updateData.isSigned = true;
+    updateData.signedAt = new Date();
+    updateData.signedName = signedName;
+  }
+
+  // If no fields to update, throw error
+  if (Object.keys(updateData).length === 0) {
+    throw new ApiError(httpStatus.BAD_REQUEST, "No valid fields to update");
+  }
+
+  const updatedEstimate = await prisma.estimate.update({
+    where: { id: estimateId },
+    data: updateData,
+    select: {
+      id: true,
+      estimateName: true,
+      emailStatus: true,
+      isSigned: true,
+    },
+  });
+
+  return updatedEstimate;
+};
+
+// Add to estimate.service.ts
+import sendEmailAdvanced from "../../../helpers/sendEmailAdvanced";
+import { estimateEmailWithReview } from "../../../shared/emailTemplate";
+
+const sendEstimateEmailFlexible = async (
+  estimateId: string,
+  payload: {
+    to: string[];
+    cc?: string[];
+    bcc?: string[];
+    subject?: string;
+    message?: string;
+    sendMeCopy?: boolean;
+  },
+) => {
+  // Fetch estimate with client and estimator details
+  const estimate = await prisma.estimate.findUnique({
+    where: { id: estimateId },
+    include: {
+      client: { select: { clientName: true } },
+      estimator: { select: { fullName: true } },
+    },
+  });
+
+  if (!estimate) {
+    throw new ApiError(httpStatus.NOT_FOUND, "Estimate not found");
+  }
+
+  // Prepare recipients
+  let to = [...payload.to];
+  let cc = payload.cc ? [...payload.cc] : [];
+  const bcc = payload.bcc ? [...payload.bcc] : [];
+
+  // Add "send me a copy" to CC if requested
+  if (payload.sendMeCopy) {
+    cc.push("shahjalal.backend@gmail.com");
+  }
+
+  // Default subject if not provided
+  const defaultSubject = `Your Estimate #${estimate.estimateName || estimateId.slice(-6)} from Geo Paving and Sealcoating`;
+  const subject = payload.subject || defaultSubject;
+
+  // Generate review link
+  const frontendUrl = process.env.FRONTEND_URL || "https://yourfrontend.com";
+  const reviewLink = `${frontendUrl}/estimate/${estimateId}`;
+
+  // Generate HTML
+  const html = estimateEmailWithReview({
+    clientName: estimate.client.clientName,
+    estimateName: estimate.estimateName || estimateId.slice(-6),
+    grandTotal: estimate.grandTotal,
+    date: estimate.date,
+    endDate: estimate.endDate,
+    customMessage: payload.message,
+    reviewLink,
+  });
+
+  // Send email
+  await sendEmailAdvanced({
+    to,
+    cc: cc.length ? cc : undefined,
+    bcc: bcc.length ? bcc : undefined,
+    subject,
+    html,
+  });
+
+  // Update email status (optional)
+  await prisma.estimate.update({
+    where: { id: estimateId },
+    data: { emailStatus: EmailStatus.SENT },
+  });
+
+  return { success: true, to, cc, bcc };
+};
+
 export const estimateService = {
   createClientInDB,
   getEstimateByIdFromDB,
@@ -715,4 +866,7 @@ export const estimateService = {
   getAllEstimate,
   getEstimateDetails,
   sendEstimateEmail,
+  updateEstimateStatus,
+  updateEstimateEmailAndSign,
+  sendEstimateEmailFlexible,
 };
