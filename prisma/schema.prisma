@@ -301,6 +301,7 @@ model Invoice {
   estimator        User          @relation(fields: [estimatorId], references: [id], onDelete: Cascade)
   estimate         Estimate?     @relation(fields: [estimateId], references: [id])
   estimateId       String?       @db.ObjectId
+  payments         Payment[]
 
   @@map("invoices")
 }
@@ -313,6 +314,7 @@ enum EmailStatus {
 
 enum InvoiceStatus {
   ACTIVE
+  PARTIAL
   PAID
 }
 
@@ -384,4 +386,46 @@ model JobRequest {
 enum JobRequestStatus {
   NEW
   REVIEWED
+}
+
+model Payment {
+  id                    String        @id @default(auto()) @map("_id") @db.ObjectId
+  invoiceId             String        @db.ObjectId
+  amount                Int // in cents (e.g., $16.00 = 1600)
+  paymentDate           DateTime
+  paymentMethod         PaymentMethod
+  checkNumber           String? // only for CHECK method
+  stripePaymentIntentId String? // for Stripe payments
+  status                PaymentStatus @default(COMPLETED)
+  createdAt             DateTime      @default(now())
+  updatedAt             DateTime      @updatedAt
+  invoice               Invoice       @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  refunds               Refund[]
+
+  @@map("payments")
+}
+
+model Refund {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  paymentId String   @db.ObjectId
+  amount    Int // refund amount in cents
+  reason    String?
+  createdAt DateTime @default(now())
+  payment   Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+
+  @@map("refunds")
+}
+
+enum PaymentMethod {
+  CASH
+  CHECK
+  CARD
+  BANK_TRANSFER
+  STRIPE
+}
+
+enum PaymentStatus {
+  COMPLETED
+  REFUNDED
+  PARTIALLY_REFUNDED
 }

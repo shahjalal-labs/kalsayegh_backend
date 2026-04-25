@@ -39,9 +39,17 @@ const generateInvoiceSchema = z.object({
   estimateId: z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid estimate ID"),
 });
 
+const recordManualPaymentSchema = z.object({
+  amount: z.number().positive("Amount must be greater than 0"),
+  paymentDate: z.string().datetime(),
+  paymentMethod: z.enum(["CASH", "CHECK", "CARD", "BANK_TRANSFER"]),
+  checkNumber: z.string().optional(),
+});
+
 export const invoiceValidation = {
   createInvoiceSchema,
   sendInvoiceEmailSchema,
   updateInvoiceEmailSignSchema,
   generateInvoiceSchema,
+  recordManualPaymentSchema,
 };

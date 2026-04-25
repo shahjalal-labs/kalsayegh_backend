@@ -198,53 +198,6 @@ const getInvoiceDetails = async (invoiceId: string) => {
   };
 };
 
-const changeInvoiceStatus = async (
-  userId: string,
-  invoiceId: string,
-  status: InvoiceStatus,
-) => {
-  const [user, invoice] = await Promise.all([
-    prisma.user.findUnique({
-      where: {
-        id: userId,
-      },
-      select: {
-        id: true,
-        role: true,
-      },
-    }),
-
-    prisma.invoice.findUnique({
-      where: {
-        id: invoiceId,
-      },
-    }),
-  ]);
-
-  if (!user) throw new ApiError(httpStatus.NOT_FOUND, "User not found");
-  /* if (user.role !== UserRole.ADMIN && user.role !== UserRole.ESTIMATOR)
-    throw new ApiError(
-      httpStatus.UNAUTHORIZED,
-      "You have no access to  change the stautus",
-    ); */
-
-  if (!invoice) throw new ApiError(httpStatus.NOT_FOUND, "Invoice not found");
-
-  return prisma.invoice.update({
-    where: {
-      id: invoiceId,
-    },
-    data: {
-      status,
-    },
-    select: {
-      id: true,
-      invoiceName: true,
-      status: true,
-    },
-  });
-};
-
 const sendInvoiceEmail = async (
   invoiceId: string,
   payload: {
@@ -414,12 +367,98 @@ const generateInvoiceFromEstimate = async (estimateId: string) => {
 
   return newInvoice;
 };
+
+export const updateInvoiceStatus = async (invoiceId: string) => {
+  // Get total paid amount from all COMPLETED payments (excluding refunded amounts)
+  const payments = await prisma.payment.findMany({
+    where: { invoiceId, status: { not: "REFUNDED" } },
+    include: { refunds: true },
+  });
+
+  let totalPaid = 0;
+  for (const payment of payments) {
+    let netPaid = payment.amount;
+    const refundedAmount = payment.refunds.reduce(
+      (sum, r) => sum + r.amount,
+      0,
+    );
+    netPaid -= refundedAmount;
+    if (netPaid > 0) totalPaid += netPaid;
+  }
+
+  const invoice = await prisma.invoice.findUnique({
+    where: { id: invoiceId },
+    select: { grandTotal: true },
+  });
+  if (!invoice) return;
+
+  let newStatus: InvoiceStatus = InvoiceStatus.ACTIVE;
+  if (totalPaid >= invoice.grandTotal) {
+    newStatus = InvoiceStatus.PAID;
+  } else if (totalPaid > 0) {
+    newStatus = InvoiceStatus.PARTIAL;
+  } else {
+    newStatus = InvoiceStatus.ACTIVE;
+  }
+
+  await prisma.invoice.update({
+    where: { id: invoiceId },
+    data: { status: newStatus },
+  });
+};
+
+const recordManualPayment = async (
+  invoiceId: string,
+  userId: string,
+  data: any,
+) => {
+  const invoice = await prisma.invoice.findUnique({
+    where: { id: invoiceId },
+  });
+  if (!invoice) throw new ApiError(httpStatus.NOT_FOUND, "Invoice not found");
+
+  // Validate check number if payment method is CHECK
+  if (data.paymentMethod === "CHECK" && !data.checkNumber) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      "Check number is required for check payment",
+    );
+  }
+
+  // Create payment record
+  const payment = await prisma.payment.create({
+    data: {
+      invoiceId,
+      amount: data.amount,
+      paymentDate: new Date(data.paymentDate),
+      paymentMethod: data.paymentMethod,
+      checkNumber: data.checkNumber,
+      status: "COMPLETED",
+    },
+  });
+
+  // Update invoice status
+  await updateInvoiceStatus(invoiceId);
+
+  return payment;
+};
+
+const getInvoicePayments = async (invoiceId: string) => {
+  const payments = await prisma.payment.findMany({
+    where: { invoiceId },
+    include: { refunds: true },
+    orderBy: { paymentDate: "desc" },
+  });
+  return payments;
+};
+
 export const invoiceService = {
   createInvoice,
   getAllInvoices,
   getInvoiceDetails,
-  changeInvoiceStatus,
   sendInvoiceEmail,
   updateInvoiceEmailAndSign,
   generateInvoiceFromEstimate,
+  recordManualPayment,
+  getInvoicePayments,
 };

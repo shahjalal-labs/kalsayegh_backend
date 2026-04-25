@@ -30,12 +30,6 @@ router.get(
   invoiceController.getInvoiceDetails,
 );
 
-router.patch(
-  "/change-status/:id",
-  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
-  invoiceController.changeInvoiceStatus,
-);
-
 router.post(
   "/send-email/:id",
   auth(UserRole.ADMIN, UserRole.ESTIMATOR), // adjust roles as needed
@@ -53,6 +47,20 @@ router.post(
   "/generate-from-estimate/:estimateId",
   auth(UserRole.ADMIN, UserRole.ESTIMATOR),
   invoiceController.generateInvoiceFromEstimate,
+);
+
+router.post(
+  "/record-payment/:id",
+  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  validateRequest(invoiceValidation.recordManualPaymentSchema),
+  invoiceController.recordManualPayment,
+);
+
+// /:invoiceId
+router.get(
+  "/payments/:id",
+  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  invoiceController.getInvoicePayments,
 );
 
 export const invoiceRoutes = router;

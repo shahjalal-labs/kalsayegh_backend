@@ -36,19 +36,6 @@ GET {{baseUrl}}/invoice/details/69ddf702378f36b27a299483 HTTP/1.1
 Authorization: {{estMir}}
 
 
-### change invoice status
-
-# change-status/invoiceId
-
-PATCH {{baseUrl}}/invoice/change-status/69ddf702378f36b27a299483 HTTP/1.1
-Authorization: {{estMir}} HTTP/1.1
-Content-Type: application/json
-
-{
-  "status": "PAID"
-}
-
-
 ### Send invoice email
 
 POST {{baseUrl}}/invoice/send-email/69e71abbeb445ea74ae9a560 HTTP/1.1
@@ -80,6 +67,30 @@ Content-Type: application/json
 
 ### Generate invoice from estimate
 
+# /: estimateId
+
 POST {{baseUrl}}/invoice/generate-from-estimate/69e71ad3eb445ea74ae9a561 HTTP/1.1
 Authorization: {{estMir}}
 Content-Type: application/json
+
+
+### record manual payment
+
+# /:invoiceId
+
+POST {{baseUrl}}/invoice/record-payment/69e71abbeb445ea74ae9a560 HTTP/1.1
+Authorization: {{estMir}}
+Content-Type: application/json
+
+{
+  "amount": 1600,
+  "checkNumber": "CHK123456",
+  "paymentDate": "2026-04-20T00:00:00Z",
+  "paymentMethod": "CHECK"
+}
+
+
+### get payments for a invoice
+
+GET {{baseUrl}}/invoice/payments/69e71abbeb445ea74ae9a560 HTTP/1.1
+Authorization: {{estMir}}
