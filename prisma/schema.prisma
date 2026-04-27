@@ -406,12 +406,13 @@ model Payment {
 }
 
 model Refund {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  paymentId String   @db.ObjectId
-  amount    Int // refund amount in cents
-  reason    String?
-  createdAt DateTime @default(now())
-  payment   Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  id             String   @id @default(auto()) @map("_id") @db.ObjectId
+  paymentId      String   @db.ObjectId
+  amount         Int // amount in cents
+  reason         String?
+  stripeRefundId String? // ID from Stripe, e.g., 're_123abc'
+  createdAt      DateTime @default(now())
+  payment        Payment  @relation(fields: [paymentId], references: [id], onDelete: Cascade)
 
   @@map("refunds")
 }

@@ -258,6 +258,13 @@ const changePassword = async (
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) throw new ApiError(404, "User not found");
 
+  if (oldPassword === newPassword) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      "New password must be different from your current password.",
+    );
+  }
+
   const isPasswordValid = await bcrypt.compare(oldPassword, user.password);
 
   if (!isPasswordValid)

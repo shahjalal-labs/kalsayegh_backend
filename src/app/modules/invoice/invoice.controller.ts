@@ -113,7 +113,35 @@ const getInvoicePayments = catchAsync(async (req, res) => {
   });
 });
 
+const refundPayment = catchAsync(async (req, res) => {
+  const { id: paymentId } = req.params;
+  const { amount, reason } = req.body;
 
+  const result = await invoiceService.refundPayment(paymentId, {
+    amount,
+    reason,
+  });
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Refund processed successfully",
+    data: result,
+  });
+});
+
+const getPaymentDetails = catchAsync(async (req, res) => {
+  const { id: paymentId } = req.params;
+
+  const result = await invoiceService.getPaymentDetails(paymentId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Payment details retrieved successfully",
+    data: result,
+  });
+});
 
 export const invoiceController = {
   createInvoice,
@@ -124,4 +152,6 @@ export const invoiceController = {
   generateInvoiceFromEstimate,
   recordManualPayment,
   getInvoicePayments,
+  refundPayment,
+  getPaymentDetails,
 };

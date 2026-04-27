@@ -4,14 +4,16 @@ import ApiError from "../../../errors/ApiErrors";
 import httpStatus from "http-status";
 import { uploadInSpace } from "../../../helpers/uploadInSpace";
 import { TCreateInvoice } from "./invoice.validation";
-import { EmailStatus, InvoiceStatus, Prisma, UserRole } from "@prisma/client";
-import { paginationHelper, TOptions } from "../../../shared/pagination";
 import {
-  invoiceEmail,
-  invoiceEmailWithPayment,
-} from "../../../shared/emailTemplate";
-import sendEmail from "../../../helpers/sendEmail";
+  EmailStatus,
+  InvoiceStatus,
+  PaymentStatus,
+  Prisma,
+} from "@prisma/client";
+import { paginationHelper, TOptions } from "../../../shared/pagination";
+import { invoiceEmailWithPayment } from "../../../shared/emailTemplate";
 import sendEmailAdvanced from "../../../helpers/sendEmailAdvanced";
+import { stripe } from "../../../helpers/stripe";
 
 const createInvoice = async (req: Request) => {
   const files = req.files as { [fieldname: string]: Express.Multer.File[] };
@@ -469,6 +471,7 @@ const getInvoicePayments = async (invoiceId: string) => {
       method: payment.paymentMethod,
       checkNumber: payment.checkNumber,
       description: payment.paymentMethod,
+      status: payment.status,
     });
 
     // Refund transactions (negative)
@@ -506,6 +509,101 @@ const getInvoicePayments = async (invoiceId: string) => {
   };
 };
 
+const refundPayment = async (
+  paymentId: string,
+  data: { amount: number; reason?: string /* userId: string */ },
+) => {
+  const { amount, reason } = data;
+
+  // 1. Retrieve payment with its invoice details
+  const payment = await prisma.payment.findUnique({
+    where: { id: paymentId },
+    include: {
+      invoice: true,
+      refunds: true,
+    },
+  });
+  if (!payment) throw new ApiError(httpStatus.NOT_FOUND, "Payment not found");
+
+  // 2. Calculate remaining refundable amount
+  const alreadyRefunded = payment.refunds.reduce((sum, r) => sum + r.amount, 0);
+  const remaining = payment.amount - alreadyRefunded;
+  if (amount > remaining) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      `Refund amount cannot exceed remaining payment amount of $${(remaining / 100).toFixed(2)}`,
+    );
+  }
+
+  // 3. PROCESS BASE STRIPE REFUND IF NECESSARY
+  let stripeRefundId: string | null = null;
+  if (payment.paymentMethod === "STRIPE") {
+    // Ensure we have the payment_intent_id
+    if (!payment.stripePaymentIntentId) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        "Missing Stripe PaymentIntent ID. Cannot process refund for this online payment.",
+      );
+    }
+
+    try {
+      // Create the refund using Stripe's API
+      const stripeRefund = await stripe.refunds.create({
+        payment_intent: payment.stripePaymentIntentId,
+        amount: amount, // optional, defaults to full refund
+        reason: reason === "FRAUD" ? "fraudulent" : "requested_by_customer",
+      });
+      stripeRefundId = stripeRefund.id;
+    } catch (stripeError: any) {
+      throw new ApiError(
+        httpStatus.BAD_GATEWAY,
+        `Stripe refund failed: ${stripeError.message}`,
+      );
+    }
+  }
+
+  // 4. RECORD REFUND IN YOUR DATABASE
+  const refund = await prisma.refund.create({
+    data: {
+      paymentId: payment.id,
+      amount: amount,
+      reason: reason,
+      stripeRefundId: stripeRefundId,
+    },
+  });
+
+  // 5. UPDATE PAYMENT STATUS
+  const newRefundTotal = alreadyRefunded + amount;
+  let newPaymentStatus: PaymentStatus = "COMPLETED";
+  if (newRefundTotal === payment.amount) {
+    newPaymentStatus = "REFUNDED";
+  } else {
+    newPaymentStatus = "PARTIALLY_REFUNDED";
+  }
+  await prisma.payment.update({
+    where: { id: paymentId },
+    data: { status: newPaymentStatus },
+  });
+
+  // 6. UPDATE INVOICE STATUS
+  await updateInvoiceStatus(payment.invoiceId);
+
+  return { refund, newPaymentStatus, stripeRefundId };
+};
+
+const getPaymentDetails = async (paymentId: string) => {
+  const payment = await prisma.payment.findUnique({
+    where: {
+      id: paymentId,
+    },
+    omit: {
+      updatedAt: true,
+      stripePaymentIntentId: true,
+    },
+  });
+  return payment;
+};
+
 export const invoiceService = {
   createInvoice,
   getAllInvoices,
@@ -515,4 +613,6 @@ export const invoiceService = {
   generateInvoiceFromEstimate,
   recordManualPayment,
   getInvoicePayments,
+  refundPayment,
+  getPaymentDetails,
 };

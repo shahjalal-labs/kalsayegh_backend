@@ -78,12 +78,12 @@ Content-Type: application/json
 
 # /:invoiceId
 
-POST {{baseUrl}}/invoice/record-payment/69e71abbeb445ea74ae9a560 HTTP/1.1
+POST {{baseUrl}}/invoice/record-payment/69ec89046fd2c20214b22b49 HTTP/1.1
 Authorization: {{estMir}}
 Content-Type: application/json
 
 {
-  "amount": 1600,
+  "amount": 50,
   "checkNumber": "CHK123456",
   "paymentDate": "2026-04-20T00:00:00Z",
   "paymentMethod": "CHECK"
@@ -92,5 +92,25 @@ Content-Type: application/json
 
 ### get payments for a invoice
 
-GET {{baseUrl}}/invoice/payments/69e71abbeb445ea74ae9a560 HTTP/1.1
+GET {{baseUrl}}/invoice/payments/69ec89046fd2c20214b22b49 HTTP/1.1
 Authorization: {{estMir}}
+
+
+### get payment details
+
+GET {{baseUrl}}/invoice/payment-details/69eef7eb2cc2c59e14b9a2bf HTTP/1.1
+Authorization: {{estMir}}
+
+
+### refund payment
+
+# /:paymentId
+
+POST {{baseUrl}}/invoice/refund-payment/69eef7eb2cc2c59e14b9a2bf HTTP/1.1
+Authorization: {{estMir}}
+Content-Type: application/json
+
+{
+  "amount": 30,
+  "reason": "Customer changed mind"
+}

@@ -63,4 +63,17 @@ router.get(
   invoiceController.getInvoicePayments,
 );
 
+router.post(
+  "/refund-payment/:id",
+  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  validateRequest(invoiceValidation.refundPaymentSchema),
+  invoiceController.refundPayment,
+);
+
+router.get(
+  "/payment-details/:id",
+  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  invoiceController.getPaymentDetails,
+);
+
 export const invoiceRoutes = router;

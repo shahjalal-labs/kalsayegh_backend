@@ -46,10 +46,16 @@ const recordManualPaymentSchema = z.object({
   checkNumber: z.string().optional(),
 });
 
+const refundPaymentSchema = z.object({
+  amount: z.number().positive("Amount must be greater than 0"),
+  reason: z.string().optional(),
+});
+
 export const invoiceValidation = {
   createInvoiceSchema,
   sendInvoiceEmailSchema,
   updateInvoiceEmailSignSchema,
   generateInvoiceSchema,
   recordManualPaymentSchema,
+  refundPaymentSchema,
 };

@@ -28,4 +28,7 @@ export default {
     secret_key: process.env.BUCKET_SECRET_KEY,
     endpoint: process.env.BUCKET_ENDPOINT,
   },
+  stripe: {
+    secret_key: process.env.STRIPE_SK ,
+  },
 };
