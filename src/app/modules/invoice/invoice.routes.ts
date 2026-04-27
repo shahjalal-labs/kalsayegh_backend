@@ -77,7 +77,7 @@ router.get(
 );
 
 router.post(
-  "/pay-with-card/:id",
+  "/pay-with-stripe/:id",
   validateRequest(invoiceValidation.payWithCardSchema),
   invoiceController.payInvoiceWithCard,
 );

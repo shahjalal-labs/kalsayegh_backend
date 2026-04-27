@@ -131,11 +131,11 @@ POST {{baseUrl}}/invoice/create-checkout-session/69e70277a0a5737b61ddebb5 HTTP/1
 Content-Type: application/json
 
 
-### Pay invoice directly with card
+### Pay invoice with stripe
 
 # /:invoiceId
 
-POST {{baseUrl}}/invoice/pay-with-card/69e70277a0a5737b61ddebb5 HTTP/1.1
+POST {{baseUrl}}/invoice/pay-with-stripe/69e70277a0a5737b61ddebb5 HTTP/1.1
 Content-Type: application/json
 
 {
