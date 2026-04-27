@@ -737,15 +737,6 @@ const getPublicInvoiceDetails = async (invoiceId: string) => {
         },
       },
     },
-    omit: {
-      // Exclude internal fields
-      createdAt: true,
-      updatedAt: true,
-      emailStatus: true,
-      isSigned: true,
-      signedAt: true,
-      signedName: true,
-    },
   });
 
   if (!invoice) {
