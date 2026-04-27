@@ -77,8 +77,9 @@ router.get(
 );
 
 router.post(
-  "/create-checkout-session/:id",
-  invoiceController.createStripeCheckoutSession,
+  "/pay-with-card/:id",
+  validateRequest(invoiceValidation.payWithCardSchema),
+  invoiceController.payInvoiceWithCard,
 );
 
 export const invoiceRoutes = router;

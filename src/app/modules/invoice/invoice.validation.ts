@@ -51,6 +51,10 @@ const refundPaymentSchema = z.object({
   reason: z.string().optional(),
 });
 
+const payWithCardSchema = z.object({
+  paymentMethodId: z.string().min(1, "Payment method ID is required"),
+});
+
 export const invoiceValidation = {
   createInvoiceSchema,
   sendInvoiceEmailSchema,
@@ -58,4 +62,5 @@ export const invoiceValidation = {
   generateInvoiceSchema,
   recordManualPaymentSchema,
   refundPaymentSchema,
+  payWithCardSchema,
 };

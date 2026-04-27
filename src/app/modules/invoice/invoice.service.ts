@@ -617,17 +617,20 @@ const getPaymentDetails = async (paymentId: string) => {
   return payment;
 };
 
-const createStripeCheckoutSession = async (invoiceId: string) => {
+const payInvoiceWithCard = async (
+  invoiceId: string,
+  paymentMethodId: string,
+) => {
+  // 1. Fetch invoice with client details
   const invoice = await prisma.invoice.findUnique({
     where: { id: invoiceId },
     include: { client: true },
   });
-
   if (!invoice) throw new ApiError(httpStatus.NOT_FOUND, "Invoice not found");
 
-  // Calculate amount due (grandTotal - totalPaid net)
+  // 2. Calculate the amount still due
   const payments = await prisma.payment.findMany({
-    where: { invoiceId },
+    where: { invoiceId, status: { not: "REFUNDED" } },
     include: { refunds: true },
   });
   let totalPaidNet = 0;
@@ -640,37 +643,76 @@ const createStripeCheckoutSession = async (invoiceId: string) => {
     throw new ApiError(httpStatus.BAD_REQUEST, "Invoice already fully paid");
   }
 
-  // Create or reuse Stripe Customer (optional)
-  let customerEmail = invoice.client.email;
-  // You can optionally create a customer record
+  // 3. (Optional) Create or reuse a Stripe Customer for the client (to enable refunds later)
+  let customerId: string | undefined = undefined;
+  if (invoice.client.email) {
+    // Try to find existing customer by email
+    const customers = await stripe.customers.list({
+      email: invoice.client.email,
+      limit: 1,
+    });
+    if (customers.data.length > 0) {
+      customerId = customers.data[0].id;
+    } else {
+      const customer = await stripe.customers.create({
+        email: invoice.client.email,
+        name: invoice.client.clientName,
+        metadata: { clientId: invoice.clientId },
+      });
+      customerId = customer.id;
+    }
+  }
 
-  const session = await stripe.checkout.sessions.create({
-    customer_email: customerEmail,
-    payment_method_types: ["card"],
-    line_items: [
-      {
-        price_data: {
-          currency: "usd",
-          product_data: {
-            name: `Invoice ${invoice.invoiceName}`,
-            description: `Payment for ${invoice.invoiceName}`,
-          },
-          unit_amount: amountDue, // in cents
-        },
-        quantity: 1,
-      },
-    ],
-    mode: "payment",
-    // success_url: `${process.env.FRONTEND_URL}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-    success_url: `https://aesthetical-randee-tenably.ngrok-free.dev/payment-cancel`,
-    cancel_url: `https://aesthetical-randee-tenably.ngrok-free.dev/payment-success`,
-    // cancel_url: `${process.env.FRONTEND_URL}/payment-cancel`,
+  // 4. Create and confirm the PaymentIntent in one call
+  const paymentIntent = await stripe.paymentIntents.create({
+    amount: amountDue, // already in cents
+    currency: "usd",
+    payment_method: paymentMethodId,
+    customer: customerId,
+    confirm: true,
+    description: `Payment for Invoice ${invoice.invoiceName}`,
     metadata: {
       invoiceId: invoice.id,
+      clientEmail: invoice.client.email || "",
     },
+    // If the card requires 3D Secure, Stripe will return a status requiring action.
+    // For simplicity, we assume no 3DS. If needed, you can handle `requires_action`
+    // and return the client_secret for the frontend to confirm.
   });
 
-  return { url: session.url };
+  // 5. Handle the result
+  if (paymentIntent.status === "succeeded") {
+    // Record the payment in your database
+    const payment = await prisma.payment.create({
+      data: {
+        invoiceId: invoice.id,
+        amount: amountDue,
+        paymentDate: new Date(),
+        paymentMethod: "STRIPE",
+        stripePaymentIntentId: paymentIntent.id,
+        status: "COMPLETED",
+      },
+    });
+
+    // Update invoice status (ACTIVE → PARTIAL → PAID)
+    await updateInvoiceStatus(invoice.id);
+
+    return { success: true, payment };
+  } else if (paymentIntent.status === "requires_action") {
+    // Card requires 3D Secure (or other authentication). Return the client_secret
+    // so the frontend can call stripe.confirmCardPayment.
+    return {
+      success: false,
+      requiresAction: true,
+      clientSecret: paymentIntent.client_secret,
+      message: "Additional authentication required",
+    };
+  } else {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      `Payment failed: ${paymentIntent.status}`,
+    );
+  }
 };
 
 export const invoiceService = {
@@ -684,5 +726,5 @@ export const invoiceService = {
   getInvoicePayments,
   refundPayment,
   getPaymentDetails,
-  createStripeCheckoutSession,
+  payInvoiceWithCard,
 };

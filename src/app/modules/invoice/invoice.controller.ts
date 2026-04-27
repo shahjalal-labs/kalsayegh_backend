@@ -146,13 +146,21 @@ const getPaymentDetails = catchAsync(async (req, res) => {
   });
 });
 
-const createStripeCheckoutSession = catchAsync(async (req, res) => {
+const payInvoiceWithCard = catchAsync(async (req, res) => {
   const { id: invoiceId } = req.params;
-  const result = await invoiceService.createStripeCheckoutSession(invoiceId);
+  const { paymentMethodId } = req.body;
+
+  const result = await invoiceService.payInvoiceWithCard(
+    invoiceId,
+    paymentMethodId,
+  );
+
   sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: "Checkout session created",
+    statusCode: result.success ? httpStatus.OK : httpStatus.PAYMENT_REQUIRED,
+    success: result.success,
+    message: result.success
+      ? "Payment successful"
+      : "Payment requires additional action",
     data: result,
   });
 });
@@ -168,5 +176,5 @@ export const invoiceController = {
   getInvoicePayments,
   refundPayment,
   getPaymentDetails,
-  createStripeCheckoutSession,
+  payInvoiceWithCard,
 };
