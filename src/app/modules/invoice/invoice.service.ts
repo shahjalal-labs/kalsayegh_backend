@@ -617,6 +617,62 @@ const getPaymentDetails = async (paymentId: string) => {
   return payment;
 };
 
+const createStripeCheckoutSession = async (invoiceId: string) => {
+  const invoice = await prisma.invoice.findUnique({
+    where: { id: invoiceId },
+    include: { client: true },
+  });
+
+  if (!invoice) throw new ApiError(httpStatus.NOT_FOUND, "Invoice not found");
+
+  // Calculate amount due (grandTotal - totalPaid net)
+  const payments = await prisma.payment.findMany({
+    where: { invoiceId },
+    include: { refunds: true },
+  });
+  let totalPaidNet = 0;
+  for (const p of payments) {
+    const refunded = p.refunds.reduce((sum, r) => sum + r.amount, 0);
+    totalPaidNet += p.amount - refunded;
+  }
+  const amountDue = invoice.grandTotal - totalPaidNet;
+  if (amountDue <= 0) {
+    throw new ApiError(httpStatus.BAD_REQUEST, "Invoice already fully paid");
+  }
+
+  // Create or reuse Stripe Customer (optional)
+  let customerEmail = invoice.client.email;
+  // You can optionally create a customer record
+
+  const session = await stripe.checkout.sessions.create({
+    customer_email: customerEmail,
+    payment_method_types: ["card"],
+    line_items: [
+      {
+        price_data: {
+          currency: "usd",
+          product_data: {
+            name: `Invoice ${invoice.invoiceName}`,
+            description: `Payment for ${invoice.invoiceName}`,
+          },
+          unit_amount: amountDue, // in cents
+        },
+        quantity: 1,
+      },
+    ],
+    mode: "payment",
+    // success_url: `${process.env.FRONTEND_URL}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+    success_url: `https://aesthetical-randee-tenably.ngrok-free.dev/payment-cancel`,
+    cancel_url: `https://aesthetical-randee-tenably.ngrok-free.dev/payment-success`,
+    // cancel_url: `${process.env.FRONTEND_URL}/payment-cancel`,
+    metadata: {
+      invoiceId: invoice.id,
+    },
+  });
+
+  return { url: session.url };
+};
+
 export const invoiceService = {
   createInvoice,
   getAllInvoices,
@@ -628,4 +684,5 @@ export const invoiceService = {
   getInvoicePayments,
   refundPayment,
   getPaymentDetails,
+  createStripeCheckoutSession,
 };

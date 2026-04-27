@@ -1,10 +1,13 @@
+import Stripe from "stripe";
 import httpStatus from "http-status";
 import catchAsync from "../../../shared/catchAsync";
 import sendResponse from "../../../shared/sendResponse";
-import { invoiceService } from "./invoice.service";
+import { invoiceService, updateInvoiceStatus } from "./invoice.service";
 import pick from "../../../shared/pick";
 import { paginationOptions } from "../../../shared/pagination";
 import ApiError from "../../../errors/ApiErrors";
+import prisma from "../../../shared/prisma";
+import { stripe } from "../../../helpers/stripe";
 
 const createInvoice = catchAsync(async (req, res) => {
   const result = await invoiceService.createInvoice(req);
@@ -143,6 +146,17 @@ const getPaymentDetails = catchAsync(async (req, res) => {
   });
 });
 
+const createStripeCheckoutSession = catchAsync(async (req, res) => {
+  const { id: invoiceId } = req.params;
+  const result = await invoiceService.createStripeCheckoutSession(invoiceId);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Checkout session created",
+    data: result,
+  });
+});
+
 export const invoiceController = {
   createInvoice,
   getAllInvoices,
@@ -154,4 +168,5 @@ export const invoiceController = {
   getInvoicePayments,
   refundPayment,
   getPaymentDetails,
+  createStripeCheckoutSession,
 };

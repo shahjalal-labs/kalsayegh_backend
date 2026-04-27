@@ -26,7 +26,7 @@ router.get(
 
 router.get(
   "/details/:id",
-  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  // auth(UserRole.ADMIN, UserRole.ESTIMATOR),
   invoiceController.getInvoiceDetails,
 );
 
@@ -74,6 +74,11 @@ router.get(
   "/payment-details/:id",
   auth(UserRole.ADMIN, UserRole.ESTIMATOR),
   invoiceController.getPaymentDetails,
+);
+
+router.post(
+  "/create-checkout-session/:id",
+  invoiceController.createStripeCheckoutSession,
 );
 
 export const invoiceRoutes = router;

@@ -6,10 +6,18 @@ import GlobalErrorHandler from "./app/middlewares/globalErrorHandler";
 import path from "path";
 import prisma from "./shared/prisma";
 import { logger } from "./shared/logger";
+import { stripeWebhook } from "./shared/webhook";
+import { configRoutes } from "./config/viewRoutes";
 // import { bullBoardRouter } from "./bullBoard";
 // import basicAuth from "express-basic-auth";
 
 const app: Application = express();
+
+app.post(
+  "/api/v1/webhook/stripe",
+  express.raw({ type: "application/json" }),
+  stripeWebhook,
+);
 
 // Middleware setup
 (async () => {
@@ -23,6 +31,7 @@ const app: Application = express();
 })();
 
 app.use(cors());
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
@@ -49,6 +58,8 @@ app.get("/api/v1", (_req: Request, res: Response) => {
     Message: "Welcome to api version 1",
   });
 });
+
+app.use("/", configRoutes);
 
 // Router setup
 app.use("/api/v1", router);
