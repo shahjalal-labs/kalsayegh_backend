@@ -30,6 +30,12 @@ GET {{baseUrl}}/invoice/all-invoices?page=1&limit=20&searchTerm=res&status=ACTIV
 Authorization: {{estMir}}
 
 
+### get all invoices
+
+GET {{baseUrl}}/invoice/all-invoices?page=1&limit=20&status=PAID HTTP/1.1
+Authorization: {{estMir}}
+
+
 ### get invoice details
 
 GET {{baseUrl}}/invoice/details/69ddf702378f36b27a299483 HTTP/1.1

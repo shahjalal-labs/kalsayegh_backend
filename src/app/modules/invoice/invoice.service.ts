@@ -93,7 +93,7 @@ const getAllInvoices = async (
 
   const andClause: Prisma.InvoiceWhereInput[] = [];
 
-  if (filter?.status) {
+  if (filter?.status && filter.status !== "ACTIVE") {
     andClause.push({
       status: filter.status,
     });
