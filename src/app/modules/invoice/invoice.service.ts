@@ -444,12 +444,66 @@ const recordManualPayment = async (
 };
 
 const getInvoicePayments = async (invoiceId: string) => {
+  const invoice = await prisma.invoice.findUnique({
+    where: { id: invoiceId },
+    select: { grandTotal: true },
+  });
+  if (!invoice) throw new ApiError(httpStatus.NOT_FOUND, "Invoice not found");
+
+  // Fetch all payments with their refunds
   const payments = await prisma.payment.findMany({
     where: { invoiceId },
     include: { refunds: true },
-    orderBy: { paymentDate: "desc" },
+    orderBy: { paymentDate: "asc" },
   });
-  return payments;
+
+  // Build unified transactions
+  const transactions = [];
+  for (const payment of payments) {
+    // Payment transaction (positive)
+    transactions.push({
+      id: payment.id,
+      type: "payment",
+      amount: payment.amount,
+      date: payment.paymentDate,
+      method: payment.paymentMethod,
+      checkNumber: payment.checkNumber,
+      description: payment.paymentMethod,
+    });
+
+    // Refund transactions (negative)
+    for (const refund of payment.refunds) {
+      transactions.push({
+        id: refund.id,
+        type: "refund",
+        amount: -refund.amount,
+        date: refund.createdAt,
+        method: payment.paymentMethod,
+        description: `Refund (${payment.paymentMethod})`,
+        originalPaymentId: payment.id,
+      });
+    }
+  }
+
+  // Sort by date descending (newest first)
+  transactions.sort((a, b) => b.date.getTime() - a.date.getTime());
+
+  // Calculate totals for summary (without balanceDue)
+  const totalPaid = payments.reduce((sum, p) => {
+    const refunded = p.refunds.reduce((rSum, r) => rSum + r.amount, 0);
+    return sum + (p.amount - refunded);
+  }, 0);
+  const totalDue = invoice.grandTotal;
+  const paidPercentage = (totalPaid / totalDue) * 100;
+
+  return {
+    summary: {
+      totalPaid,
+      totalDue,
+      paidPercentage,
+    },
+    transactions,
+  };
 };
 
 export const invoiceService = {
