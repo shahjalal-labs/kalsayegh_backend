@@ -165,6 +165,17 @@ const payInvoiceWithCard = catchAsync(async (req, res) => {
   });
 });
 
+const getPublicInvoiceDetails = catchAsync(async (req, res) => {
+  const { id: invoiceId } = req.params;
+  const result = await invoiceService.getPublicInvoiceDetails(invoiceId);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Invoice details retrieved successfully",
+    data: result,
+  });
+});
+
 export const invoiceController = {
   createInvoice,
   getAllInvoices,
@@ -177,4 +188,5 @@ export const invoiceController = {
   refundPayment,
   getPaymentDetails,
   payInvoiceWithCard,
+  getPublicInvoiceDetails,
 };

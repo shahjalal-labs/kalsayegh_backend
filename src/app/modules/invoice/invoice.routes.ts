@@ -82,4 +82,6 @@ router.post(
   invoiceController.payInvoiceWithCard,
 );
 
+router.get("/public-invoice/:id", invoiceController.getPublicInvoiceDetails);
+
 export const invoiceRoutes = router;

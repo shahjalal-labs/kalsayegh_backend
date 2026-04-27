@@ -715,6 +715,66 @@ const payInvoiceWithCard = async (
   }
 };
 
+const getPublicInvoiceDetails = async (invoiceId: string) => {
+  const invoice = await prisma.invoice.findUnique({
+    where: { id: invoiceId },
+    include: {
+      client: {
+        select: {
+          clientName: true,
+          email: true,
+          phoneNumber: true,
+          address: true,
+          city: true,
+          state: true,
+          zip: true,
+        },
+      },
+      estimator: {
+        select: {
+          fullName: true,
+          email: true,
+        },
+      },
+    },
+    omit: {
+      // Exclude internal fields
+      createdAt: true,
+      updatedAt: true,
+      emailStatus: true,
+      isSigned: true,
+      signedAt: true,
+      signedName: true,
+    },
+  });
+
+  if (!invoice) {
+    throw new ApiError(httpStatus.NOT_FOUND, "Invoice not found");
+  }
+
+  // Also include the total paid amount and balance due
+  const payments = await prisma.payment.findMany({
+    where: { invoiceId, status: "COMPLETED" },
+    include: { refunds: true },
+  });
+
+  let totalPaidNet = 0;
+  for (const p of payments) {
+    const refunded = p.refunds.reduce((sum, r) => sum + r.amount, 0);
+    totalPaidNet += p.amount - refunded;
+  }
+
+  const amountDue = invoice.grandTotal - totalPaidNet;
+
+  return {
+    ...invoice,
+    payments: {
+      totalPaid: totalPaidNet,
+      amountDue: Math.max(0, amountDue),
+    },
+  };
+};
+
 export const invoiceService = {
   createInvoice,
   getAllInvoices,
@@ -727,4 +787,5 @@ export const invoiceService = {
   refundPayment,
   getPaymentDetails,
   payInvoiceWithCard,
+  getPublicInvoiceDetails,
 };

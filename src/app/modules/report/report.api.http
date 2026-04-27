@@ -1,0 +1,22 @@
+### Summary – current month (e.g., April 2026)
+
+GET {{baseUrl}}/reports/summary HTTP/1.1
+Authorization: {{estMir}}
+
+
+### Filtered – custom range (April 1–30, 2026)
+
+GET {{baseUrl}}/reports/filtered?startDate=2026-04-01&endDate=2026-04-30 HTTP/1.1
+Authorization: {{estMir}}
+
+
+### Year‑to‑Date (Jan 1 – today)
+
+GET {{baseUrl}}/reports/filtered?startDate=2026-01-01&endDate=2026-04-27 HTTP/1.1
+Authorization: {{estMir}}
+
+
+### last year data
+
+GET {{baseUrl}}/reports/filtered?startDate=2025-01-01&endDate=2025-12-31 HTTP/1.1
+Authorization: {{estMir}}

@@ -141,3 +141,13 @@ Content-Type: application/json
 {
   "paymentMethodId": "pm_card_visa"
 }
+
+
+### Get public invoice details (no auth – for client payment page)
+
+# /:invoiceId
+
+GET {{baseUrl}}/invoice/public-invoice/69e70277a0a5737b61ddebb5 HTTP/1.1
+Content-Type: application/json
+
+# report
