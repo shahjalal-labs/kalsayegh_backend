@@ -99,6 +99,19 @@ const getAllInvoices = async (
     });
   }
 
+  if (filter?.status && filter.status === "ACTIVE") {
+    andClause.push({
+      OR: [
+        {
+          status: "ACTIVE",
+        },
+        {
+          status: "PARTIAL",
+        },
+      ],
+    });
+  }
+
   const searchTerm = filter?.searchTerm?.trim();
   if (searchTerm)
     andClause.push({
