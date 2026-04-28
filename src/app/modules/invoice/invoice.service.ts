@@ -422,6 +422,8 @@ export const updateInvoiceStatus = async (invoiceId: string) => {
   });
 };
 
+// in invoice.service.ts
+
 const recordManualPayment = async (
   invoiceId: string,
   userId: string,
@@ -433,12 +435,41 @@ const recordManualPayment = async (
   if (!invoice) throw new ApiError(httpStatus.NOT_FOUND, "Invoice not found");
 
   // Validate check number if payment method is CHECK
-  if (data.paymentMethod === "CHECK" && !data.checkNumber) {
+  /* if (data.paymentMethod === "CHECK" && !data.checkNumber) {
     throw new ApiError(
       httpStatus.BAD_REQUEST,
       "Check number is required for check payment",
     );
+  } */
+
+  // --- prevent overpayment ---
+  // Calculate total paid so far (net of refunds)
+  const existingPayments = await prisma.payment.findMany({
+    where: { invoiceId, status: { not: "REFUNDED" } },
+    include: { refunds: true },
+  });
+
+  let totalPaidNet = 0;
+  for (const p of existingPayments) {
+    const refunded = p.refunds.reduce((sum, r) => sum + r.amount, 0);
+    totalPaidNet += p.amount - refunded;
   }
+
+  const remainingDue = invoice.grandTotal - totalPaidNet;
+  if (remainingDue <= 0) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      "Invoice is already fully paid. Cannot record additional payment.",
+    );
+  }
+
+  if (data.amount > remainingDue) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      `Payment amount exceeds remaining due of $${(remainingDue / 100).toFixed(2)}.`,
+    );
+  }
+  // --- end overpayment prevention ---
 
   // Create payment record
   const payment = await prisma.payment.create({
@@ -621,14 +652,13 @@ const payInvoiceWithCard = async (
   invoiceId: string,
   paymentMethodId: string,
 ) => {
-  // 1. Fetch invoice with client details
   const invoice = await prisma.invoice.findUnique({
     where: { id: invoiceId },
     include: { client: true },
   });
   if (!invoice) throw new ApiError(httpStatus.NOT_FOUND, "Invoice not found");
 
-  // 2. Calculate the amount still due
+  // Calculate remaining amount due
   const payments = await prisma.payment.findMany({
     where: { invoiceId, status: { not: "REFUNDED" } },
     include: { refunds: true },
@@ -643,15 +673,14 @@ const payInvoiceWithCard = async (
     throw new ApiError(httpStatus.BAD_REQUEST, "Invoice already fully paid");
   }
 
-  // 3. (Optional) Create or reuse a Stripe Customer for the client (to enable refunds later)
-  let customerId: string | undefined = undefined;
+  // Create or reuse Stripe customer (optional)
+  let customerId: string | undefined;
   if (invoice.client.email) {
-    // Try to find existing customer by email
     const customers = await stripe.customers.list({
       email: invoice.client.email,
       limit: 1,
     });
-    if (customers.data.length > 0) {
+    if (customers.data.length) {
       customerId = customers.data[0].id;
     } else {
       const customer = await stripe.customers.create({
@@ -663,9 +692,9 @@ const payInvoiceWithCard = async (
     }
   }
 
-  // 4. Create and confirm the PaymentIntent in one call
+  // Create and confirm PaymentIntent – with redirects disabled
   const paymentIntent = await stripe.paymentIntents.create({
-    amount: amountDue, // already in cents
+    amount: amountDue,
     currency: "usd",
     payment_method: paymentMethodId,
     customer: customerId,
@@ -675,14 +704,13 @@ const payInvoiceWithCard = async (
       invoiceId: invoice.id,
       clientEmail: invoice.client.email || "",
     },
-    // If the card requires 3D Secure, Stripe will return a status requiring action.
-    // For simplicity, we assume no 3DS. If needed, you can handle `requires_action`
-    // and return the client_secret for the frontend to confirm.
+    automatic_payment_methods: {
+      enabled: true,
+      allow_redirects: "never", // ← the fix
+    },
   });
 
-  // 5. Handle the result
   if (paymentIntent.status === "succeeded") {
-    // Record the payment in your database
     const payment = await prisma.payment.create({
       data: {
         invoiceId: invoice.id,
@@ -693,14 +721,9 @@ const payInvoiceWithCard = async (
         status: "COMPLETED",
       },
     });
-
-    // Update invoice status (ACTIVE → PARTIAL → PAID)
     await updateInvoiceStatus(invoice.id);
-
     return { success: true, payment };
   } else if (paymentIntent.status === "requires_action") {
-    // Card requires 3D Secure (or other authentication). Return the client_secret
-    // so the frontend can call stripe.confirmCardPayment.
     return {
       success: false,
       requiresAction: true,

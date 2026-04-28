@@ -84,7 +84,7 @@ Content-Type: application/json
 
 # /:invoiceId
 
-POST {{baseUrl}}/invoice/record-payment/69e70277a0a5737b61ddebb5 HTTP/1.1
+POST {{baseUrl}}/invoice/record-payment/69ec65da7bc0f3d68ea3576e HTTP/1.1
 Authorization: {{estMir}}
 Content-Type: application/json
 
@@ -98,7 +98,7 @@ Content-Type: application/json
 
 ### get payments for a invoice
 
-GET {{baseUrl}}/invoice/payments/69e70277a0a5737b61ddebb5 HTTP/1.1
+GET {{baseUrl}}/invoice/payments/69ef81220d0a96cb4867e4ac HTTP/1.1
 Authorization: {{estMir}}
 
 
@@ -112,7 +112,7 @@ Authorization: {{estMir}}
 
 # /:paymentId
 
-POST {{baseUrl}}/invoice/refund-payment/69eeffe64f8f669f1922d996 HTTP/1.1
+POST {{baseUrl}}/invoice/refund-payment/69f027bfa415d81360f669c6 HTTP/1.1
 Authorization: {{estMir}}
 Content-Type: application/json
 
@@ -122,30 +122,21 @@ Content-Type: application/json
 }
 
 
-### Create Stripe Checkout Session
-
-# This endpoint returns a Stripe Checkout URL. Redirect the user to that URL to complete payment.
-# /:invoiceId
-
-POST {{baseUrl}}/invoice/create-checkout-session/69e70277a0a5737b61ddebb5 HTTP/1.1
-Content-Type: application/json
-
-
 ### Pay invoice with stripe
 
 # /:invoiceId
 
-POST {{baseUrl}}/invoice/pay-with-stripe/69e70277a0a5737b61ddebb5 HTTP/1.1
+POST {{baseUrl}}/invoice/pay-with-stripe/69ef81220d0a96cb4867e4ac HTTP/1.1
 Content-Type: application/json
 
 {
-  "paymentMethodId": "pm_card_visa"
+  "paymentMethodId": "pm_1TR1vZ9nrMVeASAltLykk0ns"
 }
 
 
-### Get public invoice details (no auth – for client payment page)
+### Get public invoice details
 
 # /:invoiceId
 
-GET {{baseUrl}}/invoice/public-invoice/69e70277a0a5737b61ddebb5 HTTP/1.1
+GET {{baseUrl}}/invoice/public-invoice/69ef81220d0a96cb4867e4ac HTTP/1.1
 Content-Type: application/json
