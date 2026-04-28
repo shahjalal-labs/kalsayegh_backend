@@ -60,7 +60,7 @@ router.post(
   validateRequest(estimateValidation.itemValidationSchema),
   estimateControllers.createItem,
 );
-router.post(
+router.patch(
   "/update-item",
   auth(UserRole.ADMIN, UserRole.ESTIMATOR),
   validateRequest(estimateValidation.itemUpdateValidationSchema),

@@ -129,7 +129,7 @@ POST {{baseUrl}}/invoice/pay-with-stripe/69e1cd3e746f0ebcda851c80 HTTP/1.1
 Content-Type: application/json
 
 {
-  "paymentMethodId": "pm_1TR7QG9nrMVeASAlaidaqs5S"
+  "paymentMethodId": "pm_1TR7yb9nrMVeASAlZbL0gRdT"
 }
 
 

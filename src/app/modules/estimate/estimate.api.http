@@ -87,11 +87,32 @@ Content-Type: application/json
 {
   "description": "Premium interior wall paint per gallon",
   "itemName": "Interior Wall Paint",
-  "markUpId": "60d5ec49f1a2b3c4d5e6f7c2",
+  "markUpId": "69e04d6283a9851a096b7b0b",
   "notes": "Includes labor",
   "rate": 150,
   "taxes": [
-    "60d5ec49f1a2b3c4d5e6f7d3"
+    "69e6fa64a0a5737b61ddebb0"
+  ]
+}
+
+
+### update item
+
+PATCH {{baseUrl}}/estimate/update-item HTTP/1.1
+Authorization: {{estMir}}
+Content-Type: application/json
+
+{
+  "description": "Heavy duty exterior steel door",
+  "itemId": "69d87eb901d75586feffc495",
+  "itemName": "Steel Door",
+  "markUpId": "69e04d6283a9851a096b7b0b",
+  "notes": "Updated price with markup",
+  "rate": 2500,
+  "taxes": [
+    "69e6fa64a0a5737b61ddebb0",
+    "69e6f9e5a0a5737b61ddebaf",
+    "69e0548b83a9851a096b7b0e"
   ]
 }
 
