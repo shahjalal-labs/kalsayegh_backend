@@ -692,7 +692,7 @@ const sendEstimateEmail = async (estimateId: string) => {
 
     await prisma.estimate.update({
       where: { id: estimateId },
-      data: { emailStatus: EmailStatus.SENT },
+      data: { emailStatus: EmailStatus.SENT, stage: "ISSUED" },
     });
   } catch (err) {
     throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, "Email failed");
