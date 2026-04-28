@@ -62,7 +62,7 @@ Authorization: {{administrator}}
 
 ### update job request
 
-PATCH {{baseUrl}}/job-request/update-job-request/69d5e22bc6771df1addec900 HTTP/1.1
+PATCH {{baseUrl}}/job-request/update-job-request/69e862e85e7ca726664ef1de HTTP/1.1
 Authorization: {{administrator}}
 Content-Type: application/json
 
