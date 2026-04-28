@@ -95,12 +95,6 @@ router.get(
   estimateControllers.getEstimateDetails,
 );
 
-router.post(
-  "/send-mail/:id",
-  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
-  estimateControllers.sendEstimateEmail,
-);
-
 router.patch(
   "/update-status/:id",
   auth(UserRole.ADMIN, UserRole.ESTIMATOR),

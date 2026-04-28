@@ -391,7 +391,7 @@ enum JobRequestStatus {
 model Payment {
   id                    String        @id @default(auto()) @map("_id") @db.ObjectId
   invoiceId             String        @db.ObjectId
-  amount                Int // in cents (e.g., $16.00 = 1600)
+  amount                Float // in dollars not cents
   paymentDate           DateTime
   paymentMethod         PaymentMethod
   checkNumber           String? // only for CHECK method
@@ -408,7 +408,7 @@ model Payment {
 model Refund {
   id             String   @id @default(auto()) @map("_id") @db.ObjectId
   paymentId      String   @db.ObjectId
-  amount         Int // amount in cents
+  amount         Float // amount in dollars not cents
   reason         String?
   stripeRefundId String? // ID from Stripe, e.g., 're_123abc'
   createdAt      DateTime @default(now())

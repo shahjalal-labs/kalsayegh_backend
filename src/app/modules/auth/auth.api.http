@@ -4,15 +4,15 @@ POST {{baseUrl}}/auth/login HTTP/1.1
 Content-Type: application/json
 
 {
-  "email": "office.administrator@gmail.com",
-  "password": "123456"
+  "email": "jabirbinhasan2@gmail.com",
+  "password": "Aw32@320"
 }
 
 
 ### fetch my profile
 
 GET {{baseUrl}}/auth/profile HTTP/1.1
-Authorization: {{john}}
+Authorization: {{jabir}}
 
 
 ### update my profile

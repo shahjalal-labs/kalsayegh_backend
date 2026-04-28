@@ -213,6 +213,25 @@ const getInvoiceDetails = async (invoiceId: string) => {
   };
 };
 
+// Compute the amount a client must pay right now (deposit first, then remaining balance)
+const getAmountDue = (
+  invoice: { grandTotal: number; depositAmount: number | null },
+  totalPaidNet: number,
+): number => {
+  const { grandTotal, depositAmount } = invoice;
+  const netPaid = totalPaidNet;
+  let due: number;
+  if (depositAmount && depositAmount > 0 && netPaid < depositAmount) {
+    due = depositAmount - netPaid;
+  } else {
+    due = grandTotal - netPaid;
+  }
+  // Round to 2 decimal places to avoid floating‑point leftovers
+  const rounded = Math.round(due * 100) / 100;
+  // Treat anything less than 1 cent as zero
+  return rounded < 0.01 ? 0 : rounded;
+};
+
 const sendInvoiceEmail = async (
   invoiceId: string,
   payload: {
@@ -226,21 +245,42 @@ const sendInvoiceEmail = async (
   const invoice = await prisma.invoice.findUnique({
     where: { id: invoiceId },
     include: {
-      client: { select: { clientName: true } },
+      client: { select: { clientName: true, email: true } },
     },
   });
+  if (!invoice) throw new ApiError(httpStatus.NOT_FOUND, "Invoice not found");
 
-  if (!invoice) {
-    throw new ApiError(httpStatus.NOT_FOUND, "Invoice not found");
+  // ---- Calculate total paid net (respecting refunds) ----
+  const payments = await prisma.payment.findMany({
+    where: { invoiceId, status: { not: "REFUNDED" } },
+    include: { refunds: true },
+  });
+  let totalPaidNet = 0;
+  for (const p of payments) {
+    const refunded = p.refunds.reduce((sum, r) => sum + r.amount, 0);
+    totalPaidNet += p.amount - refunded;
+  }
+
+  const amountDue = getAmountDue(invoice, totalPaidNet);
+  if (amountDue <= 0.01) {
+    // tolerate up to 1 cent due to rounding
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      "Invoice already fully paid. No amount due.",
+    );
+  }
+
+  if (amountDue <= 0) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      "Invoice already fully paid. No amount due.",
+    );
   }
 
   // Prepare recipients
   let to = [...payload.to];
   const cc: string[] = [];
-
-  if (payload.sendMeCopy) {
-    cc.push("shahjalal.backend@gmail.com");
-  }
+  if (payload.sendMeCopy) cc.push("shahjalal.backend@gmail.com");
 
   // Default subject
   const defaultSubject = `Your Invoice #${invoice.invoiceName || invoiceId.slice(-6)} from Geo Paving and Sealcoating`;
@@ -250,13 +290,13 @@ const sendInvoiceEmail = async (
   const frontendUrl = process.env.FRONTEND_URL || "https://yourfrontend.com";
   const paymentLink = `${frontendUrl}/invoice/${invoiceId}/pay`;
 
-  // Generate HTML
+  // Generate HTML using AMOUNT DUE (not grand total)
   const html = invoiceEmailWithPayment({
     clientName: invoice.client.clientName,
     invoiceName: invoice.invoiceName || invoiceId.slice(-6),
-    grandTotal: invoice.grandTotal,
+    amountDue: amountDue, // ← critical: dynamic amount due
     date: invoice.date,
-    dueDate: invoice.endDate, // using endDate as due date
+    dueDate: invoice.endDate,
     customMessage: payload.message,
     paymentLink,
   });
@@ -269,13 +309,13 @@ const sendInvoiceEmail = async (
     html,
   });
 
-  // Update email status if your Invoice model has emailStatus (add if needed)
+  // Update invoice status
   await prisma.invoice.update({
     where: { id: invoiceId },
     data: { emailStatus: EmailStatus.SENT, stage: "ISSUED" },
   });
 
-  return { success: true, to, cc };
+  return { success: true, to, cc, amountDue };
 };
 
 // Add to invoice.service.ts
@@ -594,7 +634,7 @@ const refundPayment = async (
       // Create the refund using Stripe's API
       const stripeRefund = await stripe.refunds.create({
         payment_intent: payment.stripePaymentIntentId,
-        amount: amount, // optional, defaults to full refund
+        amount: Math.round(amount * 100), // convert dollars → cents
         reason: reason === "FRAUD" ? "fraudulent" : "requested_by_customer",
       });
       stripeRefundId = stripeRefund.id;
@@ -668,9 +708,17 @@ const payInvoiceWithCard = async (
     const refunded = p.refunds.reduce((sum, r) => sum + r.amount, 0);
     totalPaidNet += p.amount - refunded;
   }
-  const amountDue = invoice.grandTotal - totalPaidNet;
+  //const amountDue = invoice.grandTotal - totalPaidNet;
+  const amountDue = getAmountDue(invoice, totalPaidNet);
   if (amountDue <= 0) {
     throw new ApiError(httpStatus.BAD_REQUEST, "Invoice already fully paid");
+  }
+
+  if (amountDue < 0.01 && amountDue > 0) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      "Amount due is less than 1 cent. Cannot process payment.",
+    );
   }
 
   // Create or reuse Stripe customer (optional)
@@ -694,7 +742,7 @@ const payInvoiceWithCard = async (
 
   // Create and confirm PaymentIntent – with redirects disabled
   const paymentIntent = await stripe.paymentIntents.create({
-    amount: amountDue,
+    amount: Math.round(amountDue * 100), // convert dollars → cents,
     currency: "usd",
     payment_method: paymentMethodId,
     customer: customerId,
@@ -778,7 +826,10 @@ const getPublicInvoiceDetails = async (invoiceId: string) => {
     totalPaidNet += p.amount - refunded;
   }
 
-  const amountDue = invoice.grandTotal - totalPaidNet;
+  // const amountDue = invoice.grandTotal - totalPaidNet;
+
+  let amountDue = getAmountDue(invoice, totalPaidNet);
+  amountDue = Math.max(0, Math.round(amountDue * 100) / 100);
 
   return {
     ...invoice,

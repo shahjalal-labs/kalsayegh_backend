@@ -153,18 +153,6 @@ const getEstimateDetails = catchAsync(async (req, res) => {
   });
 });
 
-const sendEstimateEmail = catchAsync(async (req, res) => {
-  const { id: estimateId } = req.params;
-  const result = await estimateService.sendEstimateEmail(estimateId);
-
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: "Estimate email sent successfully.",
-    data: result,
-  });
-});
-
 const updateEstimateStatus = catchAsync(async (req, res) => {
   const { id: estimateId } = req.params;
   const { status } = req.body;
@@ -229,7 +217,6 @@ export const estimateControllers = {
   getEstimateById,
   getEstimateDetails,
   updateItem,
-  sendEstimateEmail,
   updateEstimateStatus,
   updateEstimateEmailAndSign,
   sendEstimateEmailFlexible,

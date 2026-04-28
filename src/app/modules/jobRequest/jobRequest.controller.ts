@@ -101,7 +101,7 @@ const updateJobRequest = catchAsync(async (req, res) => {
   const result = await jobRequestService.updateJobRequest(
     jobReqId,
     req.body,
-    files.jobRequestsImage,
+    files?.jobRequestsImage,
   );
 
   sendResponse(res, {

@@ -13,8 +13,6 @@ import { Request } from "express";
 import { uploadInSpace } from "../../../helpers/uploadInSpace";
 import { paginationHelper, TOptions } from "../../../shared/pagination";
 import httpStatus from "http-status";
-import sendEmail from "../../../helpers/sendEmail";
-import { estimateEmail } from "../../../shared/emailTemplate";
 
 const createEstimateInDB = async (req: Request) => {
   const files = req.files as { [fieldname: string]: Express.Multer.File[] };
@@ -659,46 +657,6 @@ const getEstimateDetails = async (estimateId: string) => {
   };
 };
 
-const sendEstimateEmail = async (estimateId: string) => {
-  const estimate = await prisma.estimate.findUnique({
-    where: { id: estimateId },
-    select: {
-      id: true,
-      estimateName: true,
-      grandTotal: true,
-      date: true,
-      endDate: true,
-      client: {
-        select: {
-          email: true,
-          clientName: true,
-        },
-      },
-    },
-  });
-
-  if (!estimate) throw new ApiError(httpStatus.NOT_FOUND, "Estimate not found");
-
-  const emailBody = estimateEmail({
-    clientName: estimate.client.clientName,
-    estimateName: estimate.estimateName,
-    total: estimate.grandTotal,
-    date: estimate.date,
-    endDate: estimate.endDate,
-  });
-
-  try {
-    await sendEmail(estimate.client.email, "Estimate Email", emailBody);
-
-    await prisma.estimate.update({
-      where: { id: estimateId },
-      data: { emailStatus: EmailStatus.SENT, stage: "ISSUED" },
-    });
-  } catch (err) {
-    throw new ApiError(httpStatus.INTERNAL_SERVER_ERROR, "Email failed");
-  }
-};
-
 const updateEstimateStatus = async (
   estimateId: string,
   status: EstimateStatus,
@@ -754,6 +712,7 @@ const updateEstimateEmailAndSign = async (
     updateData.isSigned = true;
     updateData.signedAt = new Date();
     updateData.signedName = signedName;
+    updateData.status = "Approved";
   }
 
   // If no fields to update, throw error
@@ -865,7 +824,6 @@ export const estimateService = {
   editEstimateInDB,
   getAllEstimate,
   getEstimateDetails,
-  sendEstimateEmail,
   updateEstimateStatus,
   updateEstimateEmailAndSign,
   sendEstimateEmailFlexible,
