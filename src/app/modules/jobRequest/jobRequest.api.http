@@ -62,7 +62,7 @@ Authorization: {{administrator}}
 
 ### update job request
 
-PATCH {{baseUrl}}/job-request/update-job-request/69e862e85e7ca726664ef1de HTTP/1.1
+PATCH {{baseUrl}}/job-request/update-job-request/69d5e22bc6771df1addec900 HTTP/1.1
 Authorization: {{administrator}}
 Content-Type: application/json
 
@@ -70,7 +70,12 @@ Content-Type: application/json
   "address": "123 Main Street, Dhaka",
   "contact": "+8801712345678",
   "date": "2026-01-01T10:00:00Z",
-  "email": "client@example.com"
+  "email": "client@example.com",
+  "note": "Install new network hardware",
+  "officeLatitude": 23.8103,
+  "officeLongitude": 90.4125,
+  "status": "REVIEWED",
+  "title": "10 Storyed building for school"
 }
 
 
