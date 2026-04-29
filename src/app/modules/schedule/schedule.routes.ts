@@ -7,7 +7,7 @@ const router = express.Router();
 
 router.post(
   "/create",
-  auth(UserRole.ADMIN),
+  auth(UserRole.ADMIN, UserRole.OFFICE_ADMINISTRATOR),
   scheduleControllers.createSchedule,
 );
 router.get("/all-schedules", scheduleControllers.getAllSchedules);
