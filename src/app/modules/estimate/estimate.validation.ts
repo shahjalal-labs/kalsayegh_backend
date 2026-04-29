@@ -50,6 +50,7 @@ const itemValidationSchema = z.object({
   notes: z.string().optional(),
   taxes: z.array(z.string()).optional(),
 });
+
 const itemUpdateValidationSchema = z.object({
   itemId: z.string(),
   itemName: z.string().optional(),

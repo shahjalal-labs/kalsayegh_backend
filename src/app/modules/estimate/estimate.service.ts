@@ -647,6 +647,10 @@ const getEstimateDetails = async (estimateId: string) => {
           },
           select: {
             description: true,
+            itemName: true,
+            rate: true,
+            markUp: true,
+            taxes: true,
           },
         })
       : [];
