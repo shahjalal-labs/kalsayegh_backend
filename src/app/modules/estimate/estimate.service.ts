@@ -612,7 +612,7 @@ const getAllEstimate = async (
   };
 };
 
-const getEstimateDetails = async (estimateId: string) => {
+/* const getEstimateDetails = async (estimateId: string) => {
   const estimate = await prisma.estimate.findUnique({
     where: {
       id: estimateId,
@@ -658,6 +658,65 @@ const getEstimateDetails = async (estimateId: string) => {
   return {
     ...estimate,
     items,
+  };
+}; */
+
+// updated for added item quantity & subtotal
+const getEstimateDetails = async (estimateId: string) => {
+  const estimate = await prisma.estimate.findUnique({
+    where: {
+      id: estimateId,
+    },
+    include: {
+      client: true,
+    },
+    omit: {
+      createdAt: true,
+    },
+  });
+
+  if (!estimate) {
+    throw new ApiError(httpStatus.NOT_FOUND, "Estimate not found");
+  }
+
+  const estimateItems = Array.isArray(estimate.items) ? estimate.items : [];
+
+  const itemIds = estimateItems.map((item) => item.id);
+
+  const dbItems =
+    itemIds.length > 0
+      ? await prisma.item.findMany({
+          where: {
+            id: {
+              in: itemIds,
+            },
+          },
+          select: {
+            id: true, // required for mapping
+            description: true,
+            itemName: true,
+            rate: true,
+            markUp: true,
+            taxes: true,
+          },
+        })
+      : [];
+
+  const finalItems = dbItems.map((dbItem) => {
+    const matchedEstimateItem = estimateItems.find(
+      (item) => item.id === dbItem.id,
+    );
+
+    return {
+      ...dbItem,
+      quantity: matchedEstimateItem?.quantity ?? 0,
+      subTotal: matchedEstimateItem?.subTotal ?? 0,
+    };
+  });
+
+  return {
+    ...estimate,
+    items: finalItems,
   };
 };
 

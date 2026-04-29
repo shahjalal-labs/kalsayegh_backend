@@ -181,19 +181,15 @@ const getInvoiceDetails = async (invoiceId: string) => {
     },
   });
 
-  if (!invoice) throw new ApiError(httpStatus.NOT_FOUND, "Estimate not found");
+  if (!invoice) {
+    throw new ApiError(httpStatus.NOT_FOUND, "Invoice not found");
+  }
 
   const invoiceItems = Array.isArray(invoice.items) ? invoice.items : [];
 
-  const itemIds = invoiceItems
-    .map((item) => {
-      if (typeof item !== "object" || item === null) return undefined;
-      const currentItem = item as { id?: unknown };
-      return typeof currentItem.id === "string" ? currentItem.id : undefined;
-    })
-    .filter((id): id is string => Boolean(id));
+  const itemIds = invoiceItems.map((item) => item.id);
 
-  const items =
+  const dbItems =
     itemIds.length > 0
       ? await prisma.item.findMany({
           where: {
@@ -202,14 +198,31 @@ const getInvoiceDetails = async (invoiceId: string) => {
             },
           },
           select: {
+            id: true, // needed for mapping
             description: true,
+            itemName: true,
+            rate: true,
+            markUp: true,
+            taxes: true,
           },
         })
       : [];
 
+  const finalItems = dbItems.map((dbItem) => {
+    const matchedInvoiceItem = invoiceItems.find(
+      (item) => item.id === dbItem.id,
+    );
+
+    return {
+      ...dbItem,
+      quantity: matchedInvoiceItem?.quantity ?? 0,
+      subTotal: matchedInvoiceItem?.subTotal ?? 0,
+    };
+  });
+
   return {
     ...invoice,
-    items,
+    items: finalItems,
   };
 };
 

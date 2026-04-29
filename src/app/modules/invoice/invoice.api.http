@@ -97,8 +97,8 @@ Content-Type: application/json
 
 ### get payments for a invoice
 
-GET {{baseUrl}}/invoice/payments/69e1cd3e746f0ebcda851c80 HTTP/1.1
-Authorization: {{estMir}}
+GET {{baseUrl}}/invoice/payments/69f179f792421695c4ab537a HTTP/1.1
+Authorization: {{admin}}
 
 
 ### view original payment from refund | get payment details
