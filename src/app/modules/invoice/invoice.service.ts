@@ -709,6 +709,7 @@ const payInvoiceWithCard = async (
     where: { id: invoiceId },
     include: { client: true },
   });
+
   if (!invoice) throw new ApiError(httpStatus.NOT_FOUND, "Invoice not found");
 
   // Calculate remaining amount due
