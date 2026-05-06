@@ -65,7 +65,7 @@ const createInvoice = async (req: Request) => {
       estimatorId: estimatorId,
       legendary: payload.legendary,
       date: payload.date,
-      endDate: payload.endDate,
+      endDate: payload.endDate as string,
       invoiceName: payload.invoiceName,
       items: payload.items,
       grandTotal: payload.grandTotal,

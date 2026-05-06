@@ -11,7 +11,7 @@ export const estimateEmailWithReview = ({
   estimateName: string;
   grandTotal: number;
   date: string;
-  endDate: string;
+  endDate: string | null;
   customMessage?: string;
   reviewLink: string;
 }) => `
