@@ -17,7 +17,7 @@ const estimateValidationSchema = z.object({
   estimateName: z.string().min(1, "Estimate name is required"),
   legendary: z.string(),
   date: z.string().min(1, "Start date is required"),
-  endDate: z.string().min(1, "End date is required"),
+  endDate: z.string().min(1, "End date is required").optional(),
   items: z.array(TItemTypeSchema).min(1, "At least one item is required"),
   additionalMarkUp: z.number().optional(),
   grandTotal: z.number().nonnegative("Grand total must be >= 0"),

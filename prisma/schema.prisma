@@ -231,7 +231,7 @@ model Estimate {
   estimateName              String
   legendary                 String?
   date                      String
-  endDate                   String
+  endDate                   String?
   sideMap                   String?
   fileUrls                  String[]
   items                     TItemType[]
@@ -287,7 +287,7 @@ model Invoice {
   invoiceName               String
   legendary                 String?
   date                      String
-  endDate                   String
+  endDate                   String?
   sideMap                   String?
   fileUrls                  String[]
   items                     TItemType[]
