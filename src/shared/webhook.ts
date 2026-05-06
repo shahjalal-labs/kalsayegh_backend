@@ -65,4 +65,4 @@ router.post(
   },
 );
 
-export default router;
+export const webhookRouter = router;

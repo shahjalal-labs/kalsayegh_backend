@@ -7,6 +7,7 @@ import path from "path";
 import prisma from "./shared/prisma";
 import { logger } from "./shared/logger";
 import { configRoutes } from "./config/viewRoutes";
+import { webhookRouter } from "./shared/webhook";
 // import { bullBoardRouter } from "./bullBoard";
 // import basicAuth from "express-basic-auth";
 
@@ -24,6 +25,9 @@ const app: Application = express();
 })();
 
 app.use(cors());
+
+// ⚠️ Webhook route MUST come before express.json()
+app.use("/webhooks", webhookRouter);
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
