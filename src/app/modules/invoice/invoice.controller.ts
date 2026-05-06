@@ -176,6 +176,17 @@ const getPublicInvoiceDetails = catchAsync(async (req, res) => {
   });
 });
 
+const createPaymentIntent = catchAsync(async (req, res) => {
+  const { id: invoiceId } = req.params;
+  const result = await invoiceService.createPaymentIntent(invoiceId);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Payment intent created successfully",
+    data: result,
+  });
+});
+
 export const invoiceController = {
   createInvoice,
   getAllInvoices,
@@ -189,4 +200,5 @@ export const invoiceController = {
   getPaymentDetails,
   payInvoiceWithCard,
   getPublicInvoiceDetails,
+  createPaymentIntent,
 };

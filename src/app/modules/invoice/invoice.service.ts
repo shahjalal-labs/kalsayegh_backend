@@ -854,6 +854,36 @@ const getPublicInvoiceDetails = async (invoiceId: string) => {
   };
 };
 
+const createPaymentIntent = async (invoiceId: string) => {
+  const invoice = await prisma.invoice.findUnique({ where: { id: invoiceId } });
+  if (!invoice) throw new ApiError(httpStatus.NOT_FOUND, "Invoice not found");
+
+  // Calculate amount due (same as before)
+  const payments = await prisma.payment.findMany({
+    where: { invoiceId, status: { not: "REFUNDED" } },
+    include: { refunds: true },
+  });
+  let totalPaidNet = 0;
+  for (const p of payments) {
+    const refunded = p.refunds.reduce((sum, r) => sum + r.amount, 0);
+    totalPaidNet += p.amount - refunded;
+  }
+  const amountDue = getAmountDue(invoice, totalPaidNet);
+  if (amountDue <= 0)
+    throw new ApiError(httpStatus.BAD_REQUEST, "Invoice fully paid");
+
+  // Create PaymentIntent – NOT confirmed. Allow both card and US bank account.
+  const paymentIntent = await stripe.paymentIntents.create({
+    amount: Math.round(amountDue * 100),
+    currency: "usd",
+    payment_method_types: ["card", "us_bank_account"], // enable ACH
+    metadata: { invoiceId: invoice.id },
+    automatic_payment_methods: { enabled: true, allow_redirects: "never" },
+  });
+
+  return { clientSecret: paymentIntent.client_secret };
+};
+
 export const invoiceService = {
   createInvoice,
   getAllInvoices,
@@ -867,4 +897,5 @@ export const invoiceService = {
   getPaymentDetails,
   payInvoiceWithCard,
   getPublicInvoiceDetails,
+  createPaymentIntent,
 };

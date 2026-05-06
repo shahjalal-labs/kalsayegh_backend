@@ -84,4 +84,9 @@ router.post(
 
 router.get("/public-invoice/:id", invoiceController.getPublicInvoiceDetails);
 
+router.post(
+  "/create-payment-intent/:id",
+  invoiceController.createPaymentIntent,
+);
+
 export const invoiceRoutes = router;
