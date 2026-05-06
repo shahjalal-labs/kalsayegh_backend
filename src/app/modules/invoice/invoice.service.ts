@@ -854,7 +854,7 @@ const getPublicInvoiceDetails = async (invoiceId: string) => {
   };
 };
 
-const createPaymentIntent = async (invoiceId: string) => {
+/* const createPaymentIntent = async (invoiceId: string) => {
   const invoice = await prisma.invoice.findUnique({ where: { id: invoiceId } });
   if (!invoice) throw new ApiError(httpStatus.NOT_FOUND, "Invoice not found");
 
@@ -879,6 +879,35 @@ const createPaymentIntent = async (invoiceId: string) => {
     payment_method_types: ["card", "us_bank_account"], // enable ACH
     metadata: { invoiceId: invoice.id },
     automatic_payment_methods: { enabled: true, allow_redirects: "never" },
+  });
+
+  return { clientSecret: paymentIntent.client_secret };
+}; */
+
+const createPaymentIntent = async (invoiceId: string) => {
+  const invoice = await prisma.invoice.findUnique({ where: { id: invoiceId } });
+  if (!invoice) throw new ApiError(httpStatus.NOT_FOUND, "Invoice not found");
+
+  // Calculate amount due (re-use your existing logic)
+  const payments = await prisma.payment.findMany({
+    where: { invoiceId, status: { not: "REFUNDED" } },
+    include: { refunds: true },
+  });
+  let totalPaidNet = 0;
+  for (const p of payments) {
+    const refunded = p.refunds.reduce((sum, r) => sum + r.amount, 0);
+    totalPaidNet += p.amount - refunded;
+  }
+  const amountDue = getAmountDue(invoice, totalPaidNet);
+  if (amountDue <= 0)
+    throw new ApiError(httpStatus.BAD_REQUEST, "Invoice fully paid");
+
+  // Create PaymentIntent – only enable automatic payment methods
+  const paymentIntent = await stripe.paymentIntents.create({
+    amount: Math.round(amountDue * 100),
+    currency: "usd",
+    automatic_payment_methods: { enabled: true }, // Stripe decides which methods (card, ACH, etc.)
+    metadata: { invoiceId: invoice.id },
   });
 
   return { clientSecret: paymentIntent.client_secret };
