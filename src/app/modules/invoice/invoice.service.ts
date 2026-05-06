@@ -906,8 +906,9 @@ const createPaymentIntent = async (invoiceId: string) => {
   const paymentIntent = await stripe.paymentIntents.create({
     amount: Math.round(amountDue * 100),
     currency: "usd",
-    automatic_payment_methods: { enabled: true }, // Stripe decides which methods (card, ACH, etc.)
+    payment_method_types: ["card", "us_bank_account"], // explicit list
     metadata: { invoiceId: invoice.id },
+    // Do NOT include automatic_payment_methods
   });
 
   return { clientSecret: paymentIntent.client_secret };
