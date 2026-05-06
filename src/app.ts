@@ -6,18 +6,11 @@ import GlobalErrorHandler from "./app/middlewares/globalErrorHandler";
 import path from "path";
 import prisma from "./shared/prisma";
 import { logger } from "./shared/logger";
-import { stripeWebhook } from "./shared/webhook";
 import { configRoutes } from "./config/viewRoutes";
 // import { bullBoardRouter } from "./bullBoard";
 // import basicAuth from "express-basic-auth";
 
 const app: Application = express();
-
-app.post(
-  "/api/v1/webhook/stripe",
-  express.raw({ type: "application/json" }),
-  stripeWebhook,
-);
 
 // Middleware setup
 (async () => {

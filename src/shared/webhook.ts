@@ -1,105 +1,68 @@
-// invoice.webhook.ts
-import { Request, Response } from "express";
-import httpStatus from "http-status";
+import express from "express";
 import { stripe } from "../helpers/stripe";
-import ApiError from "../errors/ApiErrors";
-import sendResponse from "./sendResponse";
-import prisma from "./prisma";
+import prisma from "../shared/prisma";
 import { updateInvoiceStatus } from "../app/modules/invoice/invoice.service";
-export const stripeWebhook = async (req: Request, res: Response) => {
-  const sig = req.headers["stripe-signature"] as string;
-  let event: any;
 
-  try {
-    event = stripe.webhooks.constructEvent(
-      req.body,
-      sig,
-      process.env.STRIPE_WEBHOOK_SECRET!,
-    );
-  } catch (err) {
-    throw new ApiError(httpStatus.BAD_REQUEST, "Invalid webhook signature");
-  }
+const router = express.Router();
 
-  // Handle the checkout.session.completed event
-  if (event.type === "checkout.session.completed") {
-    const session = event.data.object;
+router.post(
+  "/stripe",
+  express.raw({ type: "application/json" }),
+  async (req, res) => {
+    const signatureHeader = req.headers["stripe-signature"];
+    const endpointSecret = process.env.STRIPE_WEBHOOK_SECRET!;
 
-    // Extract invoiceId from metadata
-    const invoiceId = session.metadata?.invoiceId;
-    if (!invoiceId) {
-      console.error("Webhook: missing invoiceId in session metadata");
-      sendResponse(res, {
-        statusCode: httpStatus.OK,
-        success: true,
-        message: "Webhook received (missing invoiceId)",
-      });
-      return;
+    if (typeof signatureHeader !== "string") {
+      return res.status(400).send("Invalid stripe-signature header");
     }
 
-    // Extract payment_intent ID (could be a string or an object)
-    let paymentIntentId: string | null = null;
-    if (typeof session.payment_intent === "string") {
-      paymentIntentId = session.payment_intent;
-    } else if (
-      session.payment_intent &&
-      typeof session.payment_intent === "object"
-    ) {
-      paymentIntentId = session.payment_intent.id;
-    }
+    let event: any;
 
-    if (!paymentIntentId) {
-      console.error("Webhook: missing payment_intent in session");
-      sendResponse(res, {
-        statusCode: httpStatus.OK,
-        success: true,
-        message: "Webhook received (missing payment_intent)",
-      });
-      return;
-    }
-
-    // Amount total (in cents)
-    const amountTotal = session.amount_total;
-    if (!amountTotal) {
-      console.error("Webhook: missing amount_total in session");
-      sendResponse(res, {
-        statusCode: httpStatus.OK,
-        success: true,
-        message: "Webhook received (missing amount)",
-      });
-      return;
-    }
-
-    // Idempotency check: prevent duplicate processing
-    const existingPayment = await prisma.payment.findFirst({
-      where: { stripePaymentIntentId: paymentIntentId },
-    });
-
-    if (!existingPayment) {
-      // Create payment record
-      await prisma.payment.create({
-        data: {
-          invoiceId,
-          amount: amountTotal,
-          paymentDate: new Date(),
-          paymentMethod: "STRIPE",
-          stripePaymentIntentId: paymentIntentId,
-          status: "COMPLETED",
-        },
-      });
-
-      // Update invoice status (ACTIVE → PARTIAL → PAID)
-      await updateInvoiceStatus(invoiceId);
-    } else {
-      console.log(
-        `Webhook: Payment already processed for intent ${paymentIntentId}`,
+    try {
+      event = stripe.webhooks.constructEvent(
+        req.body,
+        signatureHeader,
+        endpointSecret,
       );
+    } catch (err: any) {
+      return res.status(400).send(`Webhook Error: ${err.message}`);
     }
-  }
 
-  // Acknowledge receipt of the webhook
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: "Webhook received",
-  });
-};
+    if (event.type === "payment_intent.succeeded") {
+      const paymentIntent = event.data.object;
+      const invoiceId = paymentIntent.metadata?.invoiceId;
+      const amount = paymentIntent.amount / 100;
+
+      if (!invoiceId) {
+        console.error("Missing invoiceId in PaymentIntent metadata");
+        return res.status(400).send("Missing invoiceId");
+      }
+
+      const existing = await prisma.payment.findFirst({
+        where: { stripePaymentIntentId: paymentIntent.id },
+      });
+
+      if (!existing) {
+        await prisma.payment.create({
+          data: {
+            invoiceId,
+            amount,
+            paymentDate: new Date(),
+            paymentMethod: paymentIntent.payment_method_types?.includes(
+              "us_bank_account",
+            )
+              ? "BANK_TRANSFER"
+              : "STRIPE",
+            stripePaymentIntentId: paymentIntent.id,
+            status: "COMPLETED",
+          },
+        });
+        await updateInvoiceStatus(invoiceId);
+      }
+    }
+
+    res.json({ received: true });
+  },
+);
+
+export default router;
