@@ -72,7 +72,7 @@ export const invoiceEmailWithPayment = ({
   invoiceName: string;
   amountDue: number;
   date: string;
-  dueDate: string;
+  dueDate: string | null;
   customMessage?: string;
   paymentLink: string;
 }) => `

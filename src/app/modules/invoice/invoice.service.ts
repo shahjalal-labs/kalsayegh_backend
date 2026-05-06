@@ -315,7 +315,7 @@ const sendInvoiceEmail = async (
     invoiceName: invoice.invoiceName || invoiceId.slice(-6),
     amountDue: amountDue, // ← critical: dynamic amount due
     date: invoice.date,
-    dueDate: invoice.endDate,
+    dueDate: invoice.endDate as string,
     customMessage: payload.message,
     paymentLink,
   });
