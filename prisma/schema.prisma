@@ -225,33 +225,39 @@ model Item {
 }
 
 model Estimate {
-  id               String         @id @default(auto()) @map("_id") @db.ObjectId
-  clientId         String         @db.ObjectId
-  estimatorId      String         @db.ObjectId
-  estimateName     String
-  legendary        String?
-  date             String
-  endDate          String
-  sideMap          String?
-  fileUrls         String[]
-  items            TItemType[]
-  additionalMarkUp Float?
-  grandTotal       Float
-  discountAmount   Float?
-  depositAmount    Float?
-  status           EstimateStatus @default(Pending)
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-  client           Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  estimator        User           @relation(fields: [estimatorId], references: [id], onDelete: Cascade)
-  emailStatus      EmailStatus    @default(NOT_SENT)
-  stage            EstimateStage  @default(DRAFT)
-  isInvoiced       Boolean        @default(false)
-  isOnlinePayment  Boolean        @default(false)
-  isSigned         Boolean        @default(false)
-  signedAt         DateTime?
-  signedName       String?
-  invoices         Invoice[]
+  id                        String         @id @default(auto()) @map("_id") @db.ObjectId
+  clientId                  String         @db.ObjectId
+  estimatorId               String         @db.ObjectId
+  estimateName              String
+  legendary                 String?
+  date                      String
+  endDate                   String
+  sideMap                   String?
+  fileUrls                  String[]
+  items                     TItemType[]
+  additionalMarkUp          Float?
+  grandTotal                Float
+  discountAmount            Float?
+  depositAmount             Float?
+  status                    EstimateStatus @default(Pending)
+  createdAt                 DateTime       @default(now())
+  updatedAt                 DateTime       @updatedAt
+  client                    Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  estimator                 User           @relation(fields: [estimatorId], references: [id], onDelete: Cascade)
+  emailStatus               EmailStatus    @default(NOT_SENT)
+  stage                     EstimateStage  @default(DRAFT)
+  isInvoiced                Boolean        @default(false)
+  isSigned                  Boolean        @default(false)
+  signedAt                  DateTime?
+  signedName                String?
+  invoices                  Invoice[]
+  isOnlinePayment           Boolean        @default(false)
+  coverPaymentProcessingFee Boolean?
+  noteForClient             String?
+  privateNote               String?
+  clientSign                Boolean?
+  mySign                    Boolean?
+  isAutoInvoice             Boolean?
 
   @@map("estimates")
 }
@@ -275,33 +281,39 @@ type TItemType {
 }
 
 model Invoice {
-  id               String        @id @default(auto()) @map("_id") @db.ObjectId
-  clientId         String        @db.ObjectId
-  estimatorId      String        @db.ObjectId
-  invoiceName      String
-  legendary        String?
-  date             String
-  endDate          String
-  sideMap          String?
-  fileUrls         String[]
-  items            TItemType[]
-  additionalMarkUp Float?
-  grandTotal       Int
-  discountAmount   Float?
-  depositAmount    Float?
-  status           InvoiceStatus @default(ACTIVE)
-  stage            InvoiceStage  @default(DRAFT)
-  emailStatus      EmailStatus   @default(NOT_SENT)
-  isSigned         Boolean       @default(false)
-  signedAt         DateTime?
-  signedName       String?
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
-  client           Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  estimator        User          @relation(fields: [estimatorId], references: [id], onDelete: Cascade)
-  estimate         Estimate?     @relation(fields: [estimateId], references: [id])
-  estimateId       String?       @db.ObjectId
-  payments         Payment[]
+  id                        String        @id @default(auto()) @map("_id") @db.ObjectId
+  clientId                  String        @db.ObjectId
+  estimatorId               String        @db.ObjectId
+  invoiceName               String
+  legendary                 String?
+  date                      String
+  endDate                   String
+  sideMap                   String?
+  fileUrls                  String[]
+  items                     TItemType[]
+  additionalMarkUp          Float?
+  grandTotal                Int
+  discountAmount            Float?
+  depositAmount             Float?
+  status                    InvoiceStatus @default(ACTIVE)
+  stage                     InvoiceStage  @default(DRAFT)
+  emailStatus               EmailStatus   @default(NOT_SENT)
+  isSigned                  Boolean       @default(false)
+  signedAt                  DateTime?
+  signedName                String?
+  createdAt                 DateTime      @default(now())
+  updatedAt                 DateTime      @updatedAt
+  client                    Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  estimator                 User          @relation(fields: [estimatorId], references: [id], onDelete: Cascade)
+  estimate                  Estimate?     @relation(fields: [estimateId], references: [id])
+  estimateId                String?       @db.ObjectId
+  payments                  Payment[]
+  isOnlinePayment           Boolean       @default(false)
+  coverPaymentProcessingFee Boolean?
+  noteForClient             String?
+  privateNote               String?
+  clientSign                Boolean?
+  mySign                    Boolean?
 
   @@map("invoices")
 }

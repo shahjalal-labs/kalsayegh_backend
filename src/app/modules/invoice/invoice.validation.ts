@@ -13,6 +13,12 @@ const createInvoiceSchema = z
     grandTotal: z.number().nonnegative("Grand total must be >= 0"),
     discountAmount: z.number().optional(),
     depositAmount: z.number().optional(),
+    isOnlinePayment: z.boolean().optional(),
+    coverPaymentProcessingFee: z.boolean().optional(),
+    noteForClient: z.string().max(1000, "Client note is too long").optional(),
+    privateNote: z.string().max(1000, "Private note is too long").optional(),
+    clientSign: z.boolean().optional(),
+    mySign: z.boolean().optional(),
   })
   .strict();
 

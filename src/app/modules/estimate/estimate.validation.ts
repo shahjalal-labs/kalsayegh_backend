@@ -1,4 +1,3 @@
-import { cli } from "winston/lib/winston/config";
 import { z } from "zod";
 
 export const objectId = z
@@ -24,7 +23,15 @@ const estimateValidationSchema = z.object({
   grandTotal: z.number().nonnegative("Grand total must be >= 0"),
   discountAmount: z.number().optional(),
   depositAmount: z.number().optional(),
+  isOnlinePayment: z.boolean().optional(),
+  coverPaymentProcessingFee: z.boolean().optional(),
+  noteForClient: z.string().max(1000, "Client note is too long").optional(),
+  privateNote: z.string().max(1000, "Private note is too long").optional(),
+  clientSign: z.boolean().optional(),
+  mySign: z.boolean().optional(),
 });
+
+// export const TCreateEstimate = z.infer<typeof estimateValidationSchema>;
 
 const markUpValidationSchema = z.object({
   name: z.string().min(1, "Mark up name is required"),

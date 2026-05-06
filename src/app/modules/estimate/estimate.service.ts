@@ -73,6 +73,12 @@ const createEstimateInDB = async (req: Request) => {
       fileUrls: urls ? urls : undefined,
       depositAmount: payload.depositAmount,
       discountAmount: payload.discountAmount,
+      isOnlinePayment: payload.isOnlinePayment,
+      coverPaymentProcessingFee: payload.coverPaymentProcessingFee,
+      noteForClient: payload.noteForClient,
+      privateNote: payload.privateNote,
+      clientSign: payload.clientSign,
+      mySign: payload.mySign,
     },
   });
 

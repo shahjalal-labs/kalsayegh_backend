@@ -1,12 +1,14 @@
 ### create estimate
 
 POST {{baseUrl}}/estimate/create-estimate HTTP/1.1
-Authorization: {{estMir}}
+Authorization: {{admin}}
 Content-Type: application/json
 
 {
   "additionalMarkUp": 5.5,
   "clientId": "69dc92eb0dc5477223a0ff0f",
+  "clientSign": true,
+  "coverPaymentProcessingFee": true,
   "date": "2026-04-01",
   "depositAmount": 300,
   "discountAmount": 100,
@@ -21,7 +23,10 @@ Content-Type: application/json
       "subTotal": 450
     }
   ],
-  "legendary": "legendary"
+  "legendary": "legendary",
+  "mySign": true,
+  "noteForClient": "Thank you for your business! Please complete payment within 7 days.",
+  "privateNote": "Repeat client, prefers email communication."
 }
 
 
@@ -147,9 +152,15 @@ GET {{baseUrl}}/estimate/all-estimates?page=1&limit=20&searchTerm=kitchen&status
 Authorization: {{estMir}}
 
 
+### get all estimates
+
+GET {{baseUrl}}/estimate/all-estimates?page=1&limit=20 HTTP/1.1
+Authorization: {{admin}}
+
+
 ### get estimate details
 
-GET {{baseUrl}}/estimate/estimate/69e71ad3eb445ea74ae9a561 HTTP/1.1
+GET {{baseUrl}}/estimate/estimate/69faf669020a189520160687 HTTP/1.1
 Authorization: {{estMir}}
 
 
