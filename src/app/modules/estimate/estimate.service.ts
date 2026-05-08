@@ -881,6 +881,27 @@ const sendEstimateEmailFlexible = async (
   return { success: true, to, cc, bcc };
 };
 
+const deleteEstimate = async (estimateId: string) => {
+  const estimateExist = await prisma.estimate.count({
+    where: {
+      id: estimateId,
+    },
+  });
+
+  if (!estimateExist)
+    throw new ApiError(httpStatus.NOT_FOUND, "Estimate not found");
+
+  return prisma.estimate.delete({
+    where: {
+      id: estimateId,
+    },
+    select: {
+      id: true,
+      estimateName: true,
+    },
+  });
+};
+
 export const estimateService = {
   createClientInDB,
   getEstimateByIdFromDB,
@@ -899,4 +920,5 @@ export const estimateService = {
   updateEstimateStatus,
   updateEstimateEmailAndSign,
   sendEstimateEmailFlexible,
+  deleteEstimate,
 };

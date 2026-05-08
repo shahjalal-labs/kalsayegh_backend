@@ -115,4 +115,10 @@ router.post(
   estimateControllers.sendEstimateEmailFlexible,
 );
 
+router.delete(
+  "/delete/:id",
+  auth(UserRole.ESTIMATOR, UserRole.ADMIN, UserRole.OFFICE_ADMINISTRATOR),
+  estimateControllers.deleteEstimate,
+);
+
 export const estimateRoutes = router;

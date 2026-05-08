@@ -313,7 +313,7 @@ model Invoice {
   updatedAt                 DateTime      @updatedAt
   client                    Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
   estimator                 User          @relation(fields: [estimatorId], references: [id], onDelete: Cascade)
-  estimate                  Estimate?     @relation(fields: [estimateId], references: [id])
+  estimate                  Estimate?     @relation(fields: [estimateId], references: [id], onDelete: SetNull)
   estimateId                String?       @db.ObjectId
   payments                  Payment[]
   isOnlinePayment           Boolean       @default(false)

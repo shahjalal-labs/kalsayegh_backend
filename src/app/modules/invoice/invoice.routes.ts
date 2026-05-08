@@ -89,4 +89,10 @@ router.post(
   invoiceController.createPaymentIntent,
 );
 
+router.delete(
+  "/delete/:id",
+  auth(UserRole.ADMIN, UserRole.ESTIMATOR, UserRole.OFFICE_ADMINISTRATOR),
+  invoiceController.deleteInvoice,
+);
+
 export const invoiceRoutes = router;

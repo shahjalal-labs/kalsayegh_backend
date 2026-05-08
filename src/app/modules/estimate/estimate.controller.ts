@@ -202,6 +202,19 @@ const sendEstimateEmailFlexible = catchAsync(async (req, res) => {
   });
 });
 
+const deleteEstimate = catchAsync(async (req, res) => {
+  const { id: estimateId } = req.params;
+
+  const result = await estimateService.deleteEstimate(estimateId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Estimate deleted successfully",
+    data: result,
+  });
+});
+
 export const estimateControllers = {
   createClient,
   myClients,
@@ -220,4 +233,5 @@ export const estimateControllers = {
   updateEstimateStatus,
   updateEstimateEmailAndSign,
   sendEstimateEmailFlexible,
+  deleteEstimate,
 };

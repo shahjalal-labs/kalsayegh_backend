@@ -220,3 +220,11 @@ Content-Type: application/json
     "muhommodshahjalal@gmail.com"
   ]
 }
+
+
+### delete estimate
+
+# /:estimateId
+
+DELETE {{baseUrl}}/estimate/delete/69fda10972d7bcfae8a6b967 HTTP/1.1
+Authorization: {{admin}}

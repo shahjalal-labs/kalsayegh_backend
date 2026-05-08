@@ -922,6 +922,27 @@ const createPaymentIntent = async (invoiceId: string) => {
   return { clientSecret: paymentIntent.client_secret };
 };
 
+const deleteInvoice = async (invoiceId: string) => {
+  const invoiceExist = await prisma.invoice.count({
+    where: {
+      id: invoiceId,
+    },
+  });
+
+  if (!invoiceExist)
+    throw new ApiError(httpStatus.NOT_FOUND, "Invoice not found");
+
+  return prisma.invoice.delete({
+    where: {
+      id: invoiceId,
+    },
+    select: {
+      id: true,
+      invoiceName: true,
+    },
+  });
+};
+
 export const invoiceService = {
   createInvoice,
   getAllInvoices,
@@ -936,4 +957,5 @@ export const invoiceService = {
   payInvoiceWithCard,
   getPublicInvoiceDetails,
   createPaymentIntent,
+  deleteInvoice,
 };

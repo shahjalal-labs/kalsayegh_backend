@@ -154,3 +154,11 @@ Content-Type: application/json
 
 GET {{baseUrl}}/invoice/public-invoice/69e1cd3e746f0ebcda851c80 HTTP/1.1
 Content-Type: application/json
+
+
+### delete estimate
+
+# /:invoiceId
+
+DELETE {{baseUrl}}/invoice/delete/69fda0cb72d7bcfae8a6b966 HTTP/1.1
+Authorization: {{admin}}

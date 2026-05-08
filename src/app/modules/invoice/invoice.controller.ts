@@ -1,14 +1,10 @@
-import Stripe from "stripe";
 import httpStatus from "http-status";
 import catchAsync from "../../../shared/catchAsync";
 import sendResponse from "../../../shared/sendResponse";
-import { invoiceService, updateInvoiceStatus } from "./invoice.service";
+import { invoiceService } from "./invoice.service";
 import pick from "../../../shared/pick";
 import { paginationOptions } from "../../../shared/pagination";
-import ApiError from "../../../errors/ApiErrors";
 import prisma from "../../../shared/prisma";
-import { stripe } from "../../../helpers/stripe";
-
 const createInvoice = catchAsync(async (req, res) => {
   const result = await invoiceService.createInvoice(req);
   sendResponse(res, {
@@ -187,6 +183,17 @@ const createPaymentIntent = catchAsync(async (req, res) => {
   });
 });
 
+const deleteInvoice = catchAsync(async (req, res) => {
+  const { id: invoiceId } = req.params;
+  const result = await invoiceService.deleteInvoice(invoiceId);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Invoice deleted successfully",
+    data: result,
+  });
+});
+
 export const invoiceController = {
   createInvoice,
   getAllInvoices,
@@ -201,4 +208,5 @@ export const invoiceController = {
   payInvoiceWithCard,
   getPublicInvoiceDetails,
   createPaymentIntent,
+  deleteInvoice,
 };
