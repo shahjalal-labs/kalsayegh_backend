@@ -1,5 +1,6 @@
 import z from "zod";
 import { objectId, TItemTypeSchema } from "../estimate/estimate.validation";
+import { Format } from "@prisma/client";
 
 const createInvoiceSchema = z
   .object({
@@ -19,6 +20,8 @@ const createInvoiceSchema = z
     privateNote: z.string().max(1000, "Private note is too long").optional(),
     clientSign: z.boolean().optional(),
     mySign: z.boolean().optional(),
+    format: z.nativeEnum(Format).default("DESCRIPTION"),
+    contract: z.string().optional(),
   })
   .strict();
 

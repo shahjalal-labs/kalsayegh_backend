@@ -1,3 +1,4 @@
+import { Format } from "@prisma/client";
 import { z } from "zod";
 
 export const objectId = z
@@ -12,32 +13,37 @@ export const TItemTypeSchema = z.object({
 });
 
 // 🔸 Main Estimate Schema
-const estimateValidationSchema = z.object({
-  clientId: objectId,
-  estimateName: z.string().min(1, "Estimate name is required"),
-  legendary: z.string(),
-  date: z.string().min(1, "Start date is required"),
-  endDate: z.string().min(1, "End date is required").optional(),
-  items: z.array(TItemTypeSchema).min(1, "At least one item is required"),
-  additionalMarkUp: z.number().optional(),
-  grandTotal: z.number().nonnegative("Grand total must be >= 0"),
-  discountAmount: z.number().optional(),
-  depositAmount: z.number().optional(),
-  isOnlinePayment: z.boolean().optional(),
-  coverPaymentProcessingFee: z.boolean().optional(),
-  noteForClient: z.string().max(1000, "Client note is too long").optional(),
-  privateNote: z.string().max(1000, "Private note is too long").optional(),
-  clientSign: z.boolean().optional(),
-  mySign: z.boolean().optional(),
-});
+const estimateValidationSchema = z
+  .object({
+    clientId: objectId,
+    estimateName: z.string().min(1, "Estimate name is required"),
+    legendary: z.string(),
+    date: z.string().min(1, "Start date is required"),
+    endDate: z.string().min(1, "End date is required").optional(),
+    items: z.array(TItemTypeSchema).min(1, "At least one item is required"),
+    additionalMarkUp: z.number().optional(),
+    grandTotal: z.number().nonnegative("Grand total must be >= 0"),
+    discountAmount: z.number().optional(),
+    depositAmount: z.number().optional(),
+    isOnlinePayment: z.boolean().optional(),
+    coverPaymentProcessingFee: z.boolean().optional(),
+    noteForClient: z.string().max(1000, "Client note is too long").optional(),
+    privateNote: z.string().max(1000, "Private note is too long").optional(),
+    clientSign: z.boolean().optional(),
+    mySign: z.boolean().optional(),
+    format: z.nativeEnum(Format).default("DESCRIPTION"),
+    contract: z.string().optional(),
+  })
+  .strict();
 
-// export const TCreateEstimate = z.infer<typeof estimateValidationSchema>;
+export type TCreateEstimate = z.infer<typeof estimateValidationSchema>;
 
 const markUpValidationSchema = z.object({
   name: z.string().min(1, "Mark up name is required"),
   percentage: z.number().int().min(0).max(99).optional(),
   amount: z.number().int().min(0).optional(),
 });
+
 const taxValidationSchema = z.object({
   name: z.string().min(1, "Tax name is required"),
   percentage: z.number().int().min(0).max(99),
@@ -83,10 +89,7 @@ const updateEstimateStatusSchema = z
 const updateEmailSignSchema = z
   .object({
     emailStatus: z.enum(["READ"]).optional(), // only allow READ
-    signedName: z
-      .string()
-      .min(1, "Signed name is required if provided")
-      .optional(),
+    signedName: z.string().optional(),
   })
   .strict();
 

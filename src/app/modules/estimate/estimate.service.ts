@@ -16,7 +16,7 @@ import httpStatus from "http-status";
 
 const createEstimateInDB = async (req: Request) => {
   const files = req.files as { [fieldname: string]: Express.Multer.File[] };
-  const payload = req.body;
+  const payload: TCreateEstimate = req.body;
   const estimatorId = req.user.id;
 
   const existingClient = await prisma.client.findUnique({
@@ -79,6 +79,8 @@ const createEstimateInDB = async (req: Request) => {
       privateNote: payload.privateNote,
       clientSign: payload.clientSign,
       mySign: payload.mySign,
+      format: payload.format,
+      contract: payload.contract,
     },
   });
 
@@ -806,6 +808,7 @@ const updateEstimateEmailAndSign = async (
 // Add to estimate.service.ts
 import sendEmailAdvanced from "../../../helpers/sendEmailAdvanced";
 import { estimateEmailWithReview } from "../../../shared/emailTemplate";
+import { TCreateEstimate } from "./estimate.validation";
 
 const sendEstimateEmailFlexible = async (
   estimateId: string,

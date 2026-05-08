@@ -8,12 +8,14 @@ Content-Type: application/json
   "additionalMarkUp": 5.5,
   "clientId": "69dc92eb0dc5477223a0ff0f",
   "clientSign": true,
+  "contract": "Cant return if purchased once",
   "coverPaymentProcessingFee": true,
   "date": "2026-04-01",
   "depositAmount": 300,
   "discountAmount": 100,
   "endDate": "2026-04-30",
   "estimateName": "Residential Painting Project",
+  "format": "TABLE",
   "grandTotal": 1500,
   "isOnlinePayment": true,
   "items": [
@@ -160,7 +162,7 @@ Authorization: {{admin}}
 
 ### get estimate details
 
-GET {{baseUrl}}/estimate/estimate/69faf669020a189520160687 HTTP/1.1
+GET {{baseUrl}}/estimate/estimate/69fd6fe27a05e8b274146f60 HTTP/1.1
 Authorization: {{estMir}}
 
 

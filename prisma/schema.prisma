@@ -258,8 +258,16 @@ model Estimate {
   clientSign                Boolean?
   mySign                    Boolean?
   isAutoInvoice             Boolean?
+  format                    Format         @default(DESCRIPTION)
+  contract                  String?
 
   @@map("estimates")
+}
+
+enum Format {
+  DESCRIPTION
+  TABLE
+  IMAGE_PDF
 }
 
 enum EstimateStatus {
@@ -314,6 +322,8 @@ model Invoice {
   privateNote               String?
   clientSign                Boolean?
   mySign                    Boolean?
+  format                    Format        @default(DESCRIPTION)
+  contract                  String?
 
   @@map("invoices")
 }

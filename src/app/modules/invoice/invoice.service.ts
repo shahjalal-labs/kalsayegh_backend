@@ -80,6 +80,8 @@ const createInvoice = async (req: Request) => {
       privateNote: payload.privateNote,
       clientSign: payload.clientSign,
       mySign: payload.mySign,
+      format: payload.format,
+      contract: payload.contract,
     },
   });
 
