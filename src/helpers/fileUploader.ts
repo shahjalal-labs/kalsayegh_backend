@@ -28,6 +28,7 @@ const upload = multer({
   storage: storage,
   limits: { fileSize: 3000 * 1024 * 1024 }, // 3000 MB limit
   fileFilter: (_req, file, cb) => {
+    console.log(`fileuploader file:`, file);
     const mimeType = (file.mimetype || "").toLowerCase().trim();
 
     if (!ALLOWED_MIME_TYPES.has(mimeType)) {
