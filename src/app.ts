@@ -29,7 +29,15 @@ app.use(cors());
 // ⚠️ Webhook route MUST come before express.json()
 app.use("/webhooks", webhookRouter);
 
-app.use(express.json());
+app.use((req, res, next) => {
+  const contentType = req.headers["content-type"] || "";
+  if (!contentType.startsWith("multipart/")) {
+    express.json()(req, res, next);
+  } else {
+    next();
+  }
+});
+
 app.use(express.urlencoded({ extended: true }));
 app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
 
