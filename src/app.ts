@@ -27,13 +27,18 @@ const app: Application = express();
 app.use(cors());
 
 // ⚠️ Webhook route MUST come before express.json()
-// app.use("/webhooks", webhookRouter);
+app.use("/webhooks", webhookRouter);
 
-app.use(express.json());
+// Skip JSON parsing for multipart requests — multer handles those on the route
+app.use((req, res, next) => {
+  if (req.headers["content-type"]?.startsWith("multipart/form-data")) {
+    return next();
+  }
+  express.json()(req, res, next);
+});
 app.use(express.urlencoded({ extended: true }));
-app.use("/uploads", express.static(path.join(__dirname, "..", "uploads")));
 
-//logger
+app.use("/uploads", express.static(path.join(__dirname, "..", "uploads"))); //logger
 app.use((req, _res, next) => {
   logger.info(`Received ${req.method} request to ${req.url} from ${req.ip}`);
 
