@@ -4,13 +4,24 @@ import sendResponse from "../../../shared/sendResponse";
 import { invoiceService } from "./invoice.service";
 import pick from "../../../shared/pick";
 import { paginationOptions } from "../../../shared/pagination";
-import prisma from "../../../shared/prisma";
+
 const createInvoice = catchAsync(async (req, res) => {
   const result = await invoiceService.createInvoice(req);
   sendResponse(res, {
     success: true,
     statusCode: httpStatus.CREATED,
     message: "Invoice has been created successfully",
+    data: result,
+  });
+});
+
+const updateInvoice = catchAsync(async (req, res) => {
+  const { id: invoiceId } = req.params;
+  const result = await invoiceService.updateInvoice(invoiceId, req);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Invoice updated successfully",
     data: result,
   });
 });
@@ -196,6 +207,7 @@ const deleteInvoice = catchAsync(async (req, res) => {
 
 export const invoiceController = {
   createInvoice,
+  updateInvoice,
   getAllInvoices,
   getInvoiceDetails,
   sendInvoiceEmail,

@@ -1,22 +1,22 @@
 import { Format } from "@prisma/client";
-import { create } from "node:domain";
 import { z } from "zod";
 
-export const objectId = z
+export const objectIdSchema = z
   .string()
   .regex(/^[0-9a-fA-F]{24}$/, "Invalid ObjectId");
+
 export const EstimateStatusEnum = z.enum(["Pending", "Approved", "Declined"]);
 
 export const TItemTypeSchema = z.object({
-  id: objectId,
+  id: objectIdSchema,
   quantity: z.number().int().positive("Quantity must be greater than 0"),
   subTotal: z.number().int().nonnegative("Subtotal must be >= 0"),
 });
 
 // 🔸 Main Estimate Schema
-const estimateValidationSchema = z
+const createEstimateSchema = z
   .object({
-    clientId: objectId,
+    clientId: objectIdSchema,
     estimateName: z.string().min(1, "Estimate name is required"),
     legendary: z.string(),
     date: z.string().min(1, "Start date is required"),
@@ -33,11 +33,11 @@ const estimateValidationSchema = z
     clientSign: z.boolean().optional(),
     mySign: z.boolean().optional(),
     format: z.nativeEnum(Format).default("DESCRIPTION"),
-    contract: z.string().optional(),
+    contractId: objectIdSchema,
   })
   .strict();
 
-export type TCreateEstimate = z.infer<typeof estimateValidationSchema>;
+export type TCreateEstimate = z.infer<typeof createEstimateSchema>;
 
 const markUpValidationSchema = z.object({
   name: z.string().min(1, "Mark up name is required"),
@@ -107,7 +107,7 @@ const sendEstimateEmailSchema = z.object({
 });
 
 export const estimateValidation = {
-  estimateValidationSchema,
+  createEstimateSchema,
   markUpValidationSchema,
   itemValidationSchema,
   taxValidationSchema,

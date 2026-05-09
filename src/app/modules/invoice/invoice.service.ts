@@ -3,7 +3,7 @@ import prisma from "../../../shared/prisma";
 import ApiError from "../../../errors/ApiErrors";
 import httpStatus from "http-status";
 import { uploadInSpace } from "../../../helpers/uploadInSpace";
-import { TCreateInvoice } from "./invoice.validation";
+import { TCreateInvoice, TUpdateInvoice } from "./invoice.validation";
 import {
   EmailStatus,
   InvoiceStatus,
@@ -28,6 +28,16 @@ const createInvoice = async (req: Request) => {
 
   if (!existingClient) {
     throw new ApiError(httpStatus.NOT_FOUND, "Client does not exist");
+  }
+
+  if (payload.contractId) {
+    const contract = await prisma.contract.count({
+      where: {
+        id: payload.contractId,
+      },
+    });
+    if (!contract)
+      throw new ApiError(httpStatus.NOT_FOUND, "Contract not found");
   }
 
   const items = payload.items;
@@ -81,11 +91,165 @@ const createInvoice = async (req: Request) => {
       clientSign: payload.clientSign,
       mySign: payload.mySign,
       format: payload.format,
-      contract: payload.contract,
+      contractId: payload.contractId,
     },
   });
 
   return newInvoice;
+};
+
+const updateInvoice = async (invoiceId: string, req: Request) => {
+  const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+  const payload: TUpdateInvoice = req.body;
+  const estimatorId = req.user.id;
+
+  // 1. Check if invoice exists
+  const existingInvoice = await prisma.invoice.findUnique({
+    where: { id: invoiceId },
+  });
+  if (!existingInvoice) {
+    throw new ApiError(httpStatus.NOT_FOUND, "Invoice not found");
+  }
+
+  // 2. Validate client if provided
+  if (payload.clientId) {
+    const existingClient = await prisma.client.findUnique({
+      where: { id: payload.clientId },
+    });
+    if (!existingClient) {
+      throw new ApiError(httpStatus.BAD_REQUEST, "Client does not exist");
+    }
+  }
+
+  // 3. Validate contract if provided
+  if (payload.contractId) {
+    const contractExists = await prisma.contract.count({
+      where: { id: payload.contractId },
+    });
+    if (!contractExists) {
+      throw new ApiError(httpStatus.NOT_FOUND, "Contract not found");
+    }
+  }
+
+  // 4. Validate items if provided
+  if (payload.items && Array.isArray(payload.items)) {
+    for (const item of payload.items) {
+      const existingItem = await prisma.item.findUnique({
+        where: { id: item.id },
+      });
+      if (!existingItem) {
+        throw new ApiError(
+          httpStatus.BAD_REQUEST,
+          `Item with id ${item.id} does not exist`,
+        );
+      }
+    }
+  }
+
+  // 5. Process image uploads (if any)
+  const processImages = async (
+    files: Express.Multer.File[] | undefined,
+    folder: string,
+  ) => {
+    if (!files || files.length === 0) return null;
+    return Promise.all(
+      files.map((file) => uploadInSpace(file, `invoice/${folder}`)),
+    );
+  };
+
+  const [map, urls] = await Promise.all([
+    processImages(files?.map, "map"),
+    processImages(files?.urls, "urls"),
+  ]);
+
+  // 6. Build update data object using relation connect syntax
+  const updateData: Prisma.InvoiceUpdateInput = {
+    // Always update the estimator (last editor)
+    estimator: { connect: { id: estimatorId } },
+  };
+
+  if (payload.clientId !== undefined) {
+    updateData.client = { connect: { id: payload.clientId } };
+  }
+  if (payload.invoiceName !== undefined) {
+    updateData.invoiceName = payload.invoiceName;
+  }
+  if (payload.legendary !== undefined) {
+    updateData.legendary = payload.legendary;
+  }
+  if (payload.date !== undefined) {
+    updateData.date = payload.date;
+  }
+  if (payload.endDate !== undefined) {
+    updateData.endDate = payload.endDate;
+  }
+  if (payload.items !== undefined) {
+    updateData.items = payload.items;
+  }
+  if (payload.grandTotal !== undefined) {
+    updateData.grandTotal = payload.grandTotal;
+  }
+  if (payload.additionalMarkUp !== undefined) {
+    updateData.additionalMarkUp = payload.additionalMarkUp;
+  }
+  if (payload.discountAmount !== undefined) {
+    updateData.discountAmount = payload.discountAmount;
+  }
+  if (payload.depositAmount !== undefined) {
+    updateData.depositAmount = payload.depositAmount;
+  }
+  if (payload.isOnlinePayment !== undefined) {
+    updateData.isOnlinePayment = payload.isOnlinePayment;
+  }
+  if (payload.coverPaymentProcessingFee !== undefined) {
+    updateData.coverPaymentProcessingFee = payload.coverPaymentProcessingFee;
+  }
+  if (payload.noteForClient !== undefined) {
+    updateData.noteForClient = payload.noteForClient;
+  }
+  if (payload.privateNote !== undefined) {
+    updateData.privateNote = payload.privateNote;
+  }
+  if (payload.clientSign !== undefined) {
+    updateData.clientSign = payload.clientSign;
+  }
+  if (payload.mySign !== undefined) {
+    updateData.mySign = payload.mySign;
+  }
+  if (payload.format !== undefined) {
+    updateData.format = payload.format;
+  }
+  if (payload.contractId !== undefined) {
+    updateData.contract = { connect: { id: payload.contractId } };
+  }
+
+  // Overwrite sideMap / fileUrls if new files were uploaded
+  if (map && map.length > 0) {
+    updateData.sideMap = map[0];
+  }
+  if (urls && urls.length > 0) {
+    updateData.fileUrls = urls;
+  }
+
+  // 7. Perform update
+  const updatedInvoice = await prisma.invoice.update({
+    where: { id: invoiceId },
+    data: updateData,
+  });
+
+  // 8. Fetch detailed items for the response
+  const itemIds = updatedInvoice.items.map((item: any) => item.id);
+  const itemsDetail =
+    itemIds.length > 0
+      ? await prisma.item.findMany({
+          where: { id: { in: itemIds } },
+        })
+      : [];
+
+  return {
+    ...updatedInvoice,
+    items: itemsDetail,
+  };
 };
 
 const getAllInvoices = async (
@@ -945,6 +1109,7 @@ const deleteInvoice = async (invoiceId: string) => {
 
 export const invoiceService = {
   createInvoice,
+  updateInvoice,
   getAllInvoices,
   getInvoiceDetails,
   sendInvoiceEmail,

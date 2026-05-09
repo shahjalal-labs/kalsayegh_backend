@@ -18,6 +18,15 @@ router.post(
   invoiceController.createInvoice,
 );
 
+router.patch(
+  "/update/:id",
+  fileUploader.uploadMultiple,
+  parseBodyData,
+  validateRequest(invoiceValidation.updateInvoiceSchema),
+  auth(UserRole.ESTIMATOR, UserRole.ADMIN),
+  invoiceController.updateInvoice,
+);
+
 router.get(
   "/all-invoices",
   auth(UserRole.ADMIN, UserRole.ESTIMATOR),

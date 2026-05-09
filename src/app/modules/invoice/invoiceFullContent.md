@@ -41,6 +41,13 @@
 │   │   │   │   ├── auth.routes.ts
 │   │   │   │   ├── auth.service.ts
 │   │   │   │   └── auth.validation.ts
+│   │   │   ├── contract
+│   │   │   │   ├── contract.api.http
+│   │   │   │   ├── contract.api.json
+│   │   │   │   ├── contract.controller.ts
+│   │   │   │   ├── contract.routes.ts
+│   │   │   │   ├── contract.service.ts
+│   │   │   │   └── contract.validation.ts
 │   │   │   ├── estimate
 │   │   │   │   ├── estimate.api.http
 │   │   │   │   ├── estimate.controller.ts
@@ -159,12 +166,13 @@
 │   │   └── index.ts
 │   └── workers
 │       └── emailWorker.ts
+├── structure.md
 ├── tsconfig.json
 ├── uploads
 │   └── google.png
 └── vercel.json
 
-32 directories, 128 files
+33 directories, 135 files
 ```
 
 ## 📁 invoice Module Tree
@@ -410,35 +418,49 @@ model Item {
 }
 
 model Estimate {
-  id               String         @id @default(auto()) @map("_id") @db.ObjectId
-  clientId         String         @db.ObjectId
-  estimatorId      String         @db.ObjectId
-  estimateName     String
-  legendary        String?
-  date             String
-  endDate          String
-  sideMap          String?
-  fileUrls         String[]
-  items            TItemType[]
-  additionalMarkUp Float?
-  grandTotal       Float
-  discountAmount   Float?
-  depositAmount    Float?
-  status           EstimateStatus @default(Pending)
-  createdAt        DateTime       @default(now())
-  updatedAt        DateTime       @updatedAt
-  client           Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  estimator        User           @relation(fields: [estimatorId], references: [id], onDelete: Cascade)
-  emailStatus      EmailStatus    @default(NOT_SENT)
-  stage            EstimateStage  @default(DRAFT)
-  isInvoiced       Boolean        @default(false)
-  isOnlinePayment  Boolean        @default(false)
-  isSigned         Boolean        @default(false)
-  signedAt         DateTime?
-  signedName       String?
-  invoices         Invoice[]
+  id                        String         @id @default(auto()) @map("_id") @db.ObjectId
+  clientId                  String         @db.ObjectId
+  estimatorId               String         @db.ObjectId
+  estimateName              String
+  legendary                 String?
+  date                      String
+  endDate                   String?
+  sideMap                   String?
+  fileUrls                  String[]
+  items                     TItemType[]
+  additionalMarkUp          Float?
+  grandTotal                Float
+  discountAmount            Float?
+  depositAmount             Float?
+  status                    EstimateStatus @default(Pending)
+  createdAt                 DateTime       @default(now())
+  updatedAt                 DateTime       @updatedAt
+  client                    Client         @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  estimator                 User           @relation(fields: [estimatorId], references: [id], onDelete: Cascade)
+  emailStatus               EmailStatus    @default(NOT_SENT)
+  stage                     EstimateStage  @default(DRAFT)
+  isInvoiced                Boolean        @default(false)
+  isSigned                  Boolean        @default(false)
+  signedAt                  DateTime?
+  signedName                String?
+  invoices                  Invoice[]
+  isOnlinePayment           Boolean        @default(false)
+  coverPaymentProcessingFee Boolean?
+  noteForClient             String?
+  privateNote               String?
+  clientSign                Boolean?
+  mySign                    Boolean?
+  isAutoInvoice             Boolean?
+  format                    Format         @default(DESCRIPTION)
+  contract                  String?
 
   @@map("estimates")
+}
+
+enum Format {
+  DESCRIPTION
+  TABLE
+  IMAGE_PDF
 }
 
 enum EstimateStatus {
@@ -460,33 +482,41 @@ type TItemType {
 }
 
 model Invoice {
-  id               String        @id @default(auto()) @map("_id") @db.ObjectId
-  clientId         String        @db.ObjectId
-  estimatorId      String        @db.ObjectId
-  invoiceName      String
-  legendary        String?
-  date             String
-  endDate          String
-  sideMap          String?
-  fileUrls         String[]
-  items            TItemType[]
-  additionalMarkUp Float?
-  grandTotal       Int
-  discountAmount   Float?
-  depositAmount    Float?
-  status           InvoiceStatus @default(ACTIVE)
-  stage            InvoiceStage  @default(DRAFT)
-  emailStatus      EmailStatus   @default(NOT_SENT)
-  isSigned         Boolean       @default(false)
-  signedAt         DateTime?
-  signedName       String?
-  createdAt        DateTime      @default(now())
-  updatedAt        DateTime      @updatedAt
-  client           Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  estimator        User          @relation(fields: [estimatorId], references: [id], onDelete: Cascade)
-  estimate         Estimate?     @relation(fields: [estimateId], references: [id])
-  estimateId       String?       @db.ObjectId
-  payments         Payment[]
+  id                        String        @id @default(auto()) @map("_id") @db.ObjectId
+  clientId                  String        @db.ObjectId
+  estimatorId               String        @db.ObjectId
+  invoiceName               String
+  legendary                 String?
+  date                      String
+  endDate                   String?
+  sideMap                   String?
+  fileUrls                  String[]
+  items                     TItemType[]
+  additionalMarkUp          Float?
+  grandTotal                Int
+  discountAmount            Float?
+  depositAmount             Float?
+  status                    InvoiceStatus @default(ACTIVE)
+  stage                     InvoiceStage  @default(DRAFT)
+  emailStatus               EmailStatus   @default(NOT_SENT)
+  isSigned                  Boolean       @default(false)
+  signedAt                  DateTime?
+  signedName                String?
+  createdAt                 DateTime      @default(now())
+  updatedAt                 DateTime      @updatedAt
+  client                    Client        @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  estimator                 User          @relation(fields: [estimatorId], references: [id], onDelete: Cascade)
+  estimate                  Estimate?     @relation(fields: [estimateId], references: [id], onDelete: SetNull)
+  estimateId                String?       @db.ObjectId
+  payments                  Payment[]
+  isOnlinePayment           Boolean       @default(false)
+  coverPaymentProcessingFee Boolean?
+  noteForClient             String?
+  privateNote               String?
+  clientSign                Boolean?
+  mySign                    Boolean?
+  format                    Format        @default(DESCRIPTION)
+  contract                  String?
 
   @@map("invoices")
 }
@@ -610,6 +640,14 @@ enum PaymentMethod {
   STRIPE
 }
 
+model Contract {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  description String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
 enum PaymentStatus {
   COMPLETED
   REFUNDED
@@ -627,7 +665,8 @@ enum PaymentStatus {
   "scripts": {
     "start:prod": "node ./dist/server.js",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
+    "devPrev": "ts-node-dev --respawn --transpile-only src/server.ts",
+    "dev": "tsx watch src/server.ts",
     "build": "tsc",
     "postinstall": "prisma generate"
   },
@@ -649,6 +688,7 @@ enum PaymentStatus {
     "prisma": "^6.17.1",
     "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
+    "tsx": "^4.21.0",
     "typescript": "^5.5.3"
   },
   "dependencies": {
@@ -684,17 +724,13 @@ enum PaymentStatus {
 ## 🎮 invoice.controller.ts
 
 ```ts
-import Stripe from "stripe";
 import httpStatus from "http-status";
 import catchAsync from "../../../shared/catchAsync";
 import sendResponse from "../../../shared/sendResponse";
-import { invoiceService, updateInvoiceStatus } from "./invoice.service";
+import { invoiceService } from "./invoice.service";
 import pick from "../../../shared/pick";
 import { paginationOptions } from "../../../shared/pagination";
-import ApiError from "../../../errors/ApiErrors";
 import prisma from "../../../shared/prisma";
-import { stripe } from "../../../helpers/stripe";
-
 const createInvoice = catchAsync(async (req, res) => {
   const result = await invoiceService.createInvoice(req);
   sendResponse(res, {
@@ -862,6 +898,28 @@ const getPublicInvoiceDetails = catchAsync(async (req, res) => {
   });
 });
 
+const createPaymentIntent = catchAsync(async (req, res) => {
+  const { id: invoiceId } = req.params;
+  const result = await invoiceService.createPaymentIntent(invoiceId);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Payment intent created successfully",
+    data: result,
+  });
+});
+
+const deleteInvoice = catchAsync(async (req, res) => {
+  const { id: invoiceId } = req.params;
+  const result = await invoiceService.deleteInvoice(invoiceId);
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Invoice deleted successfully",
+    data: result,
+  });
+});
+
 export const invoiceController = {
   createInvoice,
   getAllInvoices,
@@ -875,6 +933,8 @@ export const invoiceController = {
   getPaymentDetails,
   payInvoiceWithCard,
   getPublicInvoiceDetails,
+  createPaymentIntent,
+  deleteInvoice,
 };
 ```
 
@@ -883,6 +943,7 @@ export const invoiceController = {
 ```ts
 import z from "zod";
 import { objectId, TItemTypeSchema } from "../estimate/estimate.validation";
+import { Format } from "@prisma/client";
 
 const createInvoiceSchema = z
   .object({
@@ -890,12 +951,20 @@ const createInvoiceSchema = z
     invoiceName: z.string().min(1, "Estimate name is required"),
     legendary: z.string(),
     date: z.string().min(1, "Start date is required"),
-    endDate: z.string().min(1, "End date is required"),
+    endDate: z.string().min(1, "End date is required").optional(),
     items: z.array(TItemTypeSchema).min(1, "At least one item is required"),
     additionalMarkUp: z.number().optional(),
     grandTotal: z.number().nonnegative("Grand total must be >= 0"),
     discountAmount: z.number().optional(),
     depositAmount: z.number().optional(),
+    isOnlinePayment: z.boolean().optional(),
+    coverPaymentProcessingFee: z.boolean().optional(),
+    noteForClient: z.string().max(1000, "Client note is too long").optional(),
+    privateNote: z.string().max(1000, "Private note is too long").optional(),
+    clientSign: z.boolean().optional(),
+    mySign: z.boolean().optional(),
+    format: z.nativeEnum(Format).default("DESCRIPTION"),
+    contract: z.string().optional(),
   })
   .strict();
 
@@ -1038,6 +1107,17 @@ router.post(
 
 router.get("/public-invoice/:id", invoiceController.getPublicInvoiceDetails);
 
+router.post(
+  "/create-payment-intent/:id",
+  invoiceController.createPaymentIntent,
+);
+
+router.delete(
+  "/delete/:id",
+  auth(UserRole.ADMIN, UserRole.ESTIMATOR, UserRole.OFFICE_ADMINISTRATOR),
+  invoiceController.deleteInvoice,
+);
+
 export const invoiceRoutes = router;
 ```
 
@@ -1111,7 +1191,7 @@ const createInvoice = async (req: Request) => {
       estimatorId: estimatorId,
       legendary: payload.legendary,
       date: payload.date,
-      endDate: payload.endDate,
+      endDate: payload.endDate as string,
       invoiceName: payload.invoiceName,
       items: payload.items,
       grandTotal: payload.grandTotal,
@@ -1120,6 +1200,14 @@ const createInvoice = async (req: Request) => {
       fileUrls: urls ? urls : undefined,
       depositAmount: payload.depositAmount,
       discountAmount: payload.discountAmount,
+      isOnlinePayment: payload.isOnlinePayment,
+      coverPaymentProcessingFee: payload.coverPaymentProcessingFee,
+      noteForClient: payload.noteForClient,
+      privateNote: payload.privateNote,
+      clientSign: payload.clientSign,
+      mySign: payload.mySign,
+      format: payload.format,
+      contract: payload.contract,
     },
   });
 
@@ -1355,7 +1443,7 @@ const sendInvoiceEmail = async (
     invoiceName: invoice.invoiceName || invoiceId.slice(-6),
     amountDue: amountDue, // ← critical: dynamic amount due
     date: invoice.date,
-    dueDate: invoice.endDate,
+    dueDate: invoice.endDate as string,
     customMessage: payload.message,
     paymentLink,
   });
@@ -1755,6 +1843,7 @@ const payInvoiceWithCard = async (
     where: { id: invoiceId },
     include: { client: true },
   });
+
   if (!invoice) throw new ApiError(httpStatus.NOT_FOUND, "Invoice not found");
 
   // Calculate remaining amount due
@@ -1899,6 +1988,87 @@ const getPublicInvoiceDetails = async (invoiceId: string) => {
   };
 };
 
+/* const createPaymentIntent = async (invoiceId: string) => {
+  const invoice = await prisma.invoice.findUnique({ where: { id: invoiceId } });
+  if (!invoice) throw new ApiError(httpStatus.NOT_FOUND, "Invoice not found");
+
+  // Calculate amount due (same as before)
+  const payments = await prisma.payment.findMany({
+    where: { invoiceId, status: { not: "REFUNDED" } },
+    include: { refunds: true },
+  });
+  let totalPaidNet = 0;
+  for (const p of payments) {
+    const refunded = p.refunds.reduce((sum, r) => sum + r.amount, 0);
+    totalPaidNet += p.amount - refunded;
+  }
+  const amountDue = getAmountDue(invoice, totalPaidNet);
+  if (amountDue <= 0)
+    throw new ApiError(httpStatus.BAD_REQUEST, "Invoice fully paid");
+
+  // Create PaymentIntent – NOT confirmed. Allow both card and US bank account.
+  const paymentIntent = await stripe.paymentIntents.create({
+    amount: Math.round(amountDue * 100),
+    currency: "usd",
+    payment_method_types: ["card", "us_bank_account"], // enable ACH
+    metadata: { invoiceId: invoice.id },
+    automatic_payment_methods: { enabled: true, allow_redirects: "never" },
+  });
+
+  return { clientSecret: paymentIntent.client_secret };
+}; */
+
+const createPaymentIntent = async (invoiceId: string) => {
+  const invoice = await prisma.invoice.findUnique({ where: { id: invoiceId } });
+  if (!invoice) throw new ApiError(httpStatus.NOT_FOUND, "Invoice not found");
+
+  // Calculate amount due (re-use your existing logic)
+  const payments = await prisma.payment.findMany({
+    where: { invoiceId, status: { not: "REFUNDED" } },
+    include: { refunds: true },
+  });
+  let totalPaidNet = 0;
+  for (const p of payments) {
+    const refunded = p.refunds.reduce((sum, r) => sum + r.amount, 0);
+    totalPaidNet += p.amount - refunded;
+  }
+  const amountDue = getAmountDue(invoice, totalPaidNet);
+  if (amountDue <= 0)
+    throw new ApiError(httpStatus.BAD_REQUEST, "Invoice fully paid");
+
+  // Create PaymentIntent – only enable automatic payment methods
+  const paymentIntent = await stripe.paymentIntents.create({
+    amount: Math.round(amountDue * 100),
+    currency: "usd",
+    payment_method_types: ["card", "us_bank_account"], // explicit list
+    metadata: { invoiceId: invoice.id },
+    // Do NOT include automatic_payment_methods
+  });
+
+  return { clientSecret: paymentIntent.client_secret };
+};
+
+const deleteInvoice = async (invoiceId: string) => {
+  const invoiceExist = await prisma.invoice.count({
+    where: {
+      id: invoiceId,
+    },
+  });
+
+  if (!invoiceExist)
+    throw new ApiError(httpStatus.NOT_FOUND, "Invoice not found");
+
+  return prisma.invoice.delete({
+    where: {
+      id: invoiceId,
+    },
+    select: {
+      id: true,
+      invoiceName: true,
+    },
+  });
+};
+
 export const invoiceService = {
   createInvoice,
   getAllInvoices,
@@ -1912,5 +2082,7 @@ export const invoiceService = {
   getPaymentDetails,
   payInvoiceWithCard,
   getPublicInvoiceDetails,
+  createPaymentIntent,
+  deleteInvoice,
 };
 ```

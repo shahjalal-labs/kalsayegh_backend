@@ -29,6 +29,16 @@ const createEstimateInDB = async (req: Request) => {
     throw new ApiError(400, "Client does not exist");
   }
 
+  if (payload.contractId) {
+    const contract = await prisma.contract.count({
+      where: {
+        id: payload.contractId,
+      },
+    });
+    if (!contract)
+      throw new ApiError(httpStatus.NOT_FOUND, "Contract not found");
+  }
+
   const items = payload.items;
 
   for (const item of items) {
@@ -80,7 +90,7 @@ const createEstimateInDB = async (req: Request) => {
       clientSign: payload.clientSign,
       mySign: payload.mySign,
       format: payload.format,
-      contract: payload.contract,
+      contractId: payload.contractId,
     },
   });
 
@@ -139,7 +149,7 @@ const editEstimateInDB = async (estimateId: string, req: Request) => {
   ) => {
     if (!files || files.length === 0) return null;
     return Promise.all(
-      files.map((file) => uploadInSpace(file, `courses/${folder}`)),
+      files.map((file) => uploadInSpace(file, `estimates/${folder}`)),
     );
   };
 
@@ -677,6 +687,7 @@ const getEstimateDetails = async (estimateId: string) => {
     },
     include: {
       client: true,
+      contract: true,
     },
     omit: {
       createdAt: true,

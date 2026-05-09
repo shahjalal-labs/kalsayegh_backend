@@ -8,7 +8,7 @@ Content-Type: application/json
   "additionalMarkUp": 5.5,
   "clientId": "69dc92eb0dc5477223a0ff0f",
   "clientSign": true,
-  "contract": "Cant return if purchased once",
+  "contractId": "69fea25e9fce00a88b43c08a",
   "coverPaymentProcessingFee": true,
   "date": "2026-04-01",
   "depositAmount": 300,
@@ -162,7 +162,7 @@ Authorization: {{admin}}
 
 ### get estimate details
 
-GET {{baseUrl}}/estimate/estimate/69fd6fe27a05e8b274146f60 HTTP/1.1
+GET {{baseUrl}}/estimate/estimate/69fecf1614e687c60e142588 HTTP/1.1
 Authorization: {{estMir}}
 
 
@@ -228,6 +228,3 @@ Content-Type: application/json
 
 DELETE {{baseUrl}}/estimate/delete/69fda10972d7bcfae8a6b967 HTTP/1.1
 Authorization: {{admin}}
-
-
-

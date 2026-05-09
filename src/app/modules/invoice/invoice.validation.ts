@@ -1,10 +1,13 @@
 import z from "zod";
-import { objectId, TItemTypeSchema } from "../estimate/estimate.validation";
+import {
+  objectIdSchema,
+  TItemTypeSchema,
+} from "../estimate/estimate.validation";
 import { Format } from "@prisma/client";
 
 const createInvoiceSchema = z
   .object({
-    clientId: objectId,
+    clientId: objectIdSchema,
     invoiceName: z.string().min(1, "Estimate name is required"),
     legendary: z.string(),
     date: z.string().min(1, "Start date is required"),
@@ -21,11 +24,19 @@ const createInvoiceSchema = z
     clientSign: z.boolean().optional(),
     mySign: z.boolean().optional(),
     format: z.nativeEnum(Format).default("DESCRIPTION"),
-    contract: z.string().optional(),
+    contractId: objectIdSchema.optional(),
   })
   .strict();
 
 export type TCreateInvoice = z.infer<typeof createInvoiceSchema>;
+
+const updateInvoiceSchema = createInvoiceSchema.partial().extend({
+  // Override items to be optional but keep item validation when provided
+  items: z.array(TItemTypeSchema).optional(),
+  clientId: objectIdSchema.optional(),
+});
+
+export type TUpdateInvoice = z.infer<typeof updateInvoiceSchema>;
 
 const sendInvoiceEmailSchema = z.object({
   to: z
@@ -72,4 +83,5 @@ export const invoiceValidation = {
   recordManualPaymentSchema,
   refundPaymentSchema,
   payWithCardSchema,
+  updateInvoiceSchema,
 };

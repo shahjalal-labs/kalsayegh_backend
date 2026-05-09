@@ -8,7 +8,7 @@ Content-Type: application/json
   "additionalMarkUp": 5.5,
   "clientId": "69dc92eb0dc5477223a0ff0f",
   "clientSign": true,
-  "contract": "Cant return if purchased once",
+  "contractId": "69fea25e9fce00a88b43c08a",
   "coverPaymentProcessingFee": true,
   "date": "2026-04-01",
   "depositAmount": 300,
@@ -28,6 +28,42 @@ Content-Type: application/json
   "legendary": "legendary",
   "mySign": true,
   "noteForClient": "Online payment enabled. Fees included."
+}
+
+
+### update invoice
+
+# /:invoiceId
+
+PATCH {{baseUrl}}/invoice/update/69fec7765d2d85a94fa2f764 HTTP/1.1
+Authorization: {{admin}}
+Content-Type: application/json
+
+{
+  "additionalMarkUp": 5.5,
+  "clientId": "69dc92eb0dc5477223a0ff0f",
+  "clientSign": true,
+  "contractId": "69fea25e9fce00a88b43c08a",
+  "coverPaymentProcessingFee": true,
+  "date": "2026-04-01",
+  "depositAmount": 300.00,
+  "discountAmount": 100.00,
+  "endDate": "2026-04-30",
+  "format": "TABLE",
+  "grandTotal": 1500.00,
+  "invoiceName": "Updated Invoice Name",
+  "isOnlinePayment": true,
+  "items": [
+    {
+      "id": "69d87eb901d75586feffc495",
+      "quantity": 3,
+      "subTotal": 450
+    }
+  ],
+  "legendary": "Special offer text",
+  "mySign": true,
+  "noteForClient": "Note visible to client",
+  "privateNote": "Internal note"
 }
 
 
