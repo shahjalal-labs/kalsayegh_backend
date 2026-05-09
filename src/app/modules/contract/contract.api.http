@@ -1,0 +1,46 @@
+### create contract
+
+POST {{baseUrl}}/contract/create-contract HTTP/1.1
+Authorization: {{admin}}
+Content-Type: application/json
+
+{
+  "description": "Contract description. Contract description. Contract description",
+  "title": "Contract title 2"
+}
+
+
+### get all contracts
+
+GET {{baseUrl}}/contract/all-contracts?page=1&limit=20 HTTP/1.1
+Authorization: {{admin}}
+
+
+### update contract
+
+# /:contractId
+
+PATCH {{baseUrl}}/contract/update-contract/69feba173399245daf6f58ae HTTP/1.1
+Authorization: {{admin}}
+Content-Type: application/json
+
+{
+  "description": "Contract description. Contract description. Contract description",
+  "title": "Contract title 2"
+}
+
+
+### get single contract
+
+# /:contractId
+
+GET {{baseUrl}}/contract/single-contract/69feba173399245daf6f58ae HTTP/1.1
+Authorization: {{admin}}
+
+
+### delete contract
+
+# /:contractId
+
+DELETE {{baseUrl}}/contract/delete-contract/69feba173399245daf6f58ae HTTP/1.1
+Authorization: {{admin}}

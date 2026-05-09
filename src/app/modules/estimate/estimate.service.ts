@@ -922,3 +922,5 @@ export const estimateService = {
   sendEstimateEmailFlexible,
   deleteEstimate,
 };
+
+// contract

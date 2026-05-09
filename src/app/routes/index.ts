@@ -12,6 +12,7 @@ import { todolistRoutes } from "../modules/todolist/todolist.routes";
 import { jobRequestRoutes } from "../modules/jobRequest/jobRequest.routes";
 import { invoiceRoutes } from "../modules/invoice/invoice.routes";
 import { reportRoutes } from "../modules/report/report.routes";
+import { contractRoutes } from "../modules/contract/contract.routes";
 
 const router = express.Router();
 
@@ -29,6 +30,7 @@ const moduleRoutes = [
   { path: "/todolist", route: todolistRoutes },
   { path: "/job-request", route: jobRequestRoutes },
   { path: "/reports", route: reportRoutes },
+  { path: "/contract", route: contractRoutes },
 ];
 
 moduleRoutes.forEach((route) => router.use(route.path, route.route));

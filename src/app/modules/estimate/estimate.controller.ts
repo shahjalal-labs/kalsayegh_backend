@@ -234,4 +234,4 @@ export const estimateControllers = {
   updateEstimateEmailAndSign,
   sendEstimateEmailFlexible,
   deleteEstimate,
-};
+  };
