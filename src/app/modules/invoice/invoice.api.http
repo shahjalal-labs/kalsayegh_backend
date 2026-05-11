@@ -81,7 +81,7 @@ Authorization: {{estMir}}
 
 ### get invoice details
 
-GET {{baseUrl}}/invoice/details/69faf7b5aa953a400a9bc013 HTTP/1.1
+GET {{baseUrl}}/invoice/details/69fed1c2f5472591e0ad4cd2 HTTP/1.1
 Authorization: {{estMir}}
 
 
@@ -103,12 +103,14 @@ Content-Type: application/json
 
 ### Update invoice email status to READ and sign invoice
 
-PATCH {{baseUrl}}/invoice/update-email-sign/69e71abbeb445ea74ae9a560 HTTP/1.1
+PATCH {{baseUrl}}/invoice/update-email-sign/69fed1c2f5472591e0ad4cd2 HTTP/1.1
 Authorization: {{estMir}}
 Content-Type: application/json
 
 {
   "emailStatus": "READ",
+  "mySignAt": "2026-05-11T00:00:00.000Z",
+  "mySignName": "Kal Sayegh",
   "signedName": "John Doe"
 }
 
@@ -147,7 +149,7 @@ Authorization: {{admin}}
 ### view original payment from refund | get payment details
 
 GET {{baseUrl}}/invoice/payment-details/69eeffe64f8f669f1922d996 HTTP/1.1
-Authorization: {{estMir}}
+Authorization: {{admin}}
 
 
 ### refund paymnet

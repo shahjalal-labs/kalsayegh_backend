@@ -773,6 +773,8 @@ const updateEstimateEmailAndSign = async (
   estimateId: string,
   emailStatus?: "READ",
   signedName?: string,
+  mySignName?: string,
+  mySignAt?: string,
 ) => {
   // Check if estimate exists
   const existingEstimate = await prisma.estimate.count({
@@ -795,6 +797,11 @@ const updateEstimateEmailAndSign = async (
     updateData.signedAt = new Date();
     updateData.signedName = signedName;
     updateData.status = "Approved";
+  }
+
+  if (mySignName) {
+    updateData.mySignName = mySignName;
+    updateData.mySignAt = mySignAt;
   }
 
   // If no fields to update, throw error

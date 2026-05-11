@@ -162,7 +162,7 @@ Authorization: {{admin}}
 
 ### get estimate details
 
-GET {{baseUrl}}/estimate/estimate/69fecf1614e687c60e142588 HTTP/1.1
+GET {{baseUrl}}/estimate/estimate/69e71ad3eb445ea74ae9a561 HTTP/1.1
 Authorization: {{estMir}}
 
 
@@ -197,6 +197,8 @@ Content-Type: application/json
 
 {
   "emailStatus": "READ",
+  "mySignAt": "2026-05-11T00:00:00.000Z",
+  "mySignName": "Kal Sayegh",
   "signedName": "Mir Bin Mota"
 }
 

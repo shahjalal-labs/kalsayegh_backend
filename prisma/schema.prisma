@@ -257,6 +257,8 @@ model Estimate {
   privateNote               String?
   clientSign                Boolean?
   mySign                    Boolean?
+  mySignAt                  DateTime?
+  mySignName                String?
   isAutoInvoice             Boolean?
   format                    Format         @default(DESCRIPTION)
   contractId                String?        @db.ObjectId
@@ -323,6 +325,8 @@ model Invoice {
   privateNote               String?
   clientSign                Boolean?
   mySign                    Boolean?
+  mySignAt                  DateTime?
+  mySignName                String?
   format                    Format        @default(DESCRIPTION)
   contractId                String?       @db.ObjectId
   contract                  Contract?     @relation(fields: [contractId], references: [id], onDelete: SetNull)

@@ -89,10 +89,29 @@ const updateEstimateStatusSchema = z
 
 const updateEmailSignSchema = z
   .object({
-    emailStatus: z.enum(["READ"]).optional(), // only allow READ
-    signedName: z.string().optional(),
+    emailStatus: z.enum(["READ"]).optional(),
+    signedName: z
+      .string()
+      .min(1, "Signed name is required if provided")
+      .optional(),
+    mySignName: z.string().trim().optional(),
+    mySignAt: z
+      .string()
+      .datetime({ message: "Invalid ISO datetime format" })
+      .optional(),
   })
-  .strict();
+  .superRefine((value, ctx) => {
+    if (value.mySignName && !value.mySignAt) {
+      ctx.addIssue({
+        code: "custom",
+        message: "My signAt is required.",
+      });
+    }
+  });
+
+export type TUpdateEstimateEmailSignSchema = z.infer<
+  typeof updateEmailSignSchema
+>;
 
 const sendEstimateEmailSchema = z.object({
   to: z

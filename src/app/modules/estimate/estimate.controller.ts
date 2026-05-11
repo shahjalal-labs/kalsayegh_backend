@@ -4,6 +4,7 @@ import { paginationOptions } from "../../../shared/pagination";
 import pick from "../../../shared/pick";
 import sendResponse from "../../../shared/sendResponse";
 import { estimateService } from "./estimate.service";
+import { TUpdateEstimateEmailSignSchema } from "./estimate.validation";
 
 const createEstimate = catchAsync(async (req, res) => {
   const result = await estimateService.createEstimateInDB(req);
@@ -169,12 +170,15 @@ const updateEstimateStatus = catchAsync(async (req, res) => {
 
 const updateEstimateEmailAndSign = catchAsync(async (req, res) => {
   const { id: estimateId } = req.params;
-  const { emailStatus, signedName } = req.body;
+  const { emailStatus, signedName, mySignName, mySignAt } =
+    req.body as TUpdateEstimateEmailSignSchema;
 
   const result = await estimateService.updateEstimateEmailAndSign(
     estimateId,
     emailStatus,
     signedName,
+    mySignName,
+    mySignAt,
   );
 
   sendResponse(res, {
@@ -234,4 +238,4 @@ export const estimateControllers = {
   updateEstimateEmailAndSign,
   sendEstimateEmailFlexible,
   deleteEstimate,
-  };
+};

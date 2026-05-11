@@ -347,6 +347,7 @@ const getInvoiceDetails = async (invoiceId: string) => {
     },
     include: {
       client: true,
+      contract: true,
     },
     omit: {
       createdAt: true,
@@ -509,6 +510,8 @@ const updateInvoiceEmailAndSign = async (
   invoiceId: string,
   emailStatus?: "READ",
   signedName?: string,
+  mySignName?: string,
+  mySignAt?: string,
 ) => {
   const existingInvoice = await prisma.invoice.count({
     where: { id: invoiceId },
@@ -530,6 +533,12 @@ const updateInvoiceEmailAndSign = async (
     updateData.signedName = signedName;
   }
 
+  if (mySignName) {
+    updateData.mySignName = mySignName;
+    updateData.mySignAt = mySignAt;
+  }
+
+  console.log(`updateData:`, updateData);
   if (Object.keys(updateData).length === 0) {
     throw new ApiError(httpStatus.BAD_REQUEST, "No valid fields to update");
   }

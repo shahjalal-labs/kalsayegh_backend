@@ -4,6 +4,7 @@ import sendResponse from "../../../shared/sendResponse";
 import { invoiceService } from "./invoice.service";
 import pick from "../../../shared/pick";
 import { paginationOptions } from "../../../shared/pagination";
+import { TUpdateInvoiceEmailSignSchema } from "./invoice.validation";
 
 const createInvoice = catchAsync(async (req, res) => {
   const result = await invoiceService.createInvoice(req);
@@ -67,12 +68,15 @@ const sendInvoiceEmail = catchAsync(async (req, res) => {
 
 const updateInvoiceEmailAndSign = catchAsync(async (req, res) => {
   const { id: invoiceId } = req.params;
-  const { emailStatus, signedName } = req.body;
+  const { emailStatus, signedName, mySignName, mySignAt } =
+    req.body as TUpdateInvoiceEmailSignSchema;
 
   const result = await invoiceService.updateInvoiceEmailAndSign(
     invoiceId,
     emailStatus,
     signedName,
+    mySignName,
+    mySignAt,
   );
 
   sendResponse(res, {

@@ -23,6 +23,8 @@ const createInvoiceSchema = z
     privateNote: z.string().max(1000, "Private note is too long").optional(),
     clientSign: z.boolean().optional(),
     mySign: z.boolean().optional(),
+    mySignName: z.string().trim().optional(),
+    mySignAt: z.string().optional(),
     format: z.nativeEnum(Format).default("DESCRIPTION"),
     contractId: objectIdSchema.optional(),
   })
@@ -47,13 +49,31 @@ const sendInvoiceEmailSchema = z.object({
   sendMeCopy: z.boolean().optional().default(false),
 });
 
-const updateInvoiceEmailSignSchema = z.object({
-  emailStatus: z.enum(["READ"]).optional(),
-  signedName: z
-    .string()
-    .min(1, "Signed name is required if provided")
-    .optional(),
-});
+const updateInvoiceEmailSignSchema = z
+  .object({
+    emailStatus: z.enum(["READ"]).optional(),
+    signedName: z
+      .string()
+      .min(1, "Signed name is required if provided")
+      .optional(),
+    mySignName: z.string().trim().optional(),
+    mySignAt: z
+      .string()
+      .datetime({ message: "Invalid ISO datetime format" })
+      .optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.mySignName && !value.mySignAt) {
+      ctx.addIssue({
+        code: "custom",
+        message: "My signAt is required.",
+      });
+    }
+  });
+
+export type TUpdateInvoiceEmailSignSchema = z.infer<
+  typeof updateInvoiceEmailSignSchema
+>;
 
 const generateInvoiceSchema = z.object({
   estimateId: z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid estimate ID"),
