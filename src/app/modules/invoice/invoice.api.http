@@ -142,7 +142,7 @@ Content-Type: application/json
 
 ### get payments for a invoice
 
-GET {{baseUrl}}/invoice/payments/69f179f792421695c4ab537a HTTP/1.1
+GET {{baseUrl}}/invoice/payments/69f84f705338fdfa5bb62518 HTTP/1.1
 Authorization: {{admin}}
 
 
@@ -200,3 +200,12 @@ Content-Type: application/json
 
 DELETE {{baseUrl}}/invoice/delete/69fda0cb72d7bcfae8a6b966 HTTP/1.1
 Authorization: {{admin}}
+
+
+### web hook test
+
+# need to change the path with vps currently testing with ngrok.
+# /:invoiceId
+
+POST https://aesthetical-randee-tenably.ngrok-free.dev/webhooks/stripe HTTP/1.1
+Content-Type: application/json

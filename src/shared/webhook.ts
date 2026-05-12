@@ -51,7 +51,7 @@ router.post(
             paymentMethod: paymentIntent.payment_method_types?.includes(
               "us_bank_account",
             )
-              ? "BANK_TRANSFER"
+              ? "STRIPE" // BANK_TRANSFER
               : "STRIPE",
             stripePaymentIntentId: paymentIntent.id,
             status: "COMPLETED",
