@@ -19,7 +19,7 @@ Authorization: {{administrator}}
 ### create job request
 
 POST {{baseUrl}}/job-request/create-job-request HTTP/1.1
-Authorization: {{administrator}}
+Authorization: {{admin}}
 Content-Type: application/json
 
 {
@@ -27,6 +27,7 @@ Content-Type: application/json
   "contact": "+8801712345678",
   "date": "2026-01-01T10:00:00Z",
   "email": "client@example.com",
+  "jobSerial": "9",
   "note": "Install new network hardware",
   "officeId": "69d5edc0810a2cd30c06ee1c",
   "officeLatitude": 23.8103,
@@ -56,8 +57,8 @@ Authorization: {{administrator}}
 
 ### get job request details
 
-GET {{baseUrl}}/job-request/details/69d5e22bc6771df1addec900 HTTP/1.1
-Authorization: {{administrator}}
+GET {{baseUrl}}/job-request/details/6a042657e2fd2a426a250ec6 HTTP/1.1
+Authorization: {{admin}}
 
 
 ### update job request
@@ -84,4 +85,4 @@ Content-Type: application/json
 # requests-for-office/:officeId
 
 GET {{baseUrl}}/job-request/requests-for-office/69d5edc0810a2cd30c06ee1c HTTP/1.1
-Authorization: {{administrator}}
+Authorization: {{admin}}

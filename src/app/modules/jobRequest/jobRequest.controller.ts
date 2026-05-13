@@ -37,7 +37,7 @@ const createJobRequest = catchAsync(async (req, res) => {
   const result = await jobRequestService.createJobRequest(
     userId,
     req.body,
-    files.jobRequestsImage,
+    files?.jobRequestsImage,
   );
 
   sendResponse(res, {

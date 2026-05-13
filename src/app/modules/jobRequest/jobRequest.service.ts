@@ -77,11 +77,18 @@ const createJobRequest = async (
       files.map((file) => uploadInSpace(file, "job-rquests")),
     );
 
+  const jobCount = await prisma.jobRequest.count({
+    where: {
+      officeId: payload.officeId,
+    },
+  });
+
   return prisma.jobRequest.create({
     data: {
       ...payload,
       creatorId: userId,
       images: imageUrls,
+      jobSerial: (jobCount + 1).toString(),
     },
     select: {
       id: true,
@@ -177,6 +184,7 @@ const getJobRequestDetails = async (jobReqId: string) => {
       contact: true,
       email: true,
       status: true,
+      jobSerial: true,
       createdAt: true,
       office: {
         select: {

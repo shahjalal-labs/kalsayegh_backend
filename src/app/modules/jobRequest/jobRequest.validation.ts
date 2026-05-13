@@ -21,6 +21,7 @@ const createJobRequestSchema = z
     address: z.string(),
     contact: z.string(),
     email: z.string().email(),
+    jobSerial: z.string().optional(),
   })
   .strict();
 
