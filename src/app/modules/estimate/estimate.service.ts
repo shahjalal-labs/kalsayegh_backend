@@ -94,12 +94,17 @@ const createEstimateInDB = async (req: Request) => {
       poNumber: payload.poNumber,
       isGroupingEnabled: payload.isGroupingEnabled,
       estimateNumber: payload.estimateNumber,
+      isAutoInvoice: payload.isAutoInvoice,
     },
   });
 
   const itemss = await prisma.item.findMany({
     where: { id: { in: payload.items.map((item: any) => item.id) } },
   });
+
+  if (newEstimate.isAutoInvoice) {
+    invoiceService.generateInvoiceFromEstimate(newEstimate.id);
+  }
 
   return {
     ...newEstimate,
@@ -830,6 +835,7 @@ const updateEstimateEmailAndSign = async (
 import sendEmailAdvanced from "../../../helpers/sendEmailAdvanced";
 import { estimateEmailWithReview } from "../../../shared/emailTemplate";
 import { TCreateEstimate } from "./estimate.validation";
+import { invoiceService } from "../invoice/invoice.service";
 
 const sendEstimateEmailFlexible = async (
   estimateId: string,

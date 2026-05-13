@@ -37,6 +37,7 @@ const createEstimateSchema = z
     poNumber: z.string().optional(),
     isGroupingEnabled: z.boolean().optional(),
     estimateNumber: z.string().optional(),
+    isAutoInvoice: z.boolean().optional(),
   })
   .strict();
 

@@ -450,10 +450,15 @@ model Estimate {
   privateNote               String?
   clientSign                Boolean?
   mySign                    Boolean?
+  mySignAt                  DateTime?
+  mySignName                String?
   isAutoInvoice             Boolean?
   format                    Format         @default(DESCRIPTION)
   contractId                String?        @db.ObjectId
   contract                  Contract?      @relation(fields: [contractId], references: [id], onDelete: SetNull)
+  poNumber                  String?
+  isGroupingEnabled         Boolean?
+  estimateNumber            String?
 
   @@map("estimates")
 }
@@ -516,9 +521,14 @@ model Invoice {
   privateNote               String?
   clientSign                Boolean?
   mySign                    Boolean?
+  mySignAt                  DateTime?
+  mySignName                String?
   format                    Format        @default(DESCRIPTION)
   contractId                String?       @db.ObjectId
   contract                  Contract?     @relation(fields: [contractId], references: [id], onDelete: SetNull)
+  poNumber                  String?
+  isGroupingEnabled         Boolean?
+  invoiceNumber             String?
 
   @@map("invoices")
 }
@@ -734,6 +744,7 @@ import sendResponse from "../../../shared/sendResponse";
 import { invoiceService } from "./invoice.service";
 import pick from "../../../shared/pick";
 import { paginationOptions } from "../../../shared/pagination";
+import { TUpdateInvoiceEmailSignSchema } from "./invoice.validation";
 
 const createInvoice = catchAsync(async (req, res) => {
   const result = await invoiceService.createInvoice(req);
@@ -797,12 +808,15 @@ const sendInvoiceEmail = catchAsync(async (req, res) => {
 
 const updateInvoiceEmailAndSign = catchAsync(async (req, res) => {
   const { id: invoiceId } = req.params;
-  const { emailStatus, signedName } = req.body;
+  const { emailStatus, signedName, mySignName, mySignAt } =
+    req.body as TUpdateInvoiceEmailSignSchema;
 
   const result = await invoiceService.updateInvoiceEmailAndSign(
     invoiceId,
     emailStatus,
     signedName,
+    mySignName,
+    mySignAt,
   );
 
   sendResponse(res, {
@@ -935,6 +949,16 @@ const deleteInvoice = catchAsync(async (req, res) => {
   });
 });
 
+const getInvoiceNumber = catchAsync(async (_req, res) => {
+  const result = await invoiceService.getInvoiceNumber();
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Invoice number retrieved successfully",
+    data: result,
+  });
+});
+
 export const invoiceController = {
   createInvoice,
   updateInvoice,
@@ -951,6 +975,7 @@ export const invoiceController = {
   getPublicInvoiceDetails,
   createPaymentIntent,
   deleteInvoice,
+  getInvoiceNumber,
 };
 ```
 
@@ -982,8 +1007,13 @@ const createInvoiceSchema = z
     privateNote: z.string().max(1000, "Private note is too long").optional(),
     clientSign: z.boolean().optional(),
     mySign: z.boolean().optional(),
+    mySignName: z.string().trim().optional(),
+    mySignAt: z.string().optional(),
     format: z.nativeEnum(Format).default("DESCRIPTION"),
     contractId: objectIdSchema.optional(),
+    poNumber: z.string().optional(),
+    isGroupingEnabled: z.boolean().optional(),
+    invoiceNumber: z.string().optional(),
   })
   .strict();
 
@@ -1006,13 +1036,31 @@ const sendInvoiceEmailSchema = z.object({
   sendMeCopy: z.boolean().optional().default(false),
 });
 
-const updateInvoiceEmailSignSchema = z.object({
-  emailStatus: z.enum(["READ"]).optional(),
-  signedName: z
-    .string()
-    .min(1, "Signed name is required if provided")
-    .optional(),
-});
+const updateInvoiceEmailSignSchema = z
+  .object({
+    emailStatus: z.enum(["READ"]).optional(),
+    signedName: z
+      .string()
+      .min(1, "Signed name is required if provided")
+      .optional(),
+    mySignName: z.string().trim().optional(),
+    mySignAt: z
+      .string()
+      .datetime({ message: "Invalid ISO datetime format" })
+      .optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.mySignName && !value.mySignAt) {
+      ctx.addIssue({
+        code: "custom",
+        message: "My signAt is required.",
+      });
+    }
+  });
+
+export type TUpdateInvoiceEmailSignSchema = z.infer<
+  typeof updateInvoiceEmailSignSchema
+>;
 
 const generateInvoiceSchema = z.object({
   estimateId: z.string().regex(/^[0-9a-fA-F]{24}$/, "Invalid estimate ID"),
@@ -1155,6 +1203,8 @@ router.delete(
   invoiceController.deleteInvoice,
 );
 
+router.get("/invoice-number", auth(), invoiceController.getInvoiceNumber);
+
 export const invoiceRoutes = router;
 ```
 
@@ -1255,6 +1305,9 @@ const createInvoice = async (req: Request) => {
       mySign: payload.mySign,
       format: payload.format,
       contractId: payload.contractId,
+      poNumber: payload.poNumber,
+      isGroupingEnabled: payload.isGroupingEnabled,
+      invoiceNumber: payload.invoiceNumber,
     },
   });
 
@@ -1510,6 +1563,7 @@ const getInvoiceDetails = async (invoiceId: string) => {
     },
     include: {
       client: true,
+      contract: true,
     },
     omit: {
       createdAt: true,
@@ -1672,6 +1726,8 @@ const updateInvoiceEmailAndSign = async (
   invoiceId: string,
   emailStatus?: "READ",
   signedName?: string,
+  mySignName?: string,
+  mySignAt?: string,
 ) => {
   const existingInvoice = await prisma.invoice.count({
     where: { id: invoiceId },
@@ -1693,6 +1749,12 @@ const updateInvoiceEmailAndSign = async (
     updateData.signedName = signedName;
   }
 
+  if (mySignName) {
+    updateData.mySignName = mySignName;
+    updateData.mySignAt = mySignAt;
+  }
+
+  console.log(`updateData:`, updateData);
   if (Object.keys(updateData).length === 0) {
     throw new ApiError(httpStatus.BAD_REQUEST, "No valid fields to update");
   }
@@ -2270,6 +2332,10 @@ const deleteInvoice = async (invoiceId: string) => {
   });
 };
 
+const getInvoiceNumber = async () => {
+  return prisma.invoice.count();
+};
+
 export const invoiceService = {
   createInvoice,
   updateInvoice,
@@ -2286,5 +2352,6 @@ export const invoiceService = {
   getPublicInvoiceDetails,
   createPaymentIntent,
   deleteInvoice,
+  getInvoiceNumber,
 };
 ```

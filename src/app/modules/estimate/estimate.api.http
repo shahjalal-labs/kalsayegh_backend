@@ -18,6 +18,7 @@ Content-Type: application/json
   "estimateNumber": "66",
   "format": "TABLE",
   "grandTotal": 1500,
+  "isAutoInvoice": true,
   "isGroupingEnabled": true,
   "isOnlinePayment": true,
   "items": [
