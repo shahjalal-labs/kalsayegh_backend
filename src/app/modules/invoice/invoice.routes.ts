@@ -104,4 +104,6 @@ router.delete(
   invoiceController.deleteInvoice,
 );
 
+router.get("/invoice-number", auth(), invoiceController.getInvoiceNumber);
+
 export const invoiceRoutes = router;

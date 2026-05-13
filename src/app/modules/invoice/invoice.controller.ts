@@ -209,6 +209,16 @@ const deleteInvoice = catchAsync(async (req, res) => {
   });
 });
 
+const getInvoiceNumber = catchAsync(async (_req, res) => {
+  const result = await invoiceService.getInvoiceNumber();
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Invoice number retrieved successfully",
+    data: result,
+  });
+});
+
 export const invoiceController = {
   createInvoice,
   updateInvoice,
@@ -225,4 +235,5 @@ export const invoiceController = {
   getPublicInvoiceDetails,
   createPaymentIntent,
   deleteInvoice,
+  getInvoiceNumber,
 };

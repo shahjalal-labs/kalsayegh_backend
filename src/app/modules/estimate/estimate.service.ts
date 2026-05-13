@@ -91,6 +91,9 @@ const createEstimateInDB = async (req: Request) => {
       mySign: payload.mySign,
       format: payload.format,
       contractId: payload.contractId,
+      poNumber: payload.poNumber,
+      isGroupingEnabled: payload.isGroupingEnabled,
+      estimateNumber: payload.estimateNumber,
     },
   });
 
@@ -920,6 +923,10 @@ const deleteEstimate = async (estimateId: string) => {
   });
 };
 
+const getEstimateNumber = async () => {
+  return prisma.estimate.count();
+};
+
 export const estimateService = {
   createClientInDB,
   getEstimateByIdFromDB,
@@ -939,6 +946,7 @@ export const estimateService = {
   updateEstimateEmailAndSign,
   sendEstimateEmailFlexible,
   deleteEstimate,
+  getEstimateNumber,
 };
 
 // contract

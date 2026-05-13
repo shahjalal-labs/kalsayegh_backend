@@ -34,6 +34,9 @@ const createEstimateSchema = z
     mySign: z.boolean().optional(),
     format: z.nativeEnum(Format).default("DESCRIPTION"),
     contractId: objectIdSchema,
+    poNumber: z.string().optional(),
+    isGroupingEnabled: z.boolean().optional(),
+    estimateNumber: z.string().optional(),
   })
   .strict();
 

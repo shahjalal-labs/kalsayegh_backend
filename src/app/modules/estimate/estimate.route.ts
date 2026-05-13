@@ -121,4 +121,6 @@ router.delete(
   estimateControllers.deleteEstimate,
 );
 
+router.get("/estimate-number", auth(), estimateControllers.getEstimateNumber);
+
 export const estimateRoutes = router;

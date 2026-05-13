@@ -1116,6 +1116,10 @@ const deleteInvoice = async (invoiceId: string) => {
   });
 };
 
+const getInvoiceNumber = async () => {
+  return prisma.invoice.count();
+};
+
 export const invoiceService = {
   createInvoice,
   updateInvoice,
@@ -1132,4 +1136,5 @@ export const invoiceService = {
   getPublicInvoiceDetails,
   createPaymentIntent,
   deleteInvoice,
+  getInvoiceNumber,
 };

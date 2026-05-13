@@ -209,3 +209,9 @@ Authorization: {{admin}}
 
 POST https://aesthetical-randee-tenably.ngrok-free.dev/webhooks/stripe HTTP/1.1
 Content-Type: application/json
+
+
+### get invoice number
+
+GET {{baseUrl}}/invoice/invoice-number HTTP/1.1
+Authorization: {{admin}}

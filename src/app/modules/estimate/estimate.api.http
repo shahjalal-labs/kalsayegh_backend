@@ -230,3 +230,9 @@ Content-Type: application/json
 
 DELETE {{baseUrl}}/estimate/delete/69fda10972d7bcfae8a6b967 HTTP/1.1
 Authorization: {{admin}}
+
+
+### get estimate number
+
+GET {{baseUrl}}/estimate/estimate-number HTTP/1.1
+Authorization: {{admin}}
