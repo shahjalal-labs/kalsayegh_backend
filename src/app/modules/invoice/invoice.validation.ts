@@ -27,6 +27,9 @@ const createInvoiceSchema = z
     mySignAt: z.string().optional(),
     format: z.nativeEnum(Format).default("DESCRIPTION"),
     contractId: objectIdSchema.optional(),
+    poNumber: z.string().optional(),
+    isGroupingEnabled: z.boolean().optional(),
+    invoiceNumber: z.string().optional(),
   })
   .strict();
 

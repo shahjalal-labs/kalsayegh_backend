@@ -92,6 +92,9 @@ const createInvoice = async (req: Request) => {
       mySign: payload.mySign,
       format: payload.format,
       contractId: payload.contractId,
+      poNumber: payload.poNumber,
+      isGroupingEnabled: payload.isGroupingEnabled,
+      invoiceNumber: payload.invoiceNumber,
     },
   });
 

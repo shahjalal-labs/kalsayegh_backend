@@ -8,7 +8,7 @@ Content-Type: application/json
   "additionalMarkUp": 5.5,
   "clientId": "69dc92eb0dc5477223a0ff0f",
   "clientSign": true,
-  "contractId": "69fea25e9fce00a88b43c08a",
+  "contractId": "6a032fd2ba5bfdd401447448",
   "coverPaymentProcessingFee": true,
   "date": "2026-04-01",
   "depositAmount": 300,
@@ -17,6 +17,8 @@ Content-Type: application/json
   "format": "TABLE",
   "grandTotal": 1500,
   "invoiceName": "Residential Painting Project",
+  "invoiceNumber": "66",
+  "isGroupingEnabled": true,
   "isOnlinePayment": true,
   "items": [
     {
@@ -27,7 +29,8 @@ Content-Type: application/json
   ],
   "legendary": "legendary",
   "mySign": true,
-  "noteForClient": "Online payment enabled. Fees included."
+  "noteForClient": "Online payment enabled. Fees included.",
+  "poNumber": "3344"
 }
 
 
@@ -81,7 +84,7 @@ Authorization: {{estMir}}
 
 ### get invoice details
 
-GET {{baseUrl}}/invoice/details/69fed1c2f5472591e0ad4cd2 HTTP/1.1
+GET {{baseUrl}}/invoice/details/6a03eececa7710d3ce57c627 HTTP/1.1
 Authorization: {{estMir}}
 
 
