@@ -220,6 +220,7 @@ model Item {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   markUp      MarkUp?  @relation(fields: [markUpId], references: [id], onDelete: SetNull)
+  format      Format?  @default(DESCRIPTION)
 
   @@map("items")
 }

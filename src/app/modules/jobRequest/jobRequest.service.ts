@@ -152,6 +152,7 @@ const getAllJobRequests = async () => {
           title: true,
           date: true,
           status: true,
+          jobSerial: true,
         },
         take: 10,
         orderBy: {
@@ -254,6 +255,7 @@ const getAllJobRequetsForAOffice = async (
         title: true,
         date: true,
         status: true,
+        jobSerial: true,
       },
       skip,
       take: limit,

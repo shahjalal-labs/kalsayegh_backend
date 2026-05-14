@@ -69,6 +69,8 @@ const createInvoice = async (req: Request) => {
     processImages(files?.urls, "urls"),
   ]);
 
+  const invoiceCount = await prisma.invoice.count();
+
   const newInvoice = await prisma.invoice.create({
     data: {
       clientId: payload.clientId,
@@ -94,7 +96,7 @@ const createInvoice = async (req: Request) => {
       contractId: payload.contractId,
       poNumber: payload.poNumber,
       isGroupingEnabled: payload.isGroupingEnabled,
-      invoiceNumber: payload.invoiceNumber,
+      invoiceNumber: (invoiceCount + 1).toString(),
     },
   });
 

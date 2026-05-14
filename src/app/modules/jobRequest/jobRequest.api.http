@@ -51,14 +51,12 @@ Content-Type: application/json
 
 ### get all job requests
 
-GET {{baseUrl}}/job-request/all HTTP/1.1
-Authorization: {{administrator}}
+GET {{baseUrl}}/job-request/all HTTP/1.1 Authorization: {{admin}} HTTP/1.1
 
 
-### get job request details
+### get job request details GET {{baseUrl}}/job-request/details/6a042657e2fd2a426a250ec6 HTTP/1.1
 
-GET {{baseUrl}}/job-request/details/6a042657e2fd2a426a250ec6 HTTP/1.1
-Authorization: {{admin}}
+GET Authorization: {{admin}} HTTP/1.1
 
 
 ### update job request

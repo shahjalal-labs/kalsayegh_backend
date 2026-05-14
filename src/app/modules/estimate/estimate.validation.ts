@@ -67,6 +67,7 @@ const itemValidationSchema = z.object({
   description: z.string().optional(),
   notes: z.string().optional(),
   taxes: z.array(z.string()).optional(),
+  format: z.nativeEnum(Format).default("DESCRIPTION"),
 });
 
 const itemUpdateValidationSchema = z.object({

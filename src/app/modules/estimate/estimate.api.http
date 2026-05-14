@@ -13,7 +13,6 @@ Content-Type: application/json
   "date": "2026-04-01",
   "depositAmount": 300,
   "discountAmount": 100,
-  "endDate": "2026-04-30",
   "estimateName": "Residential Painting Project",
   "estimateNumber": "66",
   "format": "TABLE",
@@ -92,12 +91,13 @@ Authorization: {{estMir}}
 ### create item
 
 POST {{baseUrl}}/estimate/create-item HTTP/1.1
-Authorization: {{estMir}}
+Authorization: {{admin}}
 Content-Type: application/json
 
 {
   "description": "Premium interior wall paint per gallon",
-  "itemName": "Interior Wall Paint",
+  "format": "TABLE",
+  "itemName": "Italian Rod",
   "markUpId": "69e04d6283a9851a096b7b0b",
   "notes": "Includes labor",
   "rate": 150,
@@ -110,11 +110,12 @@ Content-Type: application/json
 ### update item
 
 PATCH {{baseUrl}}/estimate/update-item HTTP/1.1
-Authorization: {{estMir}}
+Authorization: {{admin}}
 Content-Type: application/json
 
 {
   "description": "Heavy duty exterior steel door",
+  "format": "TABLE",
   "itemId": "69d87eb901d75586feffc495",
   "itemName": "Steel Door",
   "markUpId": "69e04d6283a9851a096b7b0b",
@@ -131,7 +132,7 @@ Content-Type: application/json
 ### get all items
 
 GET {{baseUrl}}/estimate/all-items HTTP/1.1
-Authorization: {{estMir}}
+Authorization: {{admin}}
 
 
 ### create tax

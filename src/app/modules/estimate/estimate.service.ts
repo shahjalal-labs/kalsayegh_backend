@@ -68,6 +68,8 @@ const createEstimateInDB = async (req: Request) => {
     processImages(files?.urls, "urls"),
   ]);
 
+  const estimateCount = await prisma.estimate.count();
+
   const newEstimate = await prisma.estimate.create({
     data: {
       clientId: payload.clientId,
@@ -93,7 +95,7 @@ const createEstimateInDB = async (req: Request) => {
       contractId: payload.contractId,
       poNumber: payload.poNumber,
       isGroupingEnabled: payload.isGroupingEnabled,
-      estimateNumber: payload.estimateNumber,
+      estimateNumber: (estimateCount + 1).toString(),
       isAutoInvoice: payload.isAutoInvoice,
     },
   });
@@ -397,6 +399,7 @@ const createNewItemInDB = async (payload: Item) => {
       description: payload.description,
       notes: payload.notes,
       taxes: payload.taxes,
+      format: payload.format,
     },
   });
   return newItem;
@@ -473,6 +476,7 @@ const updateItemInDb = async (payload: any) => {
       description: payload.description,
       notes: payload.notes,
       taxes: payload.taxes,
+      format: payload.format,
     },
   });
 
@@ -487,6 +491,7 @@ const getItemListFromDB = async () => {
       description: true,
       rate: true,
       notes: true,
+      format: true,
       markUp: {
         select: {
           id: true,
