@@ -182,6 +182,7 @@ const updateInvoice = async (invoiceId: string, req: Request) => {
   if (payload.legendary !== undefined) {
     updateData.legendary = payload.legendary;
   }
+
   if (payload.date !== undefined) {
     updateData.date = payload.date;
   }
@@ -382,6 +383,7 @@ const getInvoiceDetails = async (invoiceId: string) => {
             rate: true,
             markUp: true,
             taxes: true,
+            format: true,
           },
         })
       : [];

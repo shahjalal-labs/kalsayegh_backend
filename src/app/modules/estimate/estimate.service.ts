@@ -347,48 +347,41 @@ const getAllMarkUpsFromDB = async () => {
   return markUps;
 };
 
-const createNewItemInDB = async (payload: Item) => {
+const createNewItemInDB = async (
+  payload: Item,
+  files?: Express.Multer.File[],
+) => {
   const existingItem = await prisma.item.findFirst({
-    where: {
-      itemName: payload.itemName,
-    },
+    where: { itemName: payload.itemName },
   });
-
   if (existingItem) {
     throw new ApiError(400, "Item with this name already exists");
   }
 
   if (payload.markUpId) {
     const markUp = await prisma.markUp.findUnique({
-      where: {
-        id: payload.markUpId,
-      },
+      where: { id: payload.markUpId },
     });
-    if (!markUp) {
-      throw new ApiError(400, "MarkUp does not exist");
-    }
+    if (!markUp) throw new ApiError(400, "MarkUp does not exist");
   }
 
-  if (payload.taxes?.length > 0) {
+  if (payload.taxes?.length) {
     const existingTaxes = await prisma.tax.findMany({
-      where: {
-        id: {
-          in: payload.taxes,
-        },
-      },
-      select: {
-        id: true,
-      },
+      where: { id: { in: payload.taxes } },
+      select: { id: true },
     });
-
     const existingTaxIds = new Set(existingTaxes.map((tax) => tax.id));
-    const invalidTaxIds = payload.taxes.filter(
-      (taxId) => !existingTaxIds.has(taxId),
-    );
-
+    const invalidTaxIds = payload.taxes.filter((id) => !existingTaxIds.has(id));
     if (invalidTaxIds.length) {
       throw new ApiError(400, `Invalid tax id(s): ${invalidTaxIds.join(", ")}`);
     }
+  }
+
+  // Upload images if any
+  let imageUrls: string[] = [];
+  if (files && files.length > 0) {
+    const uploadPromises = files.map((file) => uploadInSpace(file, "items"));
+    imageUrls = await Promise.all(uploadPromises);
   }
 
   const newItem = await prisma.item.create({
@@ -400,6 +393,7 @@ const createNewItemInDB = async (payload: Item) => {
       notes: payload.notes,
       taxes: payload.taxes,
       format: payload.format,
+      imageUrls,
     },
   });
   return newItem;
@@ -492,6 +486,7 @@ const getItemListFromDB = async () => {
       rate: true,
       notes: true,
       format: true,
+      imageUrls: true,
       markUp: {
         select: {
           id: true,
@@ -730,6 +725,7 @@ const getEstimateDetails = async (estimateId: string) => {
             rate: true,
             markUp: true,
             taxes: true,
+            format: true,
           },
         })
       : [];

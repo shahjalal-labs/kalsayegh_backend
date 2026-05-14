@@ -97,7 +97,7 @@ Content-Type: application/json
 {
   "description": "Premium interior wall paint per gallon",
   "format": "TABLE",
-  "itemName": "Italian Rod",
+  "itemName": "Italian Balu",
   "markUpId": "69e04d6283a9851a096b7b0b",
   "notes": "Includes labor",
   "rate": 150,

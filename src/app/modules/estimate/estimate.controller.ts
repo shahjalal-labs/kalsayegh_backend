@@ -81,7 +81,14 @@ const allMarkUps = catchAsync(async (req, res) => {
 
 const createItem = catchAsync(async (req, res) => {
   const itemData = req.body;
-  const newItem = await estimateService.createNewItemInDB(itemData);
+  const files = req.files as Express.Multer.File[] | undefined;
+  // Note: req.files from multer.fields() is an object keyed by field name.
+  // For simplicity we will flatten only the "itemImages" files.
+  let itemImages: Express.Multer.File[] = [];
+  if (files && (files as any).itemImages) {
+    itemImages = (files as any).itemImages;
+  }
+  const newItem = await estimateService.createNewItemInDB(itemData, itemImages);
   sendResponse(res, {
     success: true,
     statusCode: 200,
@@ -100,7 +107,8 @@ const updateItem = catchAsync(async (req, res) => {
     data: updatedItem,
   });
 });
-const itemList = catchAsync(async (req, res) => {
+
+const itemList = catchAsync(async (_req, res) => {
   const items = await estimateService.getItemListFromDB();
   sendResponse(res, {
     success: true,

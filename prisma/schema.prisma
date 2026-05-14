@@ -221,6 +221,7 @@ model Item {
   updatedAt   DateTime @updatedAt
   markUp      MarkUp?  @relation(fields: [markUpId], references: [id], onDelete: SetNull)
   format      Format?  @default(DESCRIPTION)
+  imageUrls   String[]
 
   @@map("items")
 }

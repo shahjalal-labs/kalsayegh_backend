@@ -54,12 +54,16 @@ router.get(
   auth(UserRole.ADMIN, UserRole.ESTIMATOR),
   estimateControllers.allMarkUps,
 );
+
 router.post(
   "/create-item",
   auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  fileUploader.uploadMultiple, // handles "itemImages" field
+  parseBodyData, // parses JSON fields from multipart
   validateRequest(estimateValidation.itemValidationSchema),
   estimateControllers.createItem,
 );
+
 router.patch(
   "/update-item",
   auth(UserRole.ADMIN, UserRole.ESTIMATOR),
