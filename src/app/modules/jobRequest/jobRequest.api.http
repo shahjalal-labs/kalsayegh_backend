@@ -27,7 +27,7 @@ Content-Type: application/json
   "contact": "+8801712345678",
   "date": "2026-01-01T10:00:00Z",
   "email": "client@example.com",
-  "jobSerial": "9",
+  "jobSerial": 9,
   "note": "Install new network hardware",
   "officeId": "69d5edc0810a2cd30c06ee1c",
   "officeLatitude": 23.8103,
