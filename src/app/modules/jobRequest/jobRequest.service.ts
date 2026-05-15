@@ -88,7 +88,7 @@ const createJobRequest = async (
       ...payload,
       creatorId: userId,
       images: imageUrls,
-      jobSerial: (jobCount + 1).toString(),
+      jobSerial: jobCount + 1,
     },
     select: {
       id: true,
@@ -131,11 +131,19 @@ const createJobRequestByImage = async (
     imageUrls = await Promise.all(
       files.map((file) => uploadInSpace(file, "job-rquests")),
     );
+
+  const jobCount = await prisma.jobRequest.count({
+    where: {
+      officeId: payload.officeId,
+    },
+  });
+
   await prisma.jobRequest.create({
     data: {
       ...payload,
       creatorId: userId,
       images: imageUrls,
+      jobSerial: jobCount + 1,
     },
   });
 };
@@ -156,7 +164,7 @@ const getAllJobRequests = async () => {
         },
         take: 10,
         orderBy: {
-          date: "desc", // Show newest first, adjust as needed
+          jobSerial: "asc", // Show newest first, adjust as needed
         },
       },
     },
@@ -260,7 +268,7 @@ const getAllJobRequetsForAOffice = async (
       skip,
       take: limit,
       orderBy: {
-        id: "desc",
+        jobSerial: "asc",
       },
     }),
 

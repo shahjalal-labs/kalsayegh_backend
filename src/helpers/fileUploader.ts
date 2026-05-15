@@ -50,7 +50,7 @@ const jobRequestByImage = upload.single("jobRequestImage");
 // upload multiple image
 const uploadMultiple = upload.fields([
   { name: "classVideo", maxCount: 1 },
-  { name: "urls", maxCount: 10 },
+  { name: "urls", maxCount: 20 },
   { name: "map", maxCount: 1 },
   { name: "jobRequestsImage", maxCount: 20 },
   { name: "todolistImages", maxCount: 10 },

@@ -384,6 +384,7 @@ const getInvoiceDetails = async (invoiceId: string) => {
             markUp: true,
             taxes: true,
             format: true,
+            imageUrls: true,
           },
         })
       : [];

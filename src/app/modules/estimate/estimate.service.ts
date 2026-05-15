@@ -726,6 +726,7 @@ const getEstimateDetails = async (estimateId: string) => {
             markUp: true,
             taxes: true,
             format: true,
+            imageUrls: true,
           },
         })
       : [];
@@ -775,8 +776,6 @@ const updateEstimateStatus = async (
 
   return updatedEstimate;
 };
-
-// In estimate.service.ts
 
 const updateEstimateEmailAndSign = async (
   estimateId: string,
