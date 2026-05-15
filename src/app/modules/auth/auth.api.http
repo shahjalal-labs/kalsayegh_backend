@@ -4,8 +4,8 @@ POST {{baseUrl}}/auth/login HTTP/1.1
 Content-Type: application/json
 
 {
-  "email": "jabirbinhasan2@gmail.com",
-  "password": "Aw32@320"
+  "email": "office.administrator@gmail.com",
+  "password": "123456"
 }
 
 

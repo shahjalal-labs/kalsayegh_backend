@@ -1,13 +1,13 @@
 ### get office administrator | office administrator
 
 GET {{baseUrl}}/todolist?page=1&limit=20&searchTerm=ce ad HTTP/1.1
-Authorization: {{administrator}}
+Authorization: {{officeAdmin}}
 
 
 ### create todolist | office administrator
 
 POST {{baseUrl}}/todolist/create HTTP/1.1
-Authorization: {{administrator}}
+Authorization: {{officeAdmin}}
 Content-Type: application/json
 
 {
@@ -20,7 +20,13 @@ Content-Type: application/json
 ### get todolists | office administrator
 
 GET {{baseUrl}}/todolist/all?page=1&limit=20&searchTerm=ce ad HTTP/1.1
-Authorization: {{administrator}}
+Authorization: {{officeAdmin}}
+
+
+### get todolists | office administrator
+
+GET {{baseUrl}}/todolist/all?page=1&limit=20 HTTP/1.1
+Authorization: {{officeAdmin}}
 
 
 ### get todo details | office administrator
@@ -28,7 +34,7 @@ Authorization: {{administrator}}
 # details/:todoId
 
 GET {{baseUrl}}/todolist/details/69de169ecc7e6fef6b5d6ba2 HTTP/1.1
-Authorization: {{administrator}}
+Authorization: {{officeAdmin}}
 
 
 ### update todo | office administrator
@@ -36,7 +42,7 @@ Authorization: {{administrator}}
 # update/:todoId
 
 PATCH {{baseUrl}}/todolist/update/69d4bd4305122ee84934a4bb HTTP/1.1
-Authorization: {{administrator}}
+Authorization: {{officeAdmin}}
 Content-Type: application/json
 
 {
@@ -49,7 +55,7 @@ Content-Type: application/json
 ### update todo image
 
 PATCH {{baseUrl}}/todolist/update-image/69de169ecc7e6fef6b5d6ba2 HTTP/1.1
-Authorization: {{administrator}}
+Authorization: {{officeAdmin}}
 Content-Type: application/json
 
 {

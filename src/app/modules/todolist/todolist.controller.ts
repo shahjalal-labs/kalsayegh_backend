@@ -32,7 +32,7 @@ const createTodolist = catchAsync(async (req, res) => {
   const result = await todolistService.createTodolist(
     userId,
     req.body,
-    files.todolistImages,
+    files?.todolistImages,
   );
 
   sendResponse(res, {

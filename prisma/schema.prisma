@@ -377,6 +377,7 @@ model Reaction {
 model Todolist {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
   title       String
+  serial      Int?
   description String
   assignedId  String?  @db.ObjectId
   assignedTo  User?    @relation(fields: [assignedId], references: [id], onDelete: SetNull)

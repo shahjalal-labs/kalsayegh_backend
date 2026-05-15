@@ -87,7 +87,7 @@ const createTodolist = async (
   payload: TCreateTodolist,
   files?: Express.Multer.File[],
 ) => {
-  const [user, assingedUser] = await Promise.all([
+  const [user, assingedUser, todoCount] = await Promise.all([
     prisma.user.findUnique({
       where: {
         id: userId,
@@ -106,6 +106,8 @@ const createTodolist = async (
         id: true,
       },
     }),
+
+    prisma.todolist.count(),
   ]);
 
   if (!user) throw new ApiError(httpStatus.NOT_FOUND, "User not found");
@@ -125,6 +127,7 @@ const createTodolist = async (
       ...payload,
       creatorId: userId,
       image: todolistImages,
+      serial: todoCount + 1,
     },
     select: {
       id: true,
@@ -142,7 +145,7 @@ const getAllTodolist = async (paginations: TOptions) => {
         id: true,
         title: true,
         description: true,
-
+        serial: true,
         isComplete: true,
         assignedTo: {
           select: {
@@ -154,7 +157,7 @@ const getAllTodolist = async (paginations: TOptions) => {
       skip,
       take: limit,
       orderBy: {
-        id: "desc",
+        serial: "asc",
       },
     }),
 
@@ -181,6 +184,7 @@ const getTodoDetails = async (todoId: string) => {
       id: true,
       title: true,
       description: true,
+      serial: true,
       image: true,
       isComplete: true,
       createdAt: true,
