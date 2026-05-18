@@ -145,7 +145,7 @@ Content-Type: application/json
 
 ### get payments for a invoice
 
-GET {{baseUrl}}/invoice/payments/69f84f705338fdfa5bb62518 HTTP/1.1
+GET {{baseUrl}}/invoice/payments/6a089a61b8639c7131928ec7 HTTP/1.1
 Authorization: {{admin}}
 
 
@@ -159,12 +159,12 @@ Authorization: {{admin}}
 
 # /:paymentId
 
-POST {{baseUrl}}/invoice/refund-payment/69f027bfa415d81360f669c6 HTTP/1.1
+POST {{baseUrl}}/invoice/refund-payment/69ef486b0d0a96cb4867e4a3 HTTP/1.1
 Authorization: {{estMir}}
 Content-Type: application/json
 
 {
-  "amount": 1,
+  "amount": 50,
   "reason": "Testing error"
 }
 
