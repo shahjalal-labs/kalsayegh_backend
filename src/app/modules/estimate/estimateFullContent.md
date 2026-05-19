@@ -415,6 +415,7 @@ model Item {
   updatedAt   DateTime @updatedAt
   markUp      MarkUp?  @relation(fields: [markUpId], references: [id], onDelete: SetNull)
   format      Format?  @default(DESCRIPTION)
+  imageUrls   String[]
 
   @@map("items")
 }
@@ -570,6 +571,7 @@ model Reaction {
 model Todolist {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
   title       String
+  serial      Int?
   description String
   assignedId  String?  @db.ObjectId
   assignedTo  User?    @relation(fields: [assignedId], references: [id], onDelete: SetNull)
@@ -597,7 +599,7 @@ model JobRequest {
   office          Office?          @relation(fields: [officeId], references: [id], onDelete: Cascade)
   date            DateTime
   note            String?
-  jobSerial       String?
+  jobSerial       Int?
   officeLatitude  Float?
   officeLongitude Float?
   images          String[]
@@ -1090,48 +1092,41 @@ const getAllMarkUpsFromDB = async () => {
   return markUps;
 };
 
-const createNewItemInDB = async (payload: Item) => {
+const createNewItemInDB = async (
+  payload: Item,
+  files?: Express.Multer.File[],
+) => {
   const existingItem = await prisma.item.findFirst({
-    where: {
-      itemName: payload.itemName,
-    },
+    where: { itemName: payload.itemName },
   });
-
   if (existingItem) {
     throw new ApiError(400, "Item with this name already exists");
   }
 
   if (payload.markUpId) {
     const markUp = await prisma.markUp.findUnique({
-      where: {
-        id: payload.markUpId,
-      },
+      where: { id: payload.markUpId },
     });
-    if (!markUp) {
-      throw new ApiError(400, "MarkUp does not exist");
-    }
+    if (!markUp) throw new ApiError(400, "MarkUp does not exist");
   }
 
-  if (payload.taxes?.length > 0) {
+  if (payload.taxes?.length) {
     const existingTaxes = await prisma.tax.findMany({
-      where: {
-        id: {
-          in: payload.taxes,
-        },
-      },
-      select: {
-        id: true,
-      },
+      where: { id: { in: payload.taxes } },
+      select: { id: true },
     });
-
     const existingTaxIds = new Set(existingTaxes.map((tax) => tax.id));
-    const invalidTaxIds = payload.taxes.filter(
-      (taxId) => !existingTaxIds.has(taxId),
-    );
-
+    const invalidTaxIds = payload.taxes.filter((id) => !existingTaxIds.has(id));
     if (invalidTaxIds.length) {
       throw new ApiError(400, `Invalid tax id(s): ${invalidTaxIds.join(", ")}`);
     }
+  }
+
+  // Upload images if any
+  let imageUrls: string[] = [];
+  if (files && files.length > 0) {
+    const uploadPromises = files.map((file) => uploadInSpace(file, "items"));
+    imageUrls = await Promise.all(uploadPromises);
   }
 
   const newItem = await prisma.item.create({
@@ -1143,6 +1138,7 @@ const createNewItemInDB = async (payload: Item) => {
       notes: payload.notes,
       taxes: payload.taxes,
       format: payload.format,
+      imageUrls,
     },
   });
   return newItem;
@@ -1235,6 +1231,7 @@ const getItemListFromDB = async () => {
       rate: true,
       notes: true,
       format: true,
+      imageUrls: true,
       markUp: {
         select: {
           id: true,
@@ -1473,6 +1470,8 @@ const getEstimateDetails = async (estimateId: string) => {
             rate: true,
             markUp: true,
             taxes: true,
+            format: true,
+            imageUrls: true,
           },
         })
       : [];
@@ -1522,8 +1521,6 @@ const updateEstimateStatus = async (
 
   return updatedEstimate;
 };
-
-// In estimate.service.ts
 
 const updateEstimateEmailAndSign = async (
   estimateId: string,
@@ -1912,12 +1909,16 @@ router.get(
   auth(UserRole.ADMIN, UserRole.ESTIMATOR),
   estimateControllers.allMarkUps,
 );
+
 router.post(
   "/create-item",
   auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  fileUploader.uploadMultiple, // handles "itemImages" field
+  parseBodyData, // parses JSON fields from multipart
   validateRequest(estimateValidation.itemValidationSchema),
   estimateControllers.createItem,
 );
+
 router.patch(
   "/update-item",
   auth(UserRole.ADMIN, UserRole.ESTIMATOR),
@@ -2070,7 +2071,14 @@ const allMarkUps = catchAsync(async (req, res) => {
 
 const createItem = catchAsync(async (req, res) => {
   const itemData = req.body;
-  const newItem = await estimateService.createNewItemInDB(itemData);
+  const files = req.files as Express.Multer.File[] | undefined;
+  // Note: req.files from multer.fields() is an object keyed by field name.
+  // For simplicity we will flatten only the "itemImages" files.
+  let itemImages: Express.Multer.File[] = [];
+  if (files && (files as any).itemImages) {
+    itemImages = (files as any).itemImages;
+  }
+  const newItem = await estimateService.createNewItemInDB(itemData, itemImages);
   sendResponse(res, {
     success: true,
     statusCode: 200,
@@ -2089,7 +2097,8 @@ const updateItem = catchAsync(async (req, res) => {
     data: updatedItem,
   });
 });
-const itemList = catchAsync(async (req, res) => {
+
+const itemList = catchAsync(async (_req, res) => {
   const items = await estimateService.getItemListFromDB();
   sendResponse(res, {
     success: true,

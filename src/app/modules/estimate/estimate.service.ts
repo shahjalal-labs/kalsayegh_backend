@@ -119,40 +119,50 @@ const editEstimateInDB = async (estimateId: string, req: Request) => {
   const payload = req.body;
   const estimatorId = req.user.id;
 
+  // 1. Check if estimate exists
   const existingEstimate = await prisma.estimate.findUnique({
-    where: {
-      id: estimateId,
-    },
+    where: { id: estimateId },
   });
-
   if (!existingEstimate) {
     throw new ApiError(httpStatus.NOT_FOUND, "Estimate not found");
   }
 
-  const existingClient = await prisma.client.findUnique({
-    where: {
-      id: payload.clientId,
-    },
-  });
-
-  if (!existingClient) {
-    throw new ApiError(400, "Client does not exist");
-  }
-
-  const items = payload.items;
-
-  for (const item of items) {
-    const existingItem = await prisma.item.findUnique({
-      where: {
-        id: item.id,
-      },
+  // 2. Validate client if provided
+  if (payload.clientId) {
+    const existingClient = await prisma.client.findUnique({
+      where: { id: payload.clientId },
     });
-
-    if (!existingItem) {
-      throw new ApiError(400, `Item with id ${item.id} does not exist`);
+    if (!existingClient) {
+      throw new ApiError(httpStatus.BAD_REQUEST, "Client does not exist");
     }
   }
 
+  // 3. Validate contract if provided
+  if (payload.contractId) {
+    const contractExists = await prisma.contract.count({
+      where: { id: payload.contractId },
+    });
+    if (!contractExists) {
+      throw new ApiError(httpStatus.NOT_FOUND, "Contract not found");
+    }
+  }
+
+  // 4. Validate items if provided
+  if (payload.items && Array.isArray(payload.items)) {
+    for (const item of payload.items) {
+      const existingItem = await prisma.item.findUnique({
+        where: { id: item.id },
+      });
+      if (!existingItem) {
+        throw new ApiError(
+          httpStatus.BAD_REQUEST,
+          `Item with id ${item.id} does not exist`,
+        );
+      }
+    }
+  }
+
+  // 5. Process image uploads (if any)
   const processImages = async (
     files: Express.Multer.File[] | undefined,
     folder: string,
@@ -168,33 +178,77 @@ const editEstimateInDB = async (estimateId: string, req: Request) => {
     processImages(files?.urls, "urls"),
   ]);
 
+  // 6. Build update data object (only include fields that are provided)
+  const updateData: Prisma.EstimateUpdateInput = {
+    // Always update the estimator (last editor)
+    estimator: { connect: { id: estimatorId } },
+  };
+
+  // Scalar fields
+  if (payload.estimateName !== undefined)
+    updateData.estimateName = payload.estimateName;
+  if (payload.legendary !== undefined) updateData.legendary = payload.legendary;
+  if (payload.date !== undefined) updateData.date = payload.date;
+  if (payload.endDate !== undefined) updateData.endDate = payload.endDate;
+  if (payload.items !== undefined) updateData.items = payload.items;
+  if (payload.additionalMarkUp !== undefined)
+    updateData.additionalMarkUp = payload.additionalMarkUp;
+  if (payload.grandTotal !== undefined)
+    updateData.grandTotal = payload.grandTotal;
+  if (payload.discountAmount !== undefined)
+    updateData.discountAmount = payload.discountAmount;
+  if (payload.depositAmount !== undefined)
+    updateData.depositAmount = payload.depositAmount;
+  if (payload.isOnlinePayment !== undefined)
+    updateData.isOnlinePayment = payload.isOnlinePayment;
+  if (payload.coverPaymentProcessingFee !== undefined)
+    updateData.coverPaymentProcessingFee = payload.coverPaymentProcessingFee;
+  if (payload.noteForClient !== undefined)
+    updateData.noteForClient = payload.noteForClient;
+  if (payload.privateNote !== undefined)
+    updateData.privateNote = payload.privateNote;
+  if (payload.clientSign !== undefined)
+    updateData.clientSign = payload.clientSign;
+  if (payload.mySign !== undefined) updateData.mySign = payload.mySign;
+  if (payload.format !== undefined) updateData.format = payload.format;
+  if (payload.poNumber !== undefined) updateData.poNumber = payload.poNumber;
+  if (payload.isGroupingEnabled !== undefined)
+    updateData.isGroupingEnabled = payload.isGroupingEnabled;
+  if (payload.isAutoInvoice !== undefined)
+    updateData.isAutoInvoice = payload.isAutoInvoice;
+  if (payload.estimateNumber !== undefined)
+    updateData.estimateNumber = payload.estimateNumber; // usually auto-generated, but allow manual override
+
+  // Relation fields (connect syntax)
+  if (payload.clientId !== undefined) {
+    updateData.client = { connect: { id: payload.clientId } };
+  }
+  if (payload.contractId !== undefined) {
+    updateData.contract = { connect: { id: payload.contractId } };
+  }
+
+  // Overwrite sideMap / fileUrls if new files were uploaded
+  if (map) updateData.sideMap = map[0];
+  if (urls) updateData.fileUrls = urls;
+
+  // 7. Perform update
   const updatedEstimate = await prisma.estimate.update({
-    where: {
-      id: estimateId,
-    },
-    data: {
-      clientId: payload.clientId,
-      estimatorId: estimatorId,
-      date: payload.date,
-      endDate: payload.endDate,
-      estimateName: payload.estimateName,
-      items: payload.items,
-      grandTotal: payload.grandTotal,
-      additionalMarkUp: payload.additionalMarkUp,
-      sideMap: map ? map[0] : undefined,
-      fileUrls: urls ? urls : undefined,
-      depositAmount: payload.depositAmount,
-      discountAmount: payload.discountAmount,
-    },
+    where: { id: estimateId },
+    data: updateData,
   });
 
-  const itemss = await prisma.item.findMany({
-    where: { id: { in: payload.items.map((item: any) => item.id) } },
-  });
+  // 8. Fetch detailed items for the response
+  const itemIds = updatedEstimate.items.map((item: any) => item.id);
+  const itemsDetail =
+    itemIds.length > 0
+      ? await prisma.item.findMany({
+          where: { id: { in: itemIds } },
+        })
+      : [];
 
   return {
     ...updatedEstimate,
-    itemss,
+    items: itemsDetail,
   };
 };
 
@@ -834,7 +888,7 @@ const updateEstimateEmailAndSign = async (
 // Add to estimate.service.ts
 import sendEmailAdvanced from "../../../helpers/sendEmailAdvanced";
 import { estimateEmailWithReview } from "../../../shared/emailTemplate";
-import { TCreateEstimate } from "./estimate.validation";
+import { TCreateEstimate, TEstimateImageAction } from "./estimate.validation";
 import { invoiceService } from "../invoice/invoice.service";
 
 const sendEstimateEmailFlexible = async (
@@ -933,6 +987,116 @@ const getEstimateNumber = async () => {
   return prisma.estimate.count();
 };
 
+const updateEstimateImages = async (
+  estimateId: string,
+  payload: TEstimateImageAction,
+  files?: {
+    sideMap?: Express.Multer.File[];
+    fileUrls?: Express.Multer.File[];
+  },
+) => {
+  // 1. Fetch existing estimate
+  const estimate = await prisma.estimate.findUnique({
+    where: { id: estimateId },
+    select: { id: true, sideMap: true, fileUrls: true },
+  });
+  if (!estimate) throw new ApiError(httpStatus.NOT_FOUND, "Estimate not found");
+
+  let updatedSideMap = estimate.sideMap;
+  let updatedFileUrls = estimate.fileUrls ?? [];
+
+  // 2. Handle sideMap (single image)
+  if (payload.sideMapAction === "replace") {
+    if (!files?.sideMap || files.sideMap.length === 0) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        "No image provided to replace sideMap",
+      );
+    }
+    const uploaded = await uploadInSpace(files.sideMap[0], "estimates/sideMap");
+    updatedSideMap = uploaded;
+  } else if (payload.sideMapAction === "remove") {
+    updatedSideMap = null;
+  }
+
+  // 3. Handle fileUrls (multiple)
+  if (payload.fileUrlsAction) {
+    switch (payload.fileUrlsAction) {
+      case "add": {
+        if (!files?.fileUrls || files.fileUrls.length === 0) {
+          throw new ApiError(
+            httpStatus.BAD_REQUEST,
+            "No files provided to add",
+          );
+        }
+        const uploadedUrls = await Promise.all(
+          files.fileUrls.map((f) => uploadInSpace(f, "estimates/fileUrls")),
+        );
+        updatedFileUrls = [...updatedFileUrls, ...uploadedUrls];
+        break;
+      }
+      case "remove": {
+        if (!payload.fileUrls || payload.fileUrls.length === 0) {
+          throw new ApiError(
+            httpStatus.BAD_REQUEST,
+            "No URLs provided to remove",
+          );
+        }
+        const toRemove = new Set(payload.fileUrls);
+        updatedFileUrls = updatedFileUrls.filter((url) => !toRemove.has(url));
+        break;
+      }
+      case "replace": {
+        if (!payload.fileUrls || payload.fileUrls.length === 0) {
+          throw new ApiError(
+            httpStatus.BAD_REQUEST,
+            "No URLs provided to replace",
+          );
+        }
+        if (
+          !files?.fileUrls ||
+          files.fileUrls.length !== payload.fileUrls.length
+        ) {
+          throw new ApiError(
+            httpStatus.BAD_REQUEST,
+            "Number of uploaded files must match number of URLs to replace",
+          );
+        }
+        const uploadedUrls = await Promise.all(
+          files.fileUrls.map((f) => uploadInSpace(f, "estimates/fileUrls")),
+        );
+        const replaceMap = new Map<string, string>();
+        payload.fileUrls.forEach((oldUrl, idx) => {
+          replaceMap.set(oldUrl, uploadedUrls[idx]);
+        });
+        updatedFileUrls = updatedFileUrls.map((url) =>
+          replaceMap.has(url) ? replaceMap.get(url)! : url,
+        );
+        break;
+      }
+      default:
+        throw new ApiError(httpStatus.BAD_REQUEST, "Invalid fileUrlsAction");
+    }
+  }
+
+  // 4. Update database
+  const updatedEstimate = await prisma.estimate.update({
+    where: { id: estimateId },
+    data: {
+      sideMap: updatedSideMap,
+      fileUrls: updatedFileUrls,
+    },
+    select: {
+      id: true,
+      estimateName: true,
+      sideMap: true,
+      fileUrls: true,
+    },
+  });
+
+  return updatedEstimate;
+};
+
 export const estimateService = {
   createClientInDB,
   getEstimateByIdFromDB,
@@ -953,6 +1117,7 @@ export const estimateService = {
   sendEstimateEmailFlexible,
   deleteEstimate,
   getEstimateNumber,
+  updateEstimateImages,
 };
 
 // contract

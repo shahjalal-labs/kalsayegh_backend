@@ -307,6 +307,5 @@ export const todolistService = {
   getAllTodolist,
   getTodoDetails,
   updateTodo,
-
   updateTodoImage,
 };

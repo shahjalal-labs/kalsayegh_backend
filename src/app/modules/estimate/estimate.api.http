@@ -161,7 +161,7 @@ Authorization: {{estMir}}
 
 ### get all estimates
 
-GET {{baseUrl}}/estimate/all-estimates?page=1&limit=20 HTTP/1.1
+GET {{baseUrl}}/estimate/all-estimates?page=1&limit=10 HTTP/1.1
 Authorization: {{admin}}
 
 
@@ -241,3 +241,103 @@ Authorization: {{admin}}
 
 GET {{baseUrl}}/estimate/estimate-number HTTP/1.1
 Authorization: {{admin}}
+
+
+### 1. Update estimate without files (JSON)
+
+PATCH {{baseUrl}}/estimate/edit-estimate/69e71ad3eb445ea74ae9a561 HTTP/1.1
+Authorization: {{admin}}
+Content-Type: application/json
+
+{
+  "additionalMarkUp": 8.5,
+  "clientId": "69dcbc491d6f350e20bbd0ea",
+  "clientSign": false,
+  "contractId": "6a032fd2ba5bfdd401447448",
+  "coverPaymentProcessingFee": true,
+  "date": "2026-05-01",
+  "depositAmount": 500.00,
+  "discountAmount": 150.00,
+  "endDate": "2026-06-15",
+  "estimateName": "Updated Estimate - Driveway Resurfacing",
+  "format": "TABLE",
+  "grandTotal": 2500.00,
+  "isAutoInvoice": true,
+  "isGroupingEnabled": true,
+  "isOnlinePayment": true,
+  "items": [
+    {
+      "id": "69d9e204785ffd2b312e8483",
+      "quantity": 4,
+      "subTotal": 600
+    }
+  ],
+  "legendary": "Summer promotion discount applied",
+  "mySign": true,
+  "noteForClient": "Deposit required to secure schedule.",
+  "poNumber": "PO-2026-001",
+  "privateNote": "Client requested extra sealcoating"
+}
+
+
+### Update estimate images – remove a fileUrl
+
+PATCH {{baseUrl}}/estimate/estimate-images/69fec7765d2d85a94fa2f764 HTTP/1.1
+Authorization: {{admin}}
+Content-Type: application/json
+
+{
+  "fileUrls": [
+    "https://space.com/old-file.pdf"
+  ],
+  "fileUrlsAction": "remove"
+}
+
+
+### Update estimate images – replace sideMap
+
+PATCH {{baseUrl}}/estimate/estimate-images/69fec7765d2d85a94fa2f764 HTTP/1.1
+Authorization: {{admin}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary
+
+------WebKitFormBoundary
+Content-Disposition: form-data; name="bodyData"
+Content-Type: application/json
+
+{
+  "sideMapAction": "replace"
+}
+
+------WebKitFormBoundary
+Content-Disposition: form-data; name="sideMap"; filename="new-map.jpg"
+Content-Type: image/jpeg
+
+< ./new-map.jpg
+------WebKitFormBoundary--
+
+
+### Add two new fileUrls
+
+PATCH {{baseUrl}}/estimate/estimate-images/69fec7765d2d85a94fa2f764 HTTP/1.1
+Authorization: {{admin}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary
+
+------WebKitFormBoundary
+Content-Disposition: form-data; name="bodyData"
+Content-Type: application/json
+
+{
+  "fileUrlsAction": "add"
+}
+
+------WebKitFormBoundary
+Content-Disposition: form-data; name="fileUrls"; filename="doc1.pdf"
+Content-Type: application/pdf
+
+< ./doc1.pdf
+------WebKitFormBoundary
+Content-Disposition: form-data; name="fileUrls"; filename="doc2.pdf"
+Content-Type: application/pdf
+
+< ./doc2.pdf
+------WebKitFormBoundary--

@@ -238,6 +238,28 @@ const getEstimateNumber = catchAsync(async (_req, res) => {
   });
 });
 
+const updateEstimateImages = catchAsync(async (req, res) => {
+  const { id: estimateId } = req.params;
+  const payload = req.body;
+  const files = req.files as {
+    sideMap?: Express.Multer.File[];
+    fileUrls?: Express.Multer.File[];
+  };
+
+  const result = await estimateService.updateEstimateImages(
+    estimateId,
+    payload,
+    files,
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Estimate images updated successfully",
+    data: result,
+  });
+});
+
 export const estimateControllers = {
   createClient,
   myClients,
@@ -258,4 +280,5 @@ export const estimateControllers = {
   sendEstimateEmailFlexible,
   deleteEstimate,
   getEstimateNumber,
+  updateEstimateImages,
 };

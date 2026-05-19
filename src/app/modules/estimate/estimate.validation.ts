@@ -130,6 +130,36 @@ const sendEstimateEmailSchema = z.object({
   isOnlinePayment: z.boolean().optional(),
 });
 
+// Add to estimate.validation.ts
+
+const estimateImageActionSchema = z
+  .object({
+    sideMapAction: z.enum(["replace", "remove"]).optional(),
+    fileUrlsAction: z.enum(["add", "remove", "replace"]).optional(),
+    fileUrls: z.array(z.string().url()).optional(), // URLs to remove or to be replaced (for remove/replace)
+  })
+  .strict()
+  .refine(
+    (data) => {
+      if (
+        data.fileUrlsAction === "remove" &&
+        (!data.fileUrls || data.fileUrls.length === 0)
+      ) {
+        return false;
+      }
+      if (
+        data.fileUrlsAction === "replace" &&
+        (!data.fileUrls || data.fileUrls.length === 0)
+      ) {
+        return false;
+      }
+      return true;
+    },
+    { message: "fileUrls must be provided for remove or replace actions" },
+  );
+
+export type TEstimateImageAction = z.infer<typeof estimateImageActionSchema>;
+
 export const estimateValidation = {
   createEstimateSchema,
   markUpValidationSchema,
@@ -139,4 +169,5 @@ export const estimateValidation = {
   updateEstimateStatusSchema,
   updateEmailSignSchema,
   sendEstimateEmailSchema,
+  estimateImageActionSchema,
 };

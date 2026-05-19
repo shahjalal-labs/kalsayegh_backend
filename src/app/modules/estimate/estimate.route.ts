@@ -127,4 +127,13 @@ router.delete(
 
 router.get("/estimate-number", auth(), estimateControllers.getEstimateNumber);
 
+router.patch(
+  "/estimate-images/:id",
+  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  fileUploader.uploadMultiple,
+  parseBodyData,
+  validateRequest(estimateValidation.estimateImageActionSchema),
+  estimateControllers.updateEstimateImages,
+);
+
 export const estimateRoutes = router;

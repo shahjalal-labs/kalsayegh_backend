@@ -112,6 +112,7 @@ const updateInvoice = async (invoiceId: string, req: Request) => {
   const existingInvoice = await prisma.invoice.findUnique({
     where: { id: invoiceId },
   });
+
   if (!existingInvoice) {
     throw new ApiError(httpStatus.NOT_FOUND, "Invoice not found");
   }
