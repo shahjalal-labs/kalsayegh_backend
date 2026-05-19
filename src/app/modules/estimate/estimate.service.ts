@@ -888,7 +888,11 @@ const updateEstimateEmailAndSign = async (
 // Add to estimate.service.ts
 import sendEmailAdvanced from "../../../helpers/sendEmailAdvanced";
 import { estimateEmailWithReview } from "../../../shared/emailTemplate";
-import { TCreateEstimate, TEstimateImageAction } from "./estimate.validation";
+import {
+  TCreateEstimate,
+  TEstimateImageAction,
+  TUpdateEstimateItemImages,
+} from "./estimate.validation";
 import { invoiceService } from "../invoice/invoice.service";
 
 const sendEstimateEmailFlexible = async (
@@ -1097,6 +1101,110 @@ const updateEstimateImages = async (
   return updatedEstimate;
 };
 
+// update estimate item images
+
+const updateEstimateItemImages = async (
+  estimateId: string,
+  payload: TUpdateEstimateItemImages,
+  files?: Express.Multer.File[],
+) => {
+  // 1. Fetch estimate
+  const estimate = await prisma.estimate.findUnique({
+    where: { id: estimateId },
+    select: { itemImages: true, items: true },
+  });
+  if (!estimate) throw new ApiError(httpStatus.NOT_FOUND, "Estimate not found");
+
+  // 2. Verify item exists in the estimate's items array
+  const itemExists = estimate.items.some(
+    (item: any) => item.id === payload.itemId,
+  );
+  if (!itemExists)
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      `Item ${payload.itemId} not found in estimate`,
+    );
+
+  // 3. Get current itemImages array
+  let itemImages: { itemId: string; images: string[] }[] =
+    (estimate.itemImages as any) || [];
+  let itemIndex = itemImages.findIndex((i) => i.itemId === payload.itemId);
+  let currentImages: string[] =
+    itemIndex !== -1 ? itemImages[itemIndex].images : [];
+
+  // 4. Handle actions
+  if (payload.action === "add") {
+    if (!files || files.length === 0)
+      throw new ApiError(400, "No images provided");
+    if (files.length > 20) throw new ApiError(400, "Max 20 images per request");
+    const uploadedUrls = await Promise.all(
+      files.map((f) => uploadInSpace(f, "estimates/itemImages")),
+    );
+    if (itemIndex === -1) {
+      itemImages.push({ itemId: payload.itemId, images: uploadedUrls });
+    } else {
+      itemImages[itemIndex].images.push(...uploadedUrls);
+    }
+  } else if (payload.action === "remove") {
+    if (!payload.imageUrls || payload.imageUrls.length === 0)
+      throw new ApiError(400, "No URLs to remove");
+    if (itemIndex === -1)
+      throw new ApiError(404, "No images found for this item");
+    const newImages = currentImages.filter(
+      (url) => !payload.imageUrls!.includes(url),
+    );
+    if (newImages.length === currentImages.length)
+      throw new ApiError(400, "None of the URLs were found");
+    if (newImages.length === 0) {
+      itemImages.splice(itemIndex, 1);
+    } else {
+      itemImages[itemIndex].images = newImages;
+    }
+  } else if (payload.action === "replace") {
+    if (!files || files.length === 0)
+      throw new ApiError(400, "No new images provided");
+    if (!payload.imageUrls || payload.imageUrls.length === 0)
+      throw new ApiError(400, "No URLs to replace");
+    if (files.length !== payload.imageUrls.length)
+      throw new ApiError(400, "Number of files must match number of URLs");
+    if (files.length > 20) throw new ApiError(400, "Max 20 images");
+    if (itemIndex === -1)
+      throw new ApiError(404, "No images found for this item");
+    const oldUrlsSet = new Set(payload.imageUrls);
+    const toReplace = currentImages.filter((url) => oldUrlsSet.has(url));
+    if (toReplace.length !== payload.imageUrls.length)
+      throw new ApiError(400, "One or more URLs not found");
+    const uploadedUrls = await Promise.all(
+      files.map((f) => uploadInSpace(f, "estimates/itemImages")),
+    );
+    const remainingImages = currentImages.filter((url) => !oldUrlsSet.has(url));
+    itemImages[itemIndex].images = [...remainingImages, ...uploadedUrls];
+  }
+
+  // 5. Save back to database
+  await prisma.estimate.update({
+    where: { id: estimateId },
+    data: { itemImages: itemImages as any },
+  });
+
+  return { success: true, itemId: payload.itemId, action: payload.action };
+};
+
+// Optional: get images
+const getEstimateItemImages = async (estimateId: string, itemId?: string) => {
+  const estimate = await prisma.estimate.findUnique({
+    where: { id: estimateId },
+    select: { itemImages: true },
+  });
+  if (!estimate) throw new ApiError(404, "Estimate not found");
+  const images = (estimate.itemImages as any[]) || [];
+  if (itemId) {
+    const found = images.find((i) => i.itemId === itemId);
+    return found ? found.images : [];
+  }
+  return images;
+};
+
 export const estimateService = {
   createClientInDB,
   getEstimateByIdFromDB,
@@ -1118,6 +1226,7 @@ export const estimateService = {
   deleteEstimate,
   getEstimateNumber,
   updateEstimateImages,
+  updateEstimateItemImages,
 };
 
 // contract

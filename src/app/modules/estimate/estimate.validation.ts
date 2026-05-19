@@ -160,6 +160,31 @@ const estimateImageActionSchema = z
 
 export type TEstimateImageAction = z.infer<typeof estimateImageActionSchema>;
 
+// estimate item images validation
+
+const updateEstimateItemImagesSchema = z
+  .object({
+    itemId: objectIdSchema,
+    action: z.enum(["add", "remove", "replace"]),
+    imageUrls: z.array(z.string().url()).optional(),
+  })
+  .strict()
+  .refine(
+    (data) => {
+      if (
+        (data.action === "remove" || data.action === "replace") &&
+        (!data.imageUrls || data.imageUrls.length === 0)
+      )
+        return false;
+      return true;
+    },
+    { message: "imageUrls required for remove/replace actions" },
+  );
+
+export type TUpdateEstimateItemImages = z.infer<
+  typeof updateEstimateItemImagesSchema
+>;
+
 export const estimateValidation = {
   createEstimateSchema,
   markUpValidationSchema,
@@ -170,4 +195,5 @@ export const estimateValidation = {
   updateEmailSignSchema,
   sendEstimateEmailSchema,
   estimateImageActionSchema,
+  updateEstimateItemImagesSchema,
 };

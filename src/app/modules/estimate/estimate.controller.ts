@@ -260,6 +260,43 @@ const updateEstimateImages = catchAsync(async (req, res) => {
   });
 });
 
+// update estimate item images
+const updateEstimateItemImages = catchAsync(async (req, res) => {
+  const { id: estimateId } = req.params;
+  const payload = req.body;
+  const files = req.files as { urls?: Express.Multer.File[] };
+
+  const result = await estimateService.updateEstimateItemImages(
+    estimateId,
+    payload,
+    files?.urls,
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Item images updated successfully",
+    data: result,
+  });
+});
+
+/* const getEstimateItemImages = catchAsync(async (req, res) => {
+  const { id: estimateId } = req.params;
+  const { itemId } = req.query;
+
+  const result = await estimateService.getEstimateItemImages(
+    estimateId,
+    itemId as string | undefined,
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Item images retrieved successfully",
+    data: result,
+  });
+}); */
+
 export const estimateControllers = {
   createClient,
   myClients,
@@ -281,4 +318,5 @@ export const estimateControllers = {
   deleteEstimate,
   getEstimateNumber,
   updateEstimateImages,
+  updateEstimateItemImages,
 };

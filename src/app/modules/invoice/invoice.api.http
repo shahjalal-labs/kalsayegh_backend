@@ -231,7 +231,7 @@ Content-Type: application/json
 }
 
 
-### 2. Replace sideMap (upload new image)
+### 2. Replace sideMap | update sitemap
 
 PATCH {{baseUrl}}/invoice/invoice-images/69fec7765d2d85a94fa2f764 HTTP/1.1
 Authorization: {{admin}}

@@ -355,3 +355,88 @@ Content-Type: application/pdf
 
 < ./doc2.pdf
 ------WebKitFormBoundary--
+
+
+### Add images to an item (upload 2 files)
+
+PATCH {{baseUrl}}/estimate/item-images/67b... HTTP/1.1
+Authorization: {{admin}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary
+
+------WebKitFormBoundary
+Content-Disposition: form-data; name="bodyData"
+Content-Type: application/json
+
+{
+  "itemId": "69d87eb901d75586feffc495",
+  "action": "add"
+}
+
+------WebKitFormBoundary
+Content-Disposition: form-data; name="urls"; filename="img1.jpg"
+Content-Type: image/jpeg
+
+< ./img1.jpg
+------WebKitFormBoundary
+Content-Disposition: form-data; name="urls"; filename="img2.png"
+Content-Type: image/png
+
+< ./img2.png
+------WebKitFormBoundary--
+
+
+### Remove specific images (JSON only, no files)
+
+PATCH {{baseUrl}}/estimate/item-images/67b... HTTP/1.1
+Authorization: {{admin}}
+Content-Type: application/json
+
+{
+  "action": "remove",
+  "imageUrls": [
+    "https://space.com/old1.jpg",
+    "https://space.com/old2.png"
+  ],
+  "itemId": "69d87eb901d75586feffc495"
+}
+
+
+### Replace images (upload 2 new files for 2 old URLs)
+
+PATCH {{baseUrl}}/estimate/item-images/67b... HTTP/1.1
+Authorization: {{admin}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary
+
+------WebKitFormBoundary
+Content-Disposition: form-data; name="bodyData"
+Content-Type: application/json
+
+{
+  "itemId": "69d87eb901d75586feffc495",
+  "action": "replace",
+  "imageUrls": ["https://space.com/old1.jpg", "https://space.com/old2.png"]
+}
+
+------WebKitFormBoundary
+Content-Disposition: form-data; name="urls"; filename="new1.jpg"
+Content-Type: image/jpeg
+
+< ./new1.jpg
+------WebKitFormBoundary
+Content-Disposition: form-data; name="urls"; filename="new2.png"
+Content-Type: image/png
+
+< ./new2.png
+------WebKitFormBoundary--
+
+
+### Get all item images for an estimate
+
+GET {{baseUrl}}/estimate/item-images/67b... HTTP/1.1
+Authorization: {{admin}}
+
+
+### Get images for a specific item only
+
+GET {{baseUrl}}/estimate/item-images/67b...?itemId=69d87eb901d75586feffc495 HTTP/1.1
+Authorization: {{admin}}

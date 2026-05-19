@@ -136,4 +136,19 @@ router.patch(
   estimateControllers.updateEstimateImages,
 );
 
+router.patch(
+  "/item-images/:id",
+  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  fileUploader.uploadMultiple, // provides req.files.urls
+  parseBodyData,
+  validateRequest(estimateValidation.updateEstimateItemImagesSchema),
+  estimateControllers.updateEstimateItemImages,
+);
+
+/* router.get(
+  "/item-images/:id",
+  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  estimateControllers.getEstimateItemImages,
+); */
+
 export const estimateRoutes = router;
