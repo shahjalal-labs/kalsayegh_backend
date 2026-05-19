@@ -243,6 +243,25 @@ const updateInvoiceImages = catchAsync(async (req, res) => {
   });
 });
 
+const updateInvoiceItemImages = catchAsync(async (req, res) => {
+  const { id: invoiceId } = req.params;
+  const payload = req.body;
+  const files = req.files as { urls?: Express.Multer.File[] };
+
+  const result = await invoiceService.updateInvoiceItemImages(
+    invoiceId,
+    payload,
+    files?.urls,
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Item images updated successfully",
+    data: result,
+  });
+});
+
 export const invoiceController = {
   createInvoice,
   updateInvoice,
@@ -261,4 +280,5 @@ export const invoiceController = {
   deleteInvoice,
   getInvoiceNumber,
   updateInvoiceImages,
+  updateInvoiceItemImages,
 };

@@ -1190,21 +1190,6 @@ const updateEstimateItemImages = async (
   return { success: true, itemId: payload.itemId, action: payload.action };
 };
 
-// Optional: get images
-const getEstimateItemImages = async (estimateId: string, itemId?: string) => {
-  const estimate = await prisma.estimate.findUnique({
-    where: { id: estimateId },
-    select: { itemImages: true },
-  });
-  if (!estimate) throw new ApiError(404, "Estimate not found");
-  const images = (estimate.itemImages as any[]) || [];
-  if (itemId) {
-    const found = images.find((i) => i.itemId === itemId);
-    return found ? found.images : [];
-  }
-  return images;
-};
-
 export const estimateService = {
   createClientInDB,
   getEstimateByIdFromDB,

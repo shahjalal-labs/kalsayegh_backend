@@ -280,22 +280,7 @@ const updateEstimateItemImages = catchAsync(async (req, res) => {
   });
 });
 
-/* const getEstimateItemImages = catchAsync(async (req, res) => {
-  const { id: estimateId } = req.params;
-  const { itemId } = req.query;
 
-  const result = await estimateService.getEstimateItemImages(
-    estimateId,
-    itemId as string | undefined,
-  );
-
-  sendResponse(res, {
-    statusCode: httpStatus.OK,
-    success: true,
-    message: "Item images retrieved successfully",
-    data: result,
-  });
-}); */
 
 export const estimateControllers = {
   createClient,

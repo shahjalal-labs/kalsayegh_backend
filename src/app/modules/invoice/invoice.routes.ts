@@ -115,4 +115,13 @@ router.patch(
   invoiceController.updateInvoiceImages,
 );
 
+router.patch(
+  "/item-images/:id",
+  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  fileUploader.uploadMultiple, // provides req.files.urls
+  parseBodyData,
+  validateRequest(invoiceValidation.updateInvoiceItemImagesSchema),
+  invoiceController.updateInvoiceItemImages,
+);
+
 export const invoiceRoutes = router;

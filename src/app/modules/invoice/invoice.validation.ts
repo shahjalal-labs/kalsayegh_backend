@@ -130,6 +130,30 @@ const invoiceImageActionSchema = z
 
 export type TInvoiceImageAction = z.infer<typeof invoiceImageActionSchema>;
 
+// invoice item images validation
+const updateInvoiceItemImagesSchema = z
+  .object({
+    itemId: objectIdSchema,
+    action: z.enum(["add", "remove", "replace"]),
+    imageUrls: z.array(z.string().url()).optional(),
+  })
+  .strict()
+  .refine(
+    (data) => {
+      if (
+        (data.action === "remove" || data.action === "replace") &&
+        (!data.imageUrls || data.imageUrls.length === 0)
+      )
+        return false;
+      return true;
+    },
+    { message: "imageUrls required for remove/replace actions" },
+  );
+
+export type TUpdateInvoiceItemImages = z.infer<
+  typeof updateInvoiceItemImagesSchema
+>;
+
 export const invoiceValidation = {
   createInvoiceSchema,
   sendInvoiceEmailSchema,
@@ -140,4 +164,5 @@ export const invoiceValidation = {
   payWithCardSchema,
   updateInvoiceSchema,
   invoiceImageActionSchema,
+  updateInvoiceItemImagesSchema,
 };

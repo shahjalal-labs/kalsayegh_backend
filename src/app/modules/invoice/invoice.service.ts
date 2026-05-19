@@ -7,6 +7,7 @@ import {
   TCreateInvoice,
   TInvoiceImageAction,
   TUpdateInvoice,
+  TUpdateInvoiceItemImages,
 } from "./invoice.validation";
 import {
   EmailStatus,
@@ -1247,6 +1248,94 @@ const updateInvoiceImages = async (
   return updatedInvoice;
 };
 
+// update invoice item images
+const updateInvoiceItemImages = async (
+  invoiceId: string,
+  payload: TUpdateInvoiceItemImages,
+  files?: Express.Multer.File[],
+) => {
+  // 1. Fetch invoice
+  const invoice = await prisma.invoice.findUnique({
+    where: { id: invoiceId },
+    select: { itemImages: true, items: true },
+  });
+  if (!invoice) throw new ApiError(httpStatus.NOT_FOUND, "Invoice not found");
+
+  // 2. Verify item exists in invoice's items array
+  const itemExists = invoice.items.some(
+    (item: any) => item.id === payload.itemId,
+  );
+  if (!itemExists)
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      `Item ${payload.itemId} not found in invoice`,
+    );
+
+  // 3. Get current itemImages array
+  let itemImages: { itemId: string; images: string[] }[] =
+    (invoice.itemImages as any) || [];
+  let itemIndex = itemImages.findIndex((i) => i.itemId === payload.itemId);
+  let currentImages: string[] =
+    itemIndex !== -1 ? itemImages[itemIndex].images : [];
+
+  // 4. Handle actions
+  if (payload.action === "add") {
+    if (!files || files.length === 0)
+      throw new ApiError(400, "No images provided");
+    if (files.length > 20) throw new ApiError(400, "Max 20 images per request");
+    const uploadedUrls = await Promise.all(
+      files.map((f) => uploadInSpace(f, "invoices/itemImages")),
+    );
+    if (itemIndex === -1) {
+      itemImages.push({ itemId: payload.itemId, images: uploadedUrls });
+    } else {
+      itemImages[itemIndex].images.push(...uploadedUrls);
+    }
+  } else if (payload.action === "remove") {
+    if (!payload.imageUrls || payload.imageUrls.length === 0)
+      throw new ApiError(400, "No URLs to remove");
+    if (itemIndex === -1)
+      throw new ApiError(404, "No images found for this item");
+    const newImages = currentImages.filter(
+      (url) => !payload.imageUrls!.includes(url),
+    );
+    if (newImages.length === currentImages.length)
+      throw new ApiError(400, "None of the URLs were found");
+    if (newImages.length === 0) {
+      itemImages.splice(itemIndex, 1);
+    } else {
+      itemImages[itemIndex].images = newImages;
+    }
+  } else if (payload.action === "replace") {
+    if (!files || files.length === 0)
+      throw new ApiError(400, "No new images provided");
+    if (!payload.imageUrls || payload.imageUrls.length === 0)
+      throw new ApiError(400, "No URLs to replace");
+    if (files.length !== payload.imageUrls.length)
+      throw new ApiError(400, "Number of files must match number of URLs");
+    if (files.length > 20) throw new ApiError(400, "Max 20 images");
+    if (itemIndex === -1)
+      throw new ApiError(404, "No images found for this item");
+    const oldUrlsSet = new Set(payload.imageUrls);
+    const toReplace = currentImages.filter((url) => oldUrlsSet.has(url));
+    if (toReplace.length !== payload.imageUrls.length)
+      throw new ApiError(400, "One or more URLs not found");
+    const uploadedUrls = await Promise.all(
+      files.map((f) => uploadInSpace(f, "invoices/itemImages")),
+    );
+    const remainingImages = currentImages.filter((url) => !oldUrlsSet.has(url));
+    itemImages[itemIndex].images = [...remainingImages, ...uploadedUrls];
+  }
+
+  // 5. Save back to database
+  await prisma.invoice.update({
+    where: { id: invoiceId },
+    data: { itemImages: itemImages as any },
+  });
+
+  return { success: true, itemId: payload.itemId, action: payload.action };
+};
+
 export const invoiceService = {
   createInvoice,
   updateInvoice,
@@ -1265,4 +1354,5 @@ export const invoiceService = {
   deleteInvoice,
   getInvoiceNumber,
   updateInvoiceImages,
+  updateInvoiceItemImages,
 };
