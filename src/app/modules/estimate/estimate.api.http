@@ -288,9 +288,23 @@ Content-Type: application/json
 
 {
   "fileUrls": [
-    "https://space.com/old-file.pdf"
+    "https://api.zenexcloud.com/emdadullah/uploads/courses/urls/1776229246929-cpwl05v3amf.jpg"
   ],
   "fileUrlsAction": "remove"
+}
+
+
+### Update estimate images – replace fileUrls
+
+PATCH {{baseUrl}}/estimate/estimate-images/69fec7765d2d85a94fa2f764 HTTP/1.1
+Authorization: {{admin}}
+Content-Type: application/json
+
+{
+  "fileUrls": [
+    "https://api.zenexcloud.com/emdadullah/uploads/courses/urls/1776219809625-il8ahukx0ze.jpg"
+  ],
+  "fileUrlsAction": "replace"
 }
 
 

@@ -218,3 +218,106 @@ Content-Type: application/json
 
 GET {{baseUrl}}/invoice/invoice-number HTTP/1.1
 Authorization: {{admin}}
+
+
+### 1. Remove sideMap (single image)
+
+PATCH {{baseUrl}}/invoice/invoice-images/69fec7765d2d85a94fa2f764 HTTP/1.1
+Authorization: {{admin}}
+Content-Type: application/json
+
+{
+  "sideMapAction": "remove"
+}
+
+
+### 2. Replace sideMap (upload new image)
+
+PATCH {{baseUrl}}/invoice/invoice-images/69fec7765d2d85a94fa2f764 HTTP/1.1
+Authorization: {{admin}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary
+
+------WebKitFormBoundary
+Content-Disposition: form-data; name="bodyData"
+Content-Type: application/json
+
+{
+  "sideMapAction": "replace"
+}
+
+------WebKitFormBoundary
+Content-Disposition: form-data; name="sideMap"; filename="new-side-map.jpg"
+Content-Type: image/jpeg
+
+< ./new-side-map.jpg
+------WebKitFormBoundary--
+
+
+### 3. Add two fileUrls (upload multiple)
+
+PATCH {{baseUrl}}/invoice/invoice-images/69fec7765d2d85a94fa2f764 HTTP/1.1
+Authorization: {{admin}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary
+
+------WebKitFormBoundary
+Content-Disposition: form-data; name="bodyData"
+Content-Type: application/json
+
+{
+  "fileUrlsAction": "add"
+}
+
+------WebKitFormBoundary
+Content-Disposition: form-data; name="fileUrls"; filename="doc1.pdf"
+Content-Type: application/pdf
+
+< ./doc1.pdf
+------WebKitFormBoundary
+Content-Disposition: form-data; name="fileUrls"; filename="doc2.pdf"
+Content-Type: application/pdf
+
+< ./doc2.pdf
+------WebKitFormBoundary--
+
+
+### 4. Remove specific fileUrls
+
+PATCH {{baseUrl}}/invoice/invoice-images/69fec7765d2d85a94fa2f764 HTTP/1.1
+Authorization: {{admin}}
+Content-Type: application/json
+
+{
+  "fileUrls": [
+    "https://space.com/old-file.pdf",
+    "https://space.com/another.pdf"
+  ],
+  "fileUrlsAction": "remove"
+}
+
+
+### 5. Replace specific fileUrls (upload same number of new files)
+
+PATCH {{baseUrl}}/invoice/invoice-images/69fec7765d2d85a94fa2f764 HTTP/1.1
+Authorization: {{admin}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary
+
+------WebKitFormBoundary
+Content-Disposition: form-data; name="bodyData"
+Content-Type: application/json
+
+{
+  "fileUrlsAction": "replace",
+  "fileUrls": ["https://space.com/old1.pdf", "https://space.com/old2.pdf"]
+}
+
+------WebKitFormBoundary
+Content-Disposition: form-data; name="fileUrls"; filename="new1.pdf"
+Content-Type: application/pdf
+
+< ./new1.pdf
+------WebKitFormBoundary
+Content-Disposition: form-data; name="fileUrls"; filename="new2.pdf"
+Content-Type: application/pdf
+
+< ./new2.pdf
+------WebKitFormBoundary--

@@ -106,4 +106,13 @@ router.delete(
 
 router.get("/invoice-number", auth(), invoiceController.getInvoiceNumber);
 
+router.patch(
+  "/invoice-images/:id",
+  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  fileUploader.uploadMultiple,
+  parseBodyData,
+  validateRequest(invoiceValidation.invoiceImageActionSchema),
+  invoiceController.updateInvoiceImages,
+);
+
 export const invoiceRoutes = router;

@@ -219,6 +219,30 @@ const getInvoiceNumber = catchAsync(async (_req, res) => {
   });
 });
 
+// invoice.controller.ts – add this function
+
+const updateInvoiceImages = catchAsync(async (req, res) => {
+  const { id: invoiceId } = req.params;
+  const payload = req.body;
+  const files = req.files as {
+    sideMap?: Express.Multer.File[];
+    fileUrls?: Express.Multer.File[];
+  };
+
+  const result = await invoiceService.updateInvoiceImages(
+    invoiceId,
+    payload,
+    files,
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Invoice images updated successfully",
+    data: result,
+  });
+});
+
 export const invoiceController = {
   createInvoice,
   updateInvoice,
@@ -236,4 +260,5 @@ export const invoiceController = {
   createPaymentIntent,
   deleteInvoice,
   getInvoiceNumber,
+  updateInvoiceImages,
 };

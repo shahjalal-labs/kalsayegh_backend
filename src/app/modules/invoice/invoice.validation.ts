@@ -98,6 +98,38 @@ const payWithCardSchema = z.object({
   paymentMethodId: z.string().min(1, "Payment method ID is required"),
 });
 
+// invoice image update validation
+
+const invoiceImageActionSchema = z
+  .object({
+    // For sideMap (single image)
+    sideMapAction: z.enum(["replace", "remove"]).optional(),
+    // For fileUrls (multiple)
+    fileUrlsAction: z.enum(["add", "remove", "replace"]).optional(),
+    fileUrls: z.array(z.string().url()).optional(), // URLs to remove or to be replaced (for remove/replace)
+  })
+  .strict()
+  .refine(
+    (data) => {
+      if (
+        data.fileUrlsAction === "remove" &&
+        (!data.fileUrls || data.fileUrls.length === 0)
+      ) {
+        return false;
+      }
+      if (
+        data.fileUrlsAction === "replace" &&
+        (!data.fileUrls || data.fileUrls.length === 0)
+      ) {
+        return false;
+      }
+      return true;
+    },
+    { message: "fileUrls must be provided for remove or replace actions" },
+  );
+
+export type TInvoiceImageAction = z.infer<typeof invoiceImageActionSchema>;
+
 export const invoiceValidation = {
   createInvoiceSchema,
   sendInvoiceEmailSchema,
@@ -107,4 +139,5 @@ export const invoiceValidation = {
   refundPaymentSchema,
   payWithCardSchema,
   updateInvoiceSchema,
+  invoiceImageActionSchema,
 };

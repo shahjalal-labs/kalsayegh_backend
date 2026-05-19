@@ -3,7 +3,11 @@ import prisma from "../../../shared/prisma";
 import ApiError from "../../../errors/ApiErrors";
 import httpStatus from "http-status";
 import { uploadInSpace } from "../../../helpers/uploadInSpace";
-import { TCreateInvoice, TUpdateInvoice } from "./invoice.validation";
+import {
+  TCreateInvoice,
+  TInvoiceImageAction,
+  TUpdateInvoice,
+} from "./invoice.validation";
 import {
   EmailStatus,
   InvoiceStatus,
@@ -1129,6 +1133,120 @@ const getInvoiceNumber = async () => {
   return prisma.invoice.count();
 };
 
+// update invoice images
+
+// invoice.service.ts – add this function
+
+const updateInvoiceImages = async (
+  invoiceId: string,
+  payload: TInvoiceImageAction,
+  files?: {
+    sideMap?: Express.Multer.File[];
+    fileUrls?: Express.Multer.File[];
+  },
+) => {
+  // 1. Fetch existing invoice
+  const invoice = await prisma.invoice.findUnique({
+    where: { id: invoiceId },
+    select: { id: true, sideMap: true, fileUrls: true },
+  });
+  if (!invoice) throw new ApiError(httpStatus.NOT_FOUND, "Invoice not found");
+
+  let updatedSideMap = invoice.sideMap;
+  let updatedFileUrls = invoice.fileUrls ?? [];
+
+  // 2. Handle sideMap (single image)
+  if (payload.sideMapAction === "replace") {
+    if (!files?.sideMap || files.sideMap.length === 0) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        "No image provided to replace sideMap",
+      );
+    }
+    const uploaded = await uploadInSpace(files.sideMap[0], "invoice/sideMap");
+    updatedSideMap = uploaded;
+  } else if (payload.sideMapAction === "remove") {
+    updatedSideMap = null;
+  }
+
+  // 3. Handle fileUrls (multiple)
+  if (payload.fileUrlsAction) {
+    switch (payload.fileUrlsAction) {
+      case "add": {
+        if (!files?.fileUrls || files.fileUrls.length === 0) {
+          throw new ApiError(
+            httpStatus.BAD_REQUEST,
+            "No files provided to add",
+          );
+        }
+        const uploadedUrls = await Promise.all(
+          files.fileUrls.map((f) => uploadInSpace(f, "invoice/fileUrls")),
+        );
+        updatedFileUrls = [...updatedFileUrls, ...uploadedUrls];
+        break;
+      }
+      case "remove": {
+        if (!payload.fileUrls || payload.fileUrls.length === 0) {
+          throw new ApiError(
+            httpStatus.BAD_REQUEST,
+            "No URLs provided to remove",
+          );
+        }
+        const toRemove = new Set(payload.fileUrls);
+        updatedFileUrls = updatedFileUrls.filter((url) => !toRemove.has(url));
+        break;
+      }
+      case "replace": {
+        if (!payload.fileUrls || payload.fileUrls.length === 0) {
+          throw new ApiError(
+            httpStatus.BAD_REQUEST,
+            "No URLs provided to replace",
+          );
+        }
+        if (
+          !files?.fileUrls ||
+          files.fileUrls.length !== payload.fileUrls.length
+        ) {
+          throw new ApiError(
+            httpStatus.BAD_REQUEST,
+            "Number of uploaded files must match number of URLs to replace",
+          );
+        }
+        const uploadedUrls = await Promise.all(
+          files.fileUrls.map((f) => uploadInSpace(f, "invoice/fileUrls")),
+        );
+        const replaceMap = new Map<string, string>();
+        payload.fileUrls.forEach((oldUrl, idx) => {
+          replaceMap.set(oldUrl, uploadedUrls[idx]);
+        });
+        updatedFileUrls = updatedFileUrls.map((url) =>
+          replaceMap.has(url) ? replaceMap.get(url)! : url,
+        );
+        break;
+      }
+      default:
+        throw new ApiError(httpStatus.BAD_REQUEST, "Invalid fileUrlsAction");
+    }
+  }
+
+  // 4. Update database
+  const updatedInvoice = await prisma.invoice.update({
+    where: { id: invoiceId },
+    data: {
+      sideMap: updatedSideMap,
+      fileUrls: updatedFileUrls,
+    },
+    select: {
+      id: true,
+      invoiceName: true,
+      sideMap: true,
+      fileUrls: true,
+    },
+  });
+
+  return updatedInvoice;
+};
+
 export const invoiceService = {
   createInvoice,
   updateInvoice,
@@ -1146,4 +1264,5 @@ export const invoiceService = {
   createPaymentIntent,
   deleteInvoice,
   getInvoiceNumber,
+  updateInvoiceImages,
 };

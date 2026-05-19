@@ -413,6 +413,8 @@ model Item {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   markUp      MarkUp?  @relation(fields: [markUpId], references: [id], onDelete: SetNull)
+  format      Format?  @default(DESCRIPTION)
+  imageUrls   String[]
 
   @@map("items")
 }
@@ -568,6 +570,7 @@ model Reaction {
 model Todolist {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
   title       String
+  serial      Int?
   description String
   assignedId  String?  @db.ObjectId
   assignedTo  User?    @relation(fields: [assignedId], references: [id], onDelete: SetNull)
@@ -595,6 +598,7 @@ model JobRequest {
   office          Office?          @relation(fields: [officeId], references: [id], onDelete: Cascade)
   date            DateTime
   note            String?
+  jobSerial       Int?
   officeLatitude  Float?
   officeLongitude Float?
   images          String[]
@@ -1282,6 +1286,8 @@ const createInvoice = async (req: Request) => {
     processImages(files?.urls, "urls"),
   ]);
 
+  const invoiceCount = await prisma.invoice.count();
+
   const newInvoice = await prisma.invoice.create({
     data: {
       clientId: payload.clientId,
@@ -1307,7 +1313,7 @@ const createInvoice = async (req: Request) => {
       contractId: payload.contractId,
       poNumber: payload.poNumber,
       isGroupingEnabled: payload.isGroupingEnabled,
-      invoiceNumber: payload.invoiceNumber,
+      invoiceNumber: (invoiceCount + 1).toString(),
     },
   });
 
@@ -1323,6 +1329,7 @@ const updateInvoice = async (invoiceId: string, req: Request) => {
   const existingInvoice = await prisma.invoice.findUnique({
     where: { id: invoiceId },
   });
+
   if (!existingInvoice) {
     throw new ApiError(httpStatus.NOT_FOUND, "Invoice not found");
   }
@@ -1393,6 +1400,7 @@ const updateInvoice = async (invoiceId: string, req: Request) => {
   if (payload.legendary !== undefined) {
     updateData.legendary = payload.legendary;
   }
+
   if (payload.date !== undefined) {
     updateData.date = payload.date;
   }
@@ -1593,6 +1601,8 @@ const getInvoiceDetails = async (invoiceId: string) => {
             rate: true,
             markUp: true,
             taxes: true,
+            format: true,
+            imageUrls: true,
           },
         })
       : [];
