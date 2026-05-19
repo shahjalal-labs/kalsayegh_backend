@@ -218,7 +218,7 @@ model Item {
   description String?
   notes       String?
   createdAt   DateTime @default(now())
-  updateAt    DateTime @updatedAt
+  updatedAt    DateTime @updatedAt
   markUp      MarkUp?  @relation(fields: [markUpId], references: [id], onDelete: SetNull)
   format      Format?  @default(DESCRIPTION)
   imageUrls   String[]
