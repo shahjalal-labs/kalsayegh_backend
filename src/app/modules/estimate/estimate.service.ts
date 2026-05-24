@@ -244,7 +244,7 @@ const createEstimateInDB = async (req: Request) => {
   };
 };
 
-const editEstimateInDB = async (estimateId: string, req: Request) => {
+/* const editEstimateInDB = async (estimateId: string, req: Request) => {
   const files = req.files as { [fieldname: string]: Express.Multer.File[] };
   const payload = req.body;
   const estimatorId = req.user.id;
@@ -374,6 +374,191 @@ const editEstimateInDB = async (estimateId: string, req: Request) => {
       ? await prisma.item.findMany({
           where: { id: { in: itemIds } },
         })
+      : [];
+
+  return {
+    ...updatedEstimate,
+    items: itemsDetail,
+  };
+}; */
+
+const editEstimateInDB = async (estimateId: string, req: Request) => {
+  const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+  const payload = req.body;
+  const estimatorId = req.user.id;
+
+  // 1. Check if estimate exists
+  const existingEstimate = await prisma.estimate.findUnique({
+    where: { id: estimateId },
+    include: { client: true },
+  });
+  if (!existingEstimate) {
+    throw new ApiError(httpStatus.NOT_FOUND, "Estimate not found");
+  }
+
+  // 2. Validate client if provided
+  if (payload.clientId) {
+    const existingClient = await prisma.client.findUnique({
+      where: { id: payload.clientId },
+    });
+    if (!existingClient) {
+      throw new ApiError(httpStatus.BAD_REQUEST, "Client does not exist");
+    }
+  }
+
+  // 3. Validate contract if provided
+  if (payload.contractId) {
+    const contractExists = await prisma.contract.count({
+      where: { id: payload.contractId },
+    });
+    if (!contractExists) {
+      throw new ApiError(httpStatus.NOT_FOUND, "Contract not found");
+    }
+  }
+
+  // 4. Validate items if provided (each must exist globally)
+  if (payload.items && Array.isArray(payload.items)) {
+    for (const item of payload.items) {
+      const existingItem = await prisma.item.findUnique({
+        where: { id: item.id },
+      });
+      if (!existingItem) {
+        throw new ApiError(
+          httpStatus.BAD_REQUEST,
+          `Item with id ${item.id} does not exist`,
+        );
+      }
+    }
+  }
+
+  // 5. Process image uploads
+  const processImages = async (
+    files: Express.Multer.File[] | undefined,
+    folder: string,
+  ) => {
+    if (!files || files.length === 0) return null;
+    return Promise.all(
+      files.map((file) => uploadInSpace(file, `estimates/${folder}`)),
+    );
+  };
+  const [map, urls] = await Promise.all([
+    processImages(files?.map, "map"),
+    processImages(files?.urls, "urls"),
+  ]);
+
+  // 6. Prepare update data
+  const updateData: Prisma.EstimateUpdateInput = {
+    estimator: { connect: { id: estimatorId } },
+  };
+
+  // Scalar fields
+  if (payload.estimateName !== undefined)
+    updateData.estimateName = payload.estimateName;
+  if (payload.legendary !== undefined) updateData.legendary = payload.legendary;
+  if (payload.date !== undefined) updateData.date = payload.date;
+  if (payload.endDate !== undefined) updateData.endDate = payload.endDate;
+  if (payload.items !== undefined) updateData.items = payload.items;
+  if (payload.additionalMarkUp !== undefined)
+    updateData.additionalMarkUp = payload.additionalMarkUp;
+  if (payload.grandTotal !== undefined)
+    updateData.grandTotal = payload.grandTotal;
+  if (payload.discountAmount !== undefined)
+    updateData.discountAmount = payload.discountAmount;
+  if (payload.depositAmount !== undefined)
+    updateData.depositAmount = payload.depositAmount;
+  if (payload.isOnlinePayment !== undefined)
+    updateData.isOnlinePayment = payload.isOnlinePayment;
+  if (payload.coverPaymentProcessingFee !== undefined)
+    updateData.coverPaymentProcessingFee = payload.coverPaymentProcessingFee;
+  if (payload.noteForClient !== undefined)
+    updateData.noteForClient = payload.noteForClient;
+  if (payload.privateNote !== undefined)
+    updateData.privateNote = payload.privateNote;
+  if (payload.clientSign !== undefined)
+    updateData.clientSign = payload.clientSign;
+  if (payload.mySign !== undefined) updateData.mySign = payload.mySign;
+  if (payload.format !== undefined) updateData.format = payload.format;
+  if (payload.poNumber !== undefined) updateData.poNumber = payload.poNumber;
+  if (payload.isGroupingEnabled !== undefined)
+    updateData.isGroupingEnabled = payload.isGroupingEnabled;
+  if (payload.isAutoInvoice !== undefined)
+    updateData.isAutoInvoice = payload.isAutoInvoice;
+  if (payload.estimateNumber !== undefined)
+    updateData.estimateNumber = payload.estimateNumber;
+
+  // Relations
+  if (payload.clientId !== undefined) {
+    updateData.client = { connect: { id: payload.clientId } };
+  }
+  if (payload.contractId !== undefined) {
+    updateData.contract = { connect: { id: payload.contractId } };
+  }
+
+  if (map) updateData.sideMap = map[0];
+  if (urls) updateData.fileUrls = urls;
+
+  // ========== 7. Handle subitems with automatic cleanup ==========
+  // Determine the final items array (after update)
+  const finalItems =
+    payload.items && Array.isArray(payload.items)
+      ? payload.items
+      : (existingEstimate.items as any[]);
+
+  // Build set of valid item IDs from finalItems
+  const validItemIds = new Set(finalItems.map((item: any) => item.id));
+
+  // Start with existing subitems (if any)
+  let existingSubItems = (existingEstimate.subItems as any[]) || [];
+
+  // If items were updated, remove subitems whose itemId is no longer valid
+  if (payload.items && Array.isArray(payload.items)) {
+    existingSubItems = existingSubItems.filter((sub: any) =>
+      validItemIds.has(sub.itemId),
+    );
+  }
+
+  // Process new subitems from the payload (if any)
+  let newSubItems: any[] = [];
+  if (
+    payload.subItems &&
+    Array.isArray(payload.subItems) &&
+    payload.subItems.length > 0
+  ) {
+    newSubItems = payload.subItems.map((sub: any) => {
+      if (!validItemIds.has(sub.itemId)) {
+        throw new ApiError(
+          httpStatus.BAD_REQUEST,
+          `Subitem references itemId ${sub.itemId} which is not in the estimate items list (after update)`,
+        );
+      }
+      return {
+        id: randomUUID(),
+        itemId: sub.itemId,
+        title: sub.title,
+        quantity: sub.quantity ?? null,
+        unitCost: sub.unitCost ?? null,
+        price: sub.price ?? null,
+      };
+    });
+  }
+
+  // Merge: cleaned existing subitems + new subitems
+  if (existingSubItems.length > 0 || newSubItems.length > 0) {
+    updateData.subItems = [...existingSubItems, ...newSubItems];
+  }
+  // ========== End of subitems handling ==========
+
+  // 8. Perform update
+  const updatedEstimate = await prisma.estimate.update({
+    where: { id: estimateId },
+    data: updateData,
+  });
+
+  // 9. Fetch detailed items for response
+  const itemIds = updatedEstimate.items.map((item: any) => item.id);
+  const itemsDetail =
+    itemIds.length > 0
+      ? await prisma.item.findMany({ where: { id: { in: itemIds } } })
       : [];
 
   return {

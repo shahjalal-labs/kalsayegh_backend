@@ -1,56 +1,323 @@
-### 1. Create estimate with subitems (backend generates UUIDs)
+### create estimate
 
 POST {{baseUrl}}/estimate/create-estimate HTTP/1.1
 Authorization: {{admin}}
 Content-Type: application/json
 
 {
-  "clientId": "67a1b2c3d4e5f67890abcdef",
-  "date": "2025-01-20",
-  "endDate": "2025-01-25",
-  "estimateName": "Parking Lot Sealcoating",
-  "grandTotal": 2250,
+  "additionalMarkUp": 5.5,
+  "clientId": "69dc92eb0dc5477223a0ff0f",
+  "clientSign": true,
+  "contractId": "69febbee5d2d85a94fa2f763",
+  "coverPaymentProcessingFee": true,
+  "date": "2026-04-01",
+  "depositAmount": 300,
+  "discountAmount": 100,
+  "estimateName": "Residential Painting Project",
+  "estimateNumber": "66",
+  "format": "TABLE",
+  "grandTotal": 1500,
+  "isAutoInvoice": true,
+  "isGroupingEnabled": true,
+  "isOnlinePayment": true,
   "items": [
     {
-      "id": "67b2c3d4e5f67890abcdef12",
-      "quantity": 2,
-      "subTotal": 1200
-    },
-    {
-      "id": "67b2c3d4e5f67890abcdef13",
-      "quantity": 1,
-      "subTotal": 800
+      "id": "69d87eb901d75586feffc495",
+      "quantity": 3,
+      "subTotal": 450
     }
   ],
-  "subItems": [
-    {
-      "itemId": "67b2c3d4e5f67890abcdef12",
-      "price": 150,
-      "quantity": 2,
-      "title": "Extra preparation",
-      "unitCost": 75
-    },
-    {
-      "itemId": "67b2c3d4e5f67890abcdef12",
-      "price": 100,
-      "quantity": 1,
-      "title": "Disposal fee",
-      "unitCost": 100
-    }
+  "legendary": "legendary",
+  "mySign": true,
+  "noteForClient": "Thank you for your business! Please complete payment within 7 days.",
+  "poNumber": "3344",
+  "privateNote": "Repeat client, prefers email communication."
+}
+
+
+### create client
+
+POST {{baseUrl}}/estimate/create-client HTTP/1.1
+Authorization: {{estMir}}
+Content-Type: application/json
+
+{
+  "address": "123 Main Street",
+  "city": "Dhaka",
+  "clientName": "John Doe",
+  "email": "johndoe@example.com",
+  "phoneNumber": "+8801712345678",
+  "state": "Dhaka Division",
+  "zip": "1216"
+}
+
+
+### get my clients
+
+GET {{baseUrl}}/estimate/my-clients HTTP/1.1
+Authorization: {{estMir}}
+
+
+### create markup
+
+POST {{baseUrl}}/estimate/create-markup HTTP/1.1
+Authorization: {{estMir}}
+Content-Type: application/json
+
+{
+  "name": "Standard Markup",
+  "percentage": 15
+}
+
+
+### create markup with amount
+
+POST {{baseUrl}}/estimate/create-markup HTTP/1.1
+Authorization: {{estMir}}
+Content-Type: application/json
+
+{
+  "amount": 200,
+  "name": "Flat Fee Markup"
+}
+
+
+### get all markups
+
+GET {{baseUrl}}/estimate/all-markups HTTP/1.1
+Authorization: {{estMir}}
+
+
+### create item
+
+POST {{baseUrl}}/estimate/create-item HTTP/1.1
+Authorization: {{admin}}
+Content-Type: application/json
+
+{
+  "description": "Premium interior wall paint per gallon",
+  "format": "TABLE",
+  "itemName": "Italian Balu",
+  "markUpId": "69e04d6283a9851a096b7b0b",
+  "notes": "Includes labor",
+  "rate": 150,
+  "taxes": [
+    "69e6fa64a0a5737b61ddebb0"
   ]
 }
 
 
-### 2. Add more subitems to existing estimate
+### update item
 
-POST {{baseUrl}}/estimates/67a1b2c3d4e5f67890abcdef/sub-items HTTP/1.1
-Authorization: {{jabir}}
+PATCH {{baseUrl}}/estimate/update-item HTTP/1.1
+Authorization: {{admin}}
 Content-Type: application/json
 
 {
+  "description": "Heavy duty exterior steel door",
+  "format": "TABLE",
+  "itemId": "69d87eb901d75586feffc495",
+  "itemName": "Steel Door",
+  "markUpId": "69e04d6283a9851a096b7b0b",
+  "notes": "Updated price with markup",
+  "rate": 2500,
+  "taxes": [
+    "69e6fa64a0a5737b61ddebb0",
+    "69e6f9e5a0a5737b61ddebaf",
+    "69e0548b83a9851a096b7b0e"
+  ]
+}
+
+
+### get all items
+
+GET {{baseUrl}}/estimate/all-items HTTP/1.1
+Authorization: {{admin}}
+
+
+### create tax
+
+POST {{baseUrl}}/estimate/create-tax HTTP/1.1
+Authorization: {{estMir}}
+Content-Type: application/json
+
+{
+  "name": "State Tax",
+  "percentage": 8
+}
+
+
+### get all taxes
+
+GET {{baseUrl}}/estimate/all-taxes HTTP/1.1
+Authorization: {{estMir}}
+
+
+### get all estimates
+
+GET {{baseUrl}}/estimate/all-estimates?page=1&limit=20&searchTerm=kitchen&status=Approved HTTP/1.1
+Authorization: {{estMir}}
+
+
+### get all estimates
+
+GET {{baseUrl}}/estimate/all-estimates?page=1&limit=10 HTTP/1.1
+Authorization: {{admin}}
+
+
+### get estimate details
+
+GET {{baseUrl}}/estimate/estimate/69def6a183a9851a096b7aee HTTP/1.1
+Authorization: {{estMir}}
+
+
+### send estimate mail
+
+# send-mail/:estimateId
+
+POST {{baseUrl}}/estimate/send-mail/69d9eec4531af0c6f2ebc13a HTTP/1.1
+Authorization: {{estMir}}
+Content-Type: application/json
+
+
+### update estimate status (Pending / Approved / Declined)
+
+# update-status/:estimateId
+
+PATCH {{baseUrl}}/estimate/update-status/69e71ad3eb445ea74ae9a561 HTTP/1.1
+Authorization: {{estMir}}
+Content-Type: application/json
+
+{
+  "status": "Approved"
+}
+
+
+### update estimate email status and sign estimate
+
+# update-email-sign/:estimateId
+
+PATCH {{baseUrl}}/estimate/update-email-sign/69e71ad3eb445ea74ae9a561 HTTP/1.1
+Content-Type: application/json
+
+{
+  "emailStatus": "READ",
+  "mySignAt": "2026-05-11T00:00:00.000Z",
+  "mySignName": "Kal Sayegh",
+  "signedName": "Mir Bin Mota"
+}
+
+
+### Send estimate email with custom recipients, CC, BCC, and copy to me
+
+# /:estimateId
+
+POST {{baseUrl}}/estimate/send-email/69e71ad3eb445ea74ae9a561 HTTP/1.1
+Authorization: {{estMir}}
+Content-Type: application/json
+
+{
+  "bcc": [],
+  "cc": [],
+  "message": "We are pleased to work with you. Please review the estimate.",
+  "sendMeCopy": true,
+  "subject": "Your Estimate #2525 from Geo Paving and Sealcoating",
+  "to": [
+    "dev.shahjalal@gmail.com",
+    "muhommodshahjalal@gmail.com"
+  ]
+}
+
+
+### delete estimate
+
+# /:estimateId
+
+DELETE {{baseUrl}}/estimate/delete/69fda10972d7bcfae8a6b967 HTTP/1.1
+Authorization: {{admin}}
+
+
+### get estimate number
+
+GET {{baseUrl}}/estimate/estimate-number HTTP/1.1
+Authorization: {{admin}}
+
+
+### 1. Update estimate without files (JSON)
+
+PATCH {{baseUrl}}/estimate/edit-estimate/69e71ad3eb445ea74ae9a561 HTTP/1.1
+Authorization: {{admin}}
+Content-Type: application/json
+
+{
+  "additionalMarkUp": 8.5,
+  "clientId": "69dcbc491d6f350e20bbd0ea",
+  "clientSign": false,
+  "contractId": "6a032fd2ba5bfdd401447448",
+  "coverPaymentProcessingFee": true,
+  "date": "2026-05-01",
+  "depositAmount": 500.00,
+  "discountAmount": 150.00,
+  "endDate": "2026-06-15",
+  "estimateName": "Updated Estimate - Driveway Resurfacing",
+  "format": "TABLE",
+  "grandTotal": 2500.00,
+  "isAutoInvoice": true,
+  "isGroupingEnabled": true,
+  "isOnlinePayment": true,
+  "items": [
+    {
+      "id": "69d9e204785ffd2b312e8483",
+      "quantity": 4,
+      "subTotal": 600
+    }
+  ],
+  "legendary": "Summer promotion discount applied",
+  "mySign": true,
+  "noteForClient": "Deposit required to secure schedule.",
+  "poNumber": "PO-2026-001",
+  "privateNote": "Client requested extra sealcoating"
+}
+
+
+### Update estimate (all fields example) - JSON only
+
+PATCH {{baseUrl}}/estimate/edit-estimate/69e71ad3eb445ea74ae9a561 HTTP/1.1
+Authorization: {{admin}}
+Content-Type: application/json
+
+{
+  "additionalMarkUp": 8.5,
+  "clientId": "69dcbc491d6f350e20bbd0ea",
+  "clientSign": false,
+  "contractId": "6a032fd2ba5bfdd401447448",
+  "coverPaymentProcessingFee": true,
+  "date": "2026-05-01",
+  "depositAmount": 500.00,
+  "discountAmount": 150.00,
+  "endDate": "2026-06-15",
+  "estimateName": "Updated Estimate - Driveway Resurfacing",
+  "estimateNumber": "EST-12345",
+  "format": "TABLE",
+  "grandTotal": 2500.00,
+  "isAutoInvoice": true,
+  "isGroupingEnabled": true,
+  "isOnlinePayment": true,
+  "items": [
+    {
+      "id": "69d9e204785ffd2b312e8483",
+      "quantity": 4,
+      "subTotal": 600
+    }
+  ],
+  "legendary": "Summer promotion discount applied",
+  "mySign": true,
+  "noteForClient": "Deposit required to secure schedule.",
+  "poNumber": "PO-2026-001",
+  "privateNote": "Client requested extra sealcoating",
   "subItems": [
     {
-      "itemId": "67b2c3d4e5f67890abcdef13",
+      "itemId": "69d9e204785ffd2b312e8483",
       "price": 250,
       "quantity": 1,
       "title": "Traffic control",
@@ -60,27 +327,175 @@ Content-Type: application/json
 }
 
 
-### 3. Update a subitem (use UUID returned from previous steps)
+### Update estimate images – remove a fileUrl
 
-PATCH {{baseUrl}}/estimates/67a1b2c3d4e5f67890abcdef/sub-items/550e8400-e29b-41d4-a716-446655440000 HTTP/1.1
-Authorization: {{jabir}}
+PATCH {{baseUrl}}/estimate/estimate-images/69fec7765d2d85a94fa2f764 HTTP/1.1
+Authorization: {{admin}}
 Content-Type: application/json
 
 {
-  "price": 600,
-  "quantity": 2,
-  "title": "Heavy traffic control (night)",
-  "unitCost": 300
+  "fileUrls": [
+    "https://api.zenexcloud.com/emdadullah/uploads/courses/urls/1776229246929-cpwl05v3amf.jpg"
+  ],
+  "fileUrlsAction": "remove"
 }
 
 
-### 4. Delete a subitem
+### Update estimate images – replace fileUrls
 
-DELETE {{baseUrl}}/estimates/67a1b2c3d4e5f67890abcdef/sub-items/550e8400-e29b-41d4-a716-446655440000 HTTP/1.1
-Authorization: {{jabir}}
+PATCH {{baseUrl}}/estimate/estimate-images/69fec7765d2d85a94fa2f764 HTTP/1.1
+Authorization: {{admin}}
+Content-Type: application/json
+
+{
+  "fileUrls": [
+    "https://api.zenexcloud.com/emdadullah/uploads/courses/urls/1776219809625-il8ahukx0ze.jpg"
+  ],
+  "fileUrlsAction": "replace"
+}
 
 
-### 5. Get estimate details (includes subitems)
+### Update estimate images – replace sideMap
 
-GET {{baseUrl}}/estimates/estimate/67a1b2c3d4e5f67890abcdef HTTP/1.1
-Authorization: {{jabir}}
+PATCH {{baseUrl}}/estimate/estimate-images/69fec7765d2d85a94fa2f764 HTTP/1.1
+Authorization: {{admin}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary
+
+------WebKitFormBoundary
+Content-Disposition: form-data; name="bodyData"
+Content-Type: application/json
+
+{
+  "sideMapAction": "replace"
+}
+
+------WebKitFormBoundary
+Content-Disposition: form-data; name="sideMap"; filename="new-map.jpg"
+Content-Type: image/jpeg
+
+< ./new-map.jpg
+------WebKitFormBoundary--
+
+
+### Add two new fileUrls
+
+PATCH {{baseUrl}}/estimate/estimate-images/69fec7765d2d85a94fa2f764 HTTP/1.1
+Authorization: {{admin}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary
+
+------WebKitFormBoundary
+Content-Disposition: form-data; name="bodyData"
+Content-Type: application/json
+
+{
+  "fileUrlsAction": "add"
+}
+
+------WebKitFormBoundary
+Content-Disposition: form-data; name="fileUrls"; filename="doc1.pdf"
+Content-Type: application/pdf
+
+< ./doc1.pdf
+------WebKitFormBoundary
+Content-Disposition: form-data; name="fileUrls"; filename="doc2.pdf"
+Content-Type: application/pdf
+
+< ./doc2.pdf
+------WebKitFormBoundary--
+
+
+### Add estimate item image
+
+PATCH {{baseUrl}}/estimate/item-images/67b... HTTP/1.1
+Authorization: {{admin}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary
+
+------WebKitFormBoundary
+Content-Disposition: form-data; name="bodyData"
+Content-Type: application/json
+
+{
+  "itemId": "69d87eb901d75586feffc495",
+  "action": "add"
+}
+
+------WebKitFormBoundary
+Content-Disposition: form-data; name="urls"; filename="img1.jpg"
+Content-Type: image/jpeg
+
+< ./img1.jpg
+------WebKitFormBoundary
+Content-Disposition: form-data; name="urls"; filename="img2.png"
+Content-Type: image/png
+
+< ./img2.png
+------WebKitFormBoundary--
+
+
+### Remove estimate Item Image
+
+PATCH {{baseUrl}}/estimate/item-images/67b... HTTP/1.1
+Authorization: {{admin}}
+Content-Type: application/json
+
+{
+  "action": "remove",
+  "imageUrls": [
+    ""https://api.zenexcloud.com/emdadullah/uploads/estimates/itemImages/1779175620523-h8yjmxsougg.jpg",
+    "https://api.zenexcloud.com/emdadullah/uploads/estimates/itemImages/1779175701161-42t392cj0pg.jpg",
+    "https://api.zenexcloud.com/emdadullah/uploads/estimates/itemImages/1779175704194-wk5iewdcy9o.jpg",
+    "https://api.zenexcloud.com/emdadullah/uploads/estimates/itemImages/1779175707674-e3xv5ro5vtm.jpg"
+  ],
+  "itemId": "69d87ef101d75586feffc496"
+}
+
+
+### Replace estimate item images
+
+PATCH {{baseUrl}}/estimate/item-images/67b... HTTP/1.1
+Authorization: {{admin}}
+Content-Type: multipart/form-data; boundary=----WebKitFormBoundary
+
+------WebKitFormBoundary
+Content-Disposition: form-data; name="bodyData"
+Content-Type: application/json
+
+{
+  "itemId": "69d87ef101d75586feffc496",
+  "action": "replace",
+  "imageUrls": ["https://api.zenexcloud.com/emdadullah/uploads/estimates/itemImages/1779175721009-smirid7ipfm.jpg",
+  "https://api.zenexcloud.com/emdadullah/uploads/estimates/itemImages/1779175721010-z00uu88xgg.jpg"]
+}
+
+------WebKitFormBoundary
+Content-Disposition: form-data; name="urls"; filename="new1.jpg"
+Content-Type: image/jpeg
+
+< ./new1.jpg
+------WebKitFormBoundary
+Content-Disposition: form-data; name="urls"; filename="new2.png"
+Content-Type: image/png
+
+< ./new2.png
+------WebKitFormBoundary--
+
+
+### Get all item images for an estimate
+
+GET {{baseUrl}}/estimate/item-images/67b... HTTP/1.1
+Authorization: {{admin}}
+
+
+### Get images for a specific item only
+
+
+### 
+
+
+### 
+
+
+###
+
+GET {{baseUrl}}/estimate/item-images/67b...?itemId=69d87eb901d75586feffc495 HTTP/1.1
+Authorization: {{admin}}
