@@ -7,6 +7,7 @@ import validateRequest from "../../middlewares/validateRequest";
 import { estimateValidation } from "./estimate.validation";
 import { fileUploader } from "../../../helpers/fileUploader";
 import { parseBodyData } from "../../middlewares/parseBodyData";
+import { estimateSubItemControllers } from "./estimate.subItem.controller";
 
 const router = express.Router();
 
@@ -143,6 +144,28 @@ router.patch(
   parseBodyData,
   validateRequest(estimateValidation.updateEstimateItemImagesSchema),
   estimateControllers.updateEstimateItemImages,
+);
+
+// ========== SUBLINE ITEMS ROUTES ==========
+
+router.post(
+  "/:estimateId/sub-items",
+  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  validateRequest(estimateValidation.addSubItemsSchema),
+  estimateSubItemControllers.addSubItems,
+);
+
+router.patch(
+  "/:estimateId/sub-items/:subItemId",
+  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  validateRequest(estimateValidation.updateSubItemSchema),
+  estimateSubItemControllers.updateSubItem,
+);
+
+router.delete(
+  "/:estimateId/sub-items/:subItemId",
+  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  estimateSubItemControllers.deleteSubItem,
 );
 
 export const estimateRoutes = router;

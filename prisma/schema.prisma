@@ -218,7 +218,7 @@ model Item {
   description String?
   notes       String?
   createdAt   DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  updatedAt   DateTime @updatedAt
   markUp      MarkUp?  @relation(fields: [markUpId], references: [id], onDelete: SetNull)
   format      Format?  @default(DESCRIPTION)
   imageUrls   String[]
@@ -269,8 +269,18 @@ model Estimate {
   isGroupingEnabled         Boolean?
   estimateNumber            String?
   itemImages                TItemImages[]
+  subItems                  TSubItems[]
 
   @@map("estimates")
+}
+
+type TSubItems {
+  id       String
+  itemId   String
+  title    String
+  quantity Float?
+  unitCost Float?
+  price    Float?
 }
 
 type TItemImages {

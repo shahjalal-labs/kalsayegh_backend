@@ -13,8 +13,9 @@ import { Request } from "express";
 import { uploadInSpace } from "../../../helpers/uploadInSpace";
 import { paginationHelper, TOptions } from "../../../shared/pagination";
 import httpStatus from "http-status";
+import { randomUUID } from "crypto";
 
-const createEstimateInDB = async (req: Request) => {
+/* const createEstimateInDB = async (req: Request) => {
   const files = req.files as { [fieldname: string]: Express.Multer.File[] };
   const payload: TCreateEstimate = req.body;
   const estimatorId = req.user.id;
@@ -104,6 +105,135 @@ const createEstimateInDB = async (req: Request) => {
     where: { id: { in: payload.items.map((item: any) => item.id) } },
   });
 
+  if (newEstimate.isAutoInvoice) {
+    invoiceService.generateInvoiceFromEstimate(newEstimate.id);
+  }
+
+  return {
+    ...newEstimate,
+    itemss,
+  };
+}; */
+
+const createEstimateInDB = async (req: Request) => {
+  const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+  const payload: TCreateEstimate = req.body;
+  const estimatorId = req.user.id;
+
+  // 1. Validate client
+  const existingClient = await prisma.client.findUnique({
+    where: { id: payload.clientId },
+  });
+  if (!existingClient) {
+    throw new ApiError(400, "Client does not exist");
+  }
+
+  // 2. Validate contract if provided
+  if (payload.contractId) {
+    const contract = await prisma.contract.count({
+      where: { id: payload.contractId },
+    });
+    if (!contract)
+      throw new ApiError(httpStatus.NOT_FOUND, "Contract not found");
+  }
+
+  // 3. Validate each line item exists globally
+  const items = payload.items;
+  for (const item of items) {
+    const existingItem = await prisma.item.findUnique({
+      where: { id: item.id },
+    });
+    if (!existingItem) {
+      throw new ApiError(400, `Item with id ${item.id} does not exist`);
+    }
+  }
+
+  // 4. Process subitems (if any) – generate UUIDs and validate itemId references
+  let processedSubItems = undefined;
+  if (
+    payload.subItems &&
+    Array.isArray(payload.subItems) &&
+    payload.subItems.length > 0
+  ) {
+    // Build a set of valid line item IDs from payload.items
+    const validItemIds = new Set(items.map((i: any) => i.id));
+
+    processedSubItems = payload.subItems.map((sub: any) => {
+      // Check that the referenced itemId exists in the estimate's items
+      if (!validItemIds.has(sub.itemId)) {
+        throw new ApiError(
+          400,
+          `Subitem references itemId ${sub.itemId} which is not in the estimate items list`,
+        );
+      }
+      return {
+        id: randomUUID(), // generate unique UUID for this subline item
+        itemId: sub.itemId,
+        title: sub.title,
+        quantity: sub.quantity ?? null,
+        unitCost: sub.unitCost ?? null,
+        price: sub.price ?? null,
+      };
+    });
+  }
+
+  // 5. Process images
+  const processImages = async (
+    files: Express.Multer.File[] | undefined,
+    folder: string,
+  ) => {
+    if (!files || files.length === 0) return null;
+    return Promise.all(
+      files.map((file) => uploadInSpace(file, `courses/${folder}`)),
+    );
+  };
+
+  const [map, urls] = await Promise.all([
+    processImages(files?.map, "map"),
+    processImages(files?.urls, "urls"),
+  ]);
+
+  // 6. Get estimate count for numbering
+  const estimateCount = await prisma.estimate.count();
+
+  // 7. Create estimate
+  const newEstimate = await prisma.estimate.create({
+    data: {
+      clientId: payload.clientId,
+      estimatorId: estimatorId,
+      legendary: payload.legendary,
+      date: payload.date,
+      endDate: payload.endDate as string,
+      estimateName: payload.estimateName,
+      items: payload.items,
+      subItems: processedSubItems as Prisma.JsonArray, // store subitems
+      grandTotal: payload.grandTotal,
+      additionalMarkUp: payload.additionalMarkUp,
+      sideMap: map ? map[0] : undefined,
+      fileUrls: urls ? urls : undefined,
+      depositAmount: payload.depositAmount,
+      discountAmount: payload.discountAmount,
+      isOnlinePayment: payload.isOnlinePayment,
+      coverPaymentProcessingFee: payload.coverPaymentProcessingFee,
+      noteForClient: payload.noteForClient,
+      privateNote: payload.privateNote,
+      clientSign: payload.clientSign,
+      mySign: payload.mySign,
+      format: payload.format,
+      contractId: payload.contractId,
+      poNumber: payload.poNumber,
+      isGroupingEnabled: payload.isGroupingEnabled,
+      estimateNumber: (estimateCount + 1).toString(),
+      isAutoInvoice: payload.isAutoInvoice,
+    },
+  });
+
+  // 8. Fetch detailed line items (for response)
+  const itemss = await prisma.item.findMany({
+    where: { id: { in: payload.items.map((item: any) => item.id) } },
+  });
+
+  // 9. Auto-generate invoice if requested
   if (newEstimate.isAutoInvoice) {
     invoiceService.generateInvoiceFromEstimate(newEstimate.id);
   }

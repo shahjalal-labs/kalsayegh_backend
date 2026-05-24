@@ -1,0 +1,91 @@
+### 1. Create estimate with subitems (backend generates UUIDs)
+
+POST {{baseUrl}}/estimate/create-estimate HTTP/1.1
+Authorization: {{admin}}
+Content-Type: application/json
+
+{
+  "clientId": "69d4be6152c9811ce6a7f12a",
+  "date": "2025-01-20",
+  "endDate": "2025-01-25",
+  "estimateName": "Parking Lot Sealcoating",
+  "grandTotal": 2250,
+  "items": [
+    {
+      "id": "69d87eb901d75586feffc495",
+      "quantity": 2,
+      "subTotal": 1200
+    },
+    {
+      "id": "69d9e204785ffd2b312e8483",
+      "quantity": 1,
+      "subTotal": 800
+    }
+  ],
+  "legendary": "legendary",
+  "subItems": [
+    {
+      "itemId": "69d87eb901d75586feffc495",
+      "price": 150,
+      "quantity": 2,
+      "title": "Extra preparation",
+      "unitCost": 75
+    },
+    {
+      "itemId": "69d87eb901d75586feffc495",
+      "price": 100,
+      "quantity": 1,
+      "title": "Disposal fee",
+      "unitCost": 100
+    }
+  ]
+}
+
+
+### 2. Add more subitems to existing estimate
+
+# /:estimateId
+
+POST {{baseUrl}}/estimate/6a12e5b643881d9d3452b6e5/sub-items HTTP/1.1
+Authorization: {{admin}}
+Content-Type: application/json
+
+{
+  "subItems": [
+    {
+      "itemId": "69d87eb901d75586feffc495",
+      "price": 250,
+      "quantity": 1,
+      "title": "Traffic control",
+      "unitCost": 250
+    }
+  ]
+}
+
+
+### 3. Update a subitem
+
+# /estimateId/subitemId
+
+PATCH {{baseUrl}}/estimate/6a12e5b643881d9d3452b6e5/sub-items/a1b2846f-a29b-4d79-9ce7-547bb2226609 HTTP/1.1
+Authorization: {{admin}}
+Content-Type: application/json
+
+{
+  "price": 600,
+  "quantity": 2,
+  "title": "Heavy traffic control (night)",
+  "unitCost": 300
+}
+
+
+### 4. Delete a subitem
+
+DELETE {{baseUrl}}/estimate/6a12e5b643881d9d3452b6e5/sub-items/a1b2846f-a29b-4d79-9ce7-547bb2226609 HTTP/1.1
+Authorization: {{admin}}
+
+
+### 5. Get estimate details
+
+GET {{baseUrl}}/estimate/estimate/6a12e5b643881d9d3452b6e5 HTTP/1.1
+Authorization: {{admin}}

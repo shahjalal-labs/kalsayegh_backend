@@ -33,11 +33,22 @@ const createEstimateSchema = z
     clientSign: z.boolean().optional(),
     mySign: z.boolean().optional(),
     format: z.nativeEnum(Format).default("DESCRIPTION"),
-    contractId: objectIdSchema,
+    contractId: objectIdSchema.optional(),
     poNumber: z.string().optional(),
     isGroupingEnabled: z.boolean().optional(),
     estimateNumber: z.string().optional(),
     isAutoInvoice: z.boolean().optional(),
+    subItems: z
+      .array(
+        z.object({
+          itemId: objectIdSchema,
+          title: z.string().min(1),
+          quantity: z.number().positive().optional(),
+          unitCost: z.number().nonnegative().optional(),
+          price: z.number().nonnegative().optional(),
+        }),
+      )
+      .optional(),
   })
   .strict();
 
@@ -185,6 +196,40 @@ export type TUpdateEstimateItemImages = z.infer<
   typeof updateEstimateItemImagesSchema
 >;
 
+// ========== SUBLINE ITEMS VALIDATION ==========
+
+// Schema for adding multiple subitems to an existing estimate
+const addSubItemsSchema = z.object({
+  subItems: z
+    .array(
+      z.object({
+        itemId: objectIdSchema, // parent line item ID (must exist in estimate.items)
+        title: z.string().min(1, "Title is required"),
+        quantity: z.number().positive("Quantity must be > 0").optional(),
+        unitCost: z
+          .number()
+          .nonnegative("Unit cost cannot be negative")
+          .optional(),
+        price: z.number().nonnegative("Price cannot be negative").optional(),
+      }),
+    )
+    .min(1, "At least one subitem is required"),
+});
+
+// Schema for updating a single subitem
+const updateSubItemSchema = z
+  .object({
+    title: z.string().min(1).optional(),
+    quantity: z.number().positive().optional(),
+    unitCost: z.number().nonnegative().optional(),
+    price: z.number().nonnegative().optional(),
+  })
+  .refine((data) => Object.keys(data).length > 0, {
+    message: "At least one field must be provided for update",
+  });
+
+// Schema for delete (only URL param – no body needed)
+
 export const estimateValidation = {
   createEstimateSchema,
   markUpValidationSchema,
@@ -196,4 +241,6 @@ export const estimateValidation = {
   sendEstimateEmailSchema,
   estimateImageActionSchema,
   updateEstimateItemImagesSchema,
+  addSubItemsSchema,
+  updateSubItemSchema,
 };
