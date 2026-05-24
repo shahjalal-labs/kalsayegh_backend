@@ -1,4 +1,3 @@
-import { Prisma } from "@prisma/client";
 import { randomUUID } from "crypto";
 import httpStatus from "http-status";
 import ApiError from "../../../errors/ApiErrors";
@@ -50,7 +49,7 @@ export const invoiceSubItemService = {
 
     await prisma.invoice.update({
       where: { id: invoiceId },
-      data: { subItems: updatedSubItems as Prisma.JsonArray },
+      data: { subItems: updatedSubItems },
     });
 
     return subItemsToAdd; // return newly added subitems with their UUIDs
