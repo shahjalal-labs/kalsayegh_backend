@@ -206,7 +206,7 @@ const createEstimateInDB = async (req: Request) => {
       endDate: payload.endDate as string,
       estimateName: payload.estimateName,
       items: payload.items,
-      subItems: processedSubItems, // store subitems
+      subItems: processedSubItems,
       grandTotal: payload.grandTotal,
       additionalMarkUp: payload.additionalMarkUp,
       sideMap: map ? map[0] : undefined,

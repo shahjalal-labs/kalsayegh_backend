@@ -309,7 +309,7 @@ enum EstimateStage {
 type TItemType {
   id       String @db.ObjectId
   quantity Int
-  subTotal Int
+  subTotal Float
 }
 
 model Invoice {

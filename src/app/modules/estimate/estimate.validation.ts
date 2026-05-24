@@ -10,7 +10,7 @@ export const EstimateStatusEnum = z.enum(["Pending", "Approved", "Declined"]);
 export const TItemTypeSchema = z.object({
   id: objectIdSchema,
   quantity: z.number().int().positive("Quantity must be greater than 0"),
-  subTotal: z.number().int().nonnegative("Subtotal must be >= 0"),
+  subTotal: z.number().nonnegative("Subtotal must be >= 0"),
 });
 
 // 🔸 Main Estimate Schema
