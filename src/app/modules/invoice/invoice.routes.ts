@@ -6,6 +6,7 @@ import { parseBodyData } from "../../middlewares/parseBodyData";
 import validateRequest from "../../middlewares/validateRequest";
 import { invoiceValidation } from "./invoice.validation";
 import { invoiceController } from "./invoice.controller";
+import { invoiceSubItemControllers } from "./invoice.subItem.controller";
 
 const router = Router();
 
@@ -122,6 +123,28 @@ router.patch(
   parseBodyData,
   validateRequest(invoiceValidation.updateInvoiceItemImagesSchema),
   invoiceController.updateInvoiceItemImages,
+);
+
+// ========== SUBLINE ITEMS ROUTES (INVOICE) ==========
+
+router.post(
+  "/:invoiceId/sub-items",
+  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  validateRequest(invoiceValidation.addInvoiceSubItemsSchema),
+  invoiceSubItemControllers.addSubItems,
+);
+
+router.patch(
+  "/:invoiceId/sub-items/:subItemId",
+  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  validateRequest(invoiceValidation.updateInvoiceSubItemSchema),
+  invoiceSubItemControllers.updateSubItem,
+);
+
+router.delete(
+  "/:invoiceId/sub-items/:subItemId",
+  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  invoiceSubItemControllers.deleteSubItem,
 );
 
 export const invoiceRoutes = router;

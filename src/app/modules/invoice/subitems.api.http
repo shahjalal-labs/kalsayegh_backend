@@ -1,0 +1,44 @@
+### 1. Add subitems to an existing invoice
+
+POST {{baseUrl}}/invoices/67a1b2c3d4e5f67890abcdef/sub-items HTTP/1.1
+Authorization: {{jabir}}
+Content-Type: application/json
+
+{
+  "subItems": [
+    {
+      "itemId": "67b2c3d4e5f67890abcdef12",
+      "price": 150,
+      "quantity": 2,
+      "title": "Extra prep work",
+      "unitCost": 75
+    },
+    {
+      "itemId": "67b2c3d4e5f67890abcdef12",
+      "price": 100,
+      "quantity": 1,
+      "title": "Disposal fee",
+      "unitCost": 100
+    }
+  ]
+}
+
+
+### 2. Update a subitem (use the returned UUID)
+
+PATCH {{baseUrl}}/invoices/67a1b2c3d4e5f67890abcdef/sub-items/550e8400-e29b-41d4-a716-446655440000 HTTP/1.1
+Authorization: {{jabir}}
+Content-Type: application/json
+
+{
+  "price": 900,
+  "quantity": 3,
+  "title": "Heavy traffic control (night)",
+  "unitCost": 300
+}
+
+
+### 3. Delete a subitem
+
+DELETE {{baseUrl}}/invoices/67a1b2c3d4e5f67890abcdef/sub-items/550e8400-e29b-41d4-a716-446655440000 HTTP/1.1
+Authorization: {{jabir}}

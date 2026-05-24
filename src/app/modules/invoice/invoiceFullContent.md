@@ -51,9 +51,14 @@
 │   │   │   ├── estimate
 │   │   │   │   ├── estimate.api.http
 │   │   │   │   ├── estimate.controller.ts
+│   │   │   │   ├── estimateFullContent.md
 │   │   │   │   ├── estimate.route.ts
 │   │   │   │   ├── estimate.service.ts
-│   │   │   │   └── estimate.validation.ts
+│   │   │   │   ├── estimate.subItem.controller.ts
+│   │   │   │   ├── estimate-subitems.api.json
+│   │   │   │   ├── estimate.subItem.service.ts
+│   │   │   │   ├── estimate.validation.ts
+│   │   │   │   └── subitems.api.http
 │   │   │   ├── group
 │   │   │   │   ├── group.controller.ts
 │   │   │   │   ├── group.routes.ts
@@ -172,7 +177,7 @@
 │   └── google.png
 └── vercel.json
 
-33 directories, 135 files
+33 directories, 140 files
 ```
 
 ## 📁 invoice Module Tree
@@ -461,8 +466,24 @@ model Estimate {
   poNumber                  String?
   isGroupingEnabled         Boolean?
   estimateNumber            String?
+  itemImages                TItemImages[]
+  subItems                  TSubItems[]
 
   @@map("estimates")
+}
+
+type TSubItems {
+  id       String
+  itemId   String
+  title    String
+  quantity Float?
+  unitCost Float?
+  price    Float?
+}
+
+type TItemImages {
+  itemId String   @db.ObjectId
+  images String[]
 }
 
 enum Format {
@@ -486,7 +507,7 @@ enum EstimateStage {
 type TItemType {
   id       String @db.ObjectId
   quantity Int
-  subTotal Int
+  subTotal Float
 }
 
 model Invoice {
@@ -531,6 +552,7 @@ model Invoice {
   poNumber                  String?
   isGroupingEnabled         Boolean?
   invoiceNumber             String?
+  itemImages                TItemImages[]
 
   @@map("invoices")
 }
@@ -963,6 +985,49 @@ const getInvoiceNumber = catchAsync(async (_req, res) => {
   });
 });
 
+// invoice.controller.ts – add this function
+
+const updateInvoiceImages = catchAsync(async (req, res) => {
+  const { id: invoiceId } = req.params;
+  const payload = req.body;
+  const files = req.files as {
+    sideMap?: Express.Multer.File[];
+    fileUrls?: Express.Multer.File[];
+  };
+
+  const result = await invoiceService.updateInvoiceImages(
+    invoiceId,
+    payload,
+    files,
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Invoice images updated successfully",
+    data: result,
+  });
+});
+
+const updateInvoiceItemImages = catchAsync(async (req, res) => {
+  const { id: invoiceId } = req.params;
+  const payload = req.body;
+  const files = req.files as { urls?: Express.Multer.File[] };
+
+  const result = await invoiceService.updateInvoiceItemImages(
+    invoiceId,
+    payload,
+    files?.urls,
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Item images updated successfully",
+    data: result,
+  });
+});
+
 export const invoiceController = {
   createInvoice,
   updateInvoice,
@@ -980,6 +1045,8 @@ export const invoiceController = {
   createPaymentIntent,
   deleteInvoice,
   getInvoiceNumber,
+  updateInvoiceImages,
+  updateInvoiceItemImages,
 };
 ```
 
@@ -1086,6 +1153,62 @@ const payWithCardSchema = z.object({
   paymentMethodId: z.string().min(1, "Payment method ID is required"),
 });
 
+// invoice image update validation
+
+const invoiceImageActionSchema = z
+  .object({
+    // For sideMap (single image)
+    sideMapAction: z.enum(["replace", "remove"]).optional(),
+    // For fileUrls (multiple)
+    fileUrlsAction: z.enum(["add", "remove", "replace"]).optional(),
+    fileUrls: z.array(z.string().url()).optional(), // URLs to remove or to be replaced (for remove/replace)
+  })
+  .strict()
+  .refine(
+    (data) => {
+      if (
+        data.fileUrlsAction === "remove" &&
+        (!data.fileUrls || data.fileUrls.length === 0)
+      ) {
+        return false;
+      }
+      if (
+        data.fileUrlsAction === "replace" &&
+        (!data.fileUrls || data.fileUrls.length === 0)
+      ) {
+        return false;
+      }
+      return true;
+    },
+    { message: "fileUrls must be provided for remove or replace actions" },
+  );
+
+export type TInvoiceImageAction = z.infer<typeof invoiceImageActionSchema>;
+
+// invoice item images validation
+const updateInvoiceItemImagesSchema = z
+  .object({
+    itemId: objectIdSchema,
+    action: z.enum(["add", "remove", "replace"]),
+    imageUrls: z.array(z.string().url()).optional(),
+  })
+  .strict()
+  .refine(
+    (data) => {
+      if (
+        (data.action === "remove" || data.action === "replace") &&
+        (!data.imageUrls || data.imageUrls.length === 0)
+      )
+        return false;
+      return true;
+    },
+    { message: "imageUrls required for remove/replace actions" },
+  );
+
+export type TUpdateInvoiceItemImages = z.infer<
+  typeof updateInvoiceItemImagesSchema
+>;
+
 export const invoiceValidation = {
   createInvoiceSchema,
   sendInvoiceEmailSchema,
@@ -1095,6 +1218,8 @@ export const invoiceValidation = {
   refundPaymentSchema,
   payWithCardSchema,
   updateInvoiceSchema,
+  invoiceImageActionSchema,
+  updateInvoiceItemImagesSchema,
 };
 ```
 
@@ -1209,6 +1334,24 @@ router.delete(
 
 router.get("/invoice-number", auth(), invoiceController.getInvoiceNumber);
 
+router.patch(
+  "/invoice-images/:id",
+  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  fileUploader.uploadMultiple,
+  parseBodyData,
+  validateRequest(invoiceValidation.invoiceImageActionSchema),
+  invoiceController.updateInvoiceImages,
+);
+
+router.patch(
+  "/item-images/:id",
+  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  fileUploader.uploadMultiple, // provides req.files.urls
+  parseBodyData,
+  validateRequest(invoiceValidation.updateInvoiceItemImagesSchema),
+  invoiceController.updateInvoiceItemImages,
+);
+
 export const invoiceRoutes = router;
 ```
 
@@ -1220,7 +1363,12 @@ import prisma from "../../../shared/prisma";
 import ApiError from "../../../errors/ApiErrors";
 import httpStatus from "http-status";
 import { uploadInSpace } from "../../../helpers/uploadInSpace";
-import { TCreateInvoice, TUpdateInvoice } from "./invoice.validation";
+import {
+  TCreateInvoice,
+  TInvoiceImageAction,
+  TUpdateInvoice,
+  TUpdateInvoiceItemImages,
+} from "./invoice.validation";
 import {
   EmailStatus,
   InvoiceStatus,
@@ -2346,6 +2494,208 @@ const getInvoiceNumber = async () => {
   return prisma.invoice.count();
 };
 
+// update invoice images
+
+// invoice.service.ts – add this function
+
+const updateInvoiceImages = async (
+  invoiceId: string,
+  payload: TInvoiceImageAction,
+  files?: {
+    sideMap?: Express.Multer.File[];
+    fileUrls?: Express.Multer.File[];
+  },
+) => {
+  // 1. Fetch existing invoice
+  const invoice = await prisma.invoice.findUnique({
+    where: { id: invoiceId },
+    select: { id: true, sideMap: true, fileUrls: true },
+  });
+  if (!invoice) throw new ApiError(httpStatus.NOT_FOUND, "Invoice not found");
+
+  let updatedSideMap = invoice.sideMap;
+  let updatedFileUrls = invoice.fileUrls ?? [];
+
+  // 2. Handle sideMap (single image)
+  if (payload.sideMapAction === "replace") {
+    if (!files?.sideMap || files.sideMap.length === 0) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        "No image provided to replace sideMap",
+      );
+    }
+    const uploaded = await uploadInSpace(files.sideMap[0], "invoice/sideMap");
+    updatedSideMap = uploaded;
+  } else if (payload.sideMapAction === "remove") {
+    updatedSideMap = null;
+  }
+
+  // 3. Handle fileUrls (multiple)
+  if (payload.fileUrlsAction) {
+    switch (payload.fileUrlsAction) {
+      case "add": {
+        if (!files?.fileUrls || files.fileUrls.length === 0) {
+          throw new ApiError(
+            httpStatus.BAD_REQUEST,
+            "No files provided to add",
+          );
+        }
+        const uploadedUrls = await Promise.all(
+          files.fileUrls.map((f) => uploadInSpace(f, "invoice/fileUrls")),
+        );
+        updatedFileUrls = [...updatedFileUrls, ...uploadedUrls];
+        break;
+      }
+      case "remove": {
+        if (!payload.fileUrls || payload.fileUrls.length === 0) {
+          throw new ApiError(
+            httpStatus.BAD_REQUEST,
+            "No URLs provided to remove",
+          );
+        }
+        const toRemove = new Set(payload.fileUrls);
+        updatedFileUrls = updatedFileUrls.filter((url) => !toRemove.has(url));
+        break;
+      }
+      case "replace": {
+        if (!payload.fileUrls || payload.fileUrls.length === 0) {
+          throw new ApiError(
+            httpStatus.BAD_REQUEST,
+            "No URLs provided to replace",
+          );
+        }
+        if (
+          !files?.fileUrls ||
+          files.fileUrls.length !== payload.fileUrls.length
+        ) {
+          throw new ApiError(
+            httpStatus.BAD_REQUEST,
+            "Number of uploaded files must match number of URLs to replace",
+          );
+        }
+        const uploadedUrls = await Promise.all(
+          files.fileUrls.map((f) => uploadInSpace(f, "invoice/fileUrls")),
+        );
+        const replaceMap = new Map<string, string>();
+        payload.fileUrls.forEach((oldUrl, idx) => {
+          replaceMap.set(oldUrl, uploadedUrls[idx]);
+        });
+        updatedFileUrls = updatedFileUrls.map((url) =>
+          replaceMap.has(url) ? replaceMap.get(url)! : url,
+        );
+        break;
+      }
+      default:
+        throw new ApiError(httpStatus.BAD_REQUEST, "Invalid fileUrlsAction");
+    }
+  }
+
+  // 4. Update database
+  const updatedInvoice = await prisma.invoice.update({
+    where: { id: invoiceId },
+    data: {
+      sideMap: updatedSideMap,
+      fileUrls: updatedFileUrls,
+    },
+    select: {
+      id: true,
+      invoiceName: true,
+      sideMap: true,
+      fileUrls: true,
+    },
+  });
+
+  return updatedInvoice;
+};
+
+// update invoice item images
+const updateInvoiceItemImages = async (
+  invoiceId: string,
+  payload: TUpdateInvoiceItemImages,
+  files?: Express.Multer.File[],
+) => {
+  // 1. Fetch invoice
+  const invoice = await prisma.invoice.findUnique({
+    where: { id: invoiceId },
+    select: { itemImages: true, items: true },
+  });
+  if (!invoice) throw new ApiError(httpStatus.NOT_FOUND, "Invoice not found");
+
+  // 2. Verify item exists in invoice's items array
+  const itemExists = invoice.items.some(
+    (item: any) => item.id === payload.itemId,
+  );
+  if (!itemExists)
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      `Item ${payload.itemId} not found in invoice`,
+    );
+
+  // 3. Get current itemImages array
+  let itemImages: { itemId: string; images: string[] }[] =
+    (invoice.itemImages as any) || [];
+  let itemIndex = itemImages.findIndex((i) => i.itemId === payload.itemId);
+  let currentImages: string[] =
+    itemIndex !== -1 ? itemImages[itemIndex].images : [];
+
+  // 4. Handle actions
+  if (payload.action === "add") {
+    if (!files || files.length === 0)
+      throw new ApiError(400, "No images provided");
+    if (files.length > 20) throw new ApiError(400, "Max 20 images per request");
+    const uploadedUrls = await Promise.all(
+      files.map((f) => uploadInSpace(f, "invoices/itemImages")),
+    );
+    if (itemIndex === -1) {
+      itemImages.push({ itemId: payload.itemId, images: uploadedUrls });
+    } else {
+      itemImages[itemIndex].images.push(...uploadedUrls);
+    }
+  } else if (payload.action === "remove") {
+    if (!payload.imageUrls || payload.imageUrls.length === 0)
+      throw new ApiError(400, "No URLs to remove");
+    if (itemIndex === -1)
+      throw new ApiError(404, "No images found for this item");
+    const newImages = currentImages.filter(
+      (url) => !payload.imageUrls!.includes(url),
+    );
+    if (newImages.length === currentImages.length)
+      throw new ApiError(400, "None of the URLs were found");
+    if (newImages.length === 0) {
+      itemImages.splice(itemIndex, 1);
+    } else {
+      itemImages[itemIndex].images = newImages;
+    }
+  } else if (payload.action === "replace") {
+    if (!files || files.length === 0)
+      throw new ApiError(400, "No new images provided");
+    if (!payload.imageUrls || payload.imageUrls.length === 0)
+      throw new ApiError(400, "No URLs to replace");
+    if (files.length !== payload.imageUrls.length)
+      throw new ApiError(400, "Number of files must match number of URLs");
+    if (files.length > 20) throw new ApiError(400, "Max 20 images");
+    if (itemIndex === -1)
+      throw new ApiError(404, "No images found for this item");
+    const oldUrlsSet = new Set(payload.imageUrls);
+    const toReplace = currentImages.filter((url) => oldUrlsSet.has(url));
+    if (toReplace.length !== payload.imageUrls.length)
+      throw new ApiError(400, "One or more URLs not found");
+    const uploadedUrls = await Promise.all(
+      files.map((f) => uploadInSpace(f, "invoices/itemImages")),
+    );
+    const remainingImages = currentImages.filter((url) => !oldUrlsSet.has(url));
+    itemImages[itemIndex].images = [...remainingImages, ...uploadedUrls];
+  }
+
+  // 5. Save back to database
+  await prisma.invoice.update({
+    where: { id: invoiceId },
+    data: { itemImages: itemImages as any },
+  });
+
+  return { success: true, itemId: payload.itemId, action: payload.action };
+};
+
 export const invoiceService = {
   createInvoice,
   updateInvoice,
@@ -2363,5 +2713,7 @@ export const invoiceService = {
   createPaymentIntent,
   deleteInvoice,
   getInvoiceNumber,
+  updateInvoiceImages,
+  updateInvoiceItemImages,
 };
 ```

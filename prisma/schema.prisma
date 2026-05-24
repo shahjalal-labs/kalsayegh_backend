@@ -355,6 +355,7 @@ model Invoice {
   isGroupingEnabled         Boolean?
   invoiceNumber             String?
   itemImages                TItemImages[]
+  subItems                  TSubItems[]
 
   @@map("invoices")
 }
