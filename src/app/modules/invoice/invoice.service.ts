@@ -1547,14 +1547,14 @@ const updateInvoiceItemImages = async (
   if (!invoice) throw new ApiError(httpStatus.NOT_FOUND, "Invoice not found");
 
   // 2. Verify item exists in invoice's items array
-  const itemExists = invoice.items.some(
+  /* const itemExists = invoice.items.some(
     (item: any) => item.id === payload.itemId,
   );
   if (!itemExists)
     throw new ApiError(
       httpStatus.BAD_REQUEST,
       `Item ${payload.itemId} not found in invoice`,
-    );
+    ); */
 
   // 3. Get current itemImages array
   let itemImages: { itemId: string; images: string[] }[] =
