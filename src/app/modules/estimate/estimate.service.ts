@@ -1431,7 +1431,7 @@ const updateEstimateItemImages = async (
   if (!estimate) throw new ApiError(httpStatus.NOT_FOUND, "Estimate not found");
 
   // 2. Verify item exists in the estimate's items array
-  const itemExists = estimate.items.some(
+  /* const itemExists = estimate.items.some(
     (item: any) => item.id === payload.itemId,
   );
   if (!itemExists)
@@ -1439,7 +1439,7 @@ const updateEstimateItemImages = async (
       httpStatus.BAD_REQUEST,
       `Item ${payload.itemId} not found in estimate`,
     );
-
+ */
   // 3. Get current itemImages array
   let itemImages: { itemId: string; images: string[] }[] =
     (estimate.itemImages as any) || [];
