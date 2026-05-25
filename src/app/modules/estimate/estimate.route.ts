@@ -168,4 +168,13 @@ router.delete(
   estimateSubItemControllers.deleteSubItem,
 );
 
+router.post(
+  "/item-images/bulk-add/:id",
+  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  fileUploader.upload.any(), // accepts dynamic field names like images[<itemId>]
+  parseBodyData, // still needed? Not required for no body, but harmless
+  // validateRequest(estimateValidation.addEstimateItemImagesBulkSchema), // optional
+  estimateControllers.addEstimateItemImagesBulk,
+);
+
 export const estimateRoutes = router;

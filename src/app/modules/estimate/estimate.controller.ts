@@ -280,7 +280,22 @@ const updateEstimateItemImages = catchAsync(async (req, res) => {
   });
 });
 
+const addEstimateItemImagesBulk = catchAsync(async (req, res) => {
+  const { id: estimateId } = req.params;
+  const files = req.files as Express.Multer.File[]; // upload.any() → array
 
+  const result = await estimateService.addEstimateItemImagesBulk(
+    estimateId,
+    files,
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Bulk item images added successfully",
+    data: result,
+  });
+});
 
 export const estimateControllers = {
   createClient,
@@ -304,4 +319,5 @@ export const estimateControllers = {
   getEstimateNumber,
   updateEstimateImages,
   updateEstimateItemImages,
+  addEstimateItemImagesBulk,
 };

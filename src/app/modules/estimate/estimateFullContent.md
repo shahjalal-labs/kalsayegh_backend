@@ -53,7 +53,11 @@
 │   │   │   │   ├── estimate.controller.ts
 │   │   │   │   ├── estimate.route.ts
 │   │   │   │   ├── estimate.service.ts
-│   │   │   │   └── estimate.validation.ts
+│   │   │   │   ├── estimate.subItem.controller.ts
+│   │   │   │   ├── estimate-subitems.api.json
+│   │   │   │   ├── estimate.subItem.service.ts
+│   │   │   │   ├── estimate.validation.ts
+│   │   │   │   └── subitems.api.http
 │   │   │   ├── group
 │   │   │   │   ├── group.controller.ts
 │   │   │   │   ├── group.routes.ts
@@ -62,10 +66,12 @@
 │   │   │   ├── invoice
 │   │   │   │   ├── invoice.api.http
 │   │   │   │   ├── invoice.controller.ts
-│   │   │   │   ├── invoiceFullContent.md
 │   │   │   │   ├── invoice.routes.ts
 │   │   │   │   ├── invoice.service.ts
-│   │   │   │   └── invoice.validation.ts
+│   │   │   │   ├── invoice.subItem.controller.ts
+│   │   │   │   ├── invoice.subItem.service.ts
+│   │   │   │   ├── invoice.validation.ts
+│   │   │   │   └── subitems.api.http
 │   │   │   ├── jobRequest
 │   │   │   │   ├── jobRequest.api.http
 │   │   │   │   ├── jobRequest.api.json
@@ -173,7 +179,7 @@
 │   └── google.png
 └── vercel.json
 
-33 directories, 136 files
+33 directories, 142 files
 ```
 
 ## 📁 estimate Module Tree
@@ -184,9 +190,13 @@
 ├── estimate.controller.ts
 ├── estimate.route.ts
 ├── estimate.service.ts
-└── estimate.validation.ts
+├── estimate.subItem.controller.ts
+├── estimate-subitems.api.json
+├── estimate.subItem.service.ts
+├── estimate.validation.ts
+└── subitems.api.http
 
-1 directory, 5 files
+1 directory, 9 files
 ```
 
 ## 📋 schema.prisma
@@ -469,7 +479,8 @@ model Estimate {
 }
 
 type TSubItems {
-  itemId   String @db.ObjectId
+  id       String
+  itemId   String
   title    String
   quantity Float?
   unitCost Float?
@@ -502,7 +513,7 @@ enum EstimateStage {
 type TItemType {
   id       String @db.ObjectId
   quantity Int
-  subTotal Int
+  subTotal Float
 }
 
 model Invoice {
@@ -548,6 +559,7 @@ model Invoice {
   isGroupingEnabled         Boolean?
   invoiceNumber             String?
   itemImages                TItemImages[]
+  subItems                  TSubItems[]
 
   @@map("invoices")
 }
@@ -774,8 +786,9 @@ import { Request } from "express";
 import { uploadInSpace } from "../../../helpers/uploadInSpace";
 import { paginationHelper, TOptions } from "../../../shared/pagination";
 import httpStatus from "http-status";
+import { randomUUID } from "crypto";
 
-const createEstimateInDB = async (req: Request) => {
+/* const createEstimateInDB = async (req: Request) => {
   const files = req.files as { [fieldname: string]: Express.Multer.File[] };
   const payload: TCreateEstimate = req.body;
   const estimatorId = req.user.id;
@@ -873,9 +886,138 @@ const createEstimateInDB = async (req: Request) => {
     ...newEstimate,
     itemss,
   };
+}; */
+
+const createEstimateInDB = async (req: Request) => {
+  const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+  const payload: TCreateEstimate = req.body;
+  const estimatorId = req.user.id;
+
+  // 1. Validate client
+  const existingClient = await prisma.client.findUnique({
+    where: { id: payload.clientId },
+  });
+  if (!existingClient) {
+    throw new ApiError(400, "Client does not exist");
+  }
+
+  // 2. Validate contract if provided
+  if (payload.contractId) {
+    const contract = await prisma.contract.count({
+      where: { id: payload.contractId },
+    });
+    if (!contract)
+      throw new ApiError(httpStatus.NOT_FOUND, "Contract not found");
+  }
+
+  // 3. Validate each line item exists globally
+  const items = payload.items;
+  for (const item of items) {
+    const existingItem = await prisma.item.findUnique({
+      where: { id: item.id },
+    });
+    if (!existingItem) {
+      throw new ApiError(400, `Item with id ${item.id} does not exist`);
+    }
+  }
+
+  // 4. Process subitems (if any) – generate UUIDs and validate itemId references
+  let processedSubItems = undefined;
+  if (
+    payload.subItems &&
+    Array.isArray(payload.subItems) &&
+    payload.subItems.length > 0
+  ) {
+    // Build a set of valid line item IDs from payload.items
+    const validItemIds = new Set(items.map((i: any) => i.id));
+
+    processedSubItems = payload.subItems.map((sub: any) => {
+      // Check that the referenced itemId exists in the estimate's items
+      if (!validItemIds.has(sub.itemId)) {
+        throw new ApiError(
+          400,
+          `Subitem references itemId ${sub.itemId} which is not in the estimate items list`,
+        );
+      }
+      return {
+        id: randomUUID(), // generate unique UUID for this subline item
+        itemId: sub.itemId,
+        title: sub.title,
+        quantity: sub.quantity ?? null,
+        unitCost: sub.unitCost ?? null,
+        price: sub.price ?? null,
+      };
+    });
+  }
+
+  // 5. Process images
+  const processImages = async (
+    files: Express.Multer.File[] | undefined,
+    folder: string,
+  ) => {
+    if (!files || files.length === 0) return null;
+    return Promise.all(
+      files.map((file) => uploadInSpace(file, `courses/${folder}`)),
+    );
+  };
+
+  const [map, urls] = await Promise.all([
+    processImages(files?.map, "map"),
+    processImages(files?.urls, "urls"),
+  ]);
+
+  // 6. Get estimate count for numbering
+  const estimateCount = await prisma.estimate.count();
+
+  // 7. Create estimate
+  const newEstimate = await prisma.estimate.create({
+    data: {
+      clientId: payload.clientId,
+      estimatorId: estimatorId,
+      legendary: payload.legendary,
+      date: payload.date,
+      endDate: payload.endDate as string,
+      estimateName: payload.estimateName,
+      items: payload.items,
+      subItems: processedSubItems,
+      grandTotal: payload.grandTotal,
+      additionalMarkUp: payload.additionalMarkUp,
+      sideMap: map ? map[0] : undefined,
+      fileUrls: urls ? urls : undefined,
+      depositAmount: payload.depositAmount,
+      discountAmount: payload.discountAmount,
+      isOnlinePayment: payload.isOnlinePayment,
+      coverPaymentProcessingFee: payload.coverPaymentProcessingFee,
+      noteForClient: payload.noteForClient,
+      privateNote: payload.privateNote,
+      clientSign: payload.clientSign,
+      mySign: payload.mySign,
+      format: payload.format,
+      contractId: payload.contractId,
+      poNumber: payload.poNumber,
+      isGroupingEnabled: payload.isGroupingEnabled,
+      estimateNumber: (estimateCount + 1).toString(),
+      isAutoInvoice: payload.isAutoInvoice,
+    },
+  });
+
+  // 8. Fetch detailed line items (for response)
+  const itemss = await prisma.item.findMany({
+    where: { id: { in: payload.items.map((item: any) => item.id) } },
+  });
+
+  // 9. Auto-generate invoice if requested
+  if (newEstimate.isAutoInvoice) {
+    invoiceService.generateInvoiceFromEstimate(newEstimate.id);
+  }
+
+  return {
+    ...newEstimate,
+    itemss,
+  };
 };
 
-const editEstimateInDB = async (estimateId: string, req: Request) => {
+/* const editEstimateInDB = async (estimateId: string, req: Request) => {
   const files = req.files as { [fieldname: string]: Express.Multer.File[] };
   const payload = req.body;
   const estimatorId = req.user.id;
@@ -1005,6 +1147,191 @@ const editEstimateInDB = async (estimateId: string, req: Request) => {
       ? await prisma.item.findMany({
           where: { id: { in: itemIds } },
         })
+      : [];
+
+  return {
+    ...updatedEstimate,
+    items: itemsDetail,
+  };
+}; */
+
+const editEstimateInDB = async (estimateId: string, req: Request) => {
+  const files = req.files as { [fieldname: string]: Express.Multer.File[] };
+  const payload = req.body;
+  const estimatorId = req.user.id;
+
+  // 1. Check if estimate exists
+  const existingEstimate = await prisma.estimate.findUnique({
+    where: { id: estimateId },
+    include: { client: true },
+  });
+  if (!existingEstimate) {
+    throw new ApiError(httpStatus.NOT_FOUND, "Estimate not found");
+  }
+
+  // 2. Validate client if provided
+  if (payload.clientId) {
+    const existingClient = await prisma.client.findUnique({
+      where: { id: payload.clientId },
+    });
+    if (!existingClient) {
+      throw new ApiError(httpStatus.BAD_REQUEST, "Client does not exist");
+    }
+  }
+
+  // 3. Validate contract if provided
+  if (payload.contractId) {
+    const contractExists = await prisma.contract.count({
+      where: { id: payload.contractId },
+    });
+    if (!contractExists) {
+      throw new ApiError(httpStatus.NOT_FOUND, "Contract not found");
+    }
+  }
+
+  // 4. Validate items if provided (each must exist globally)
+  if (payload.items && Array.isArray(payload.items)) {
+    for (const item of payload.items) {
+      const existingItem = await prisma.item.findUnique({
+        where: { id: item.id },
+      });
+      if (!existingItem) {
+        throw new ApiError(
+          httpStatus.BAD_REQUEST,
+          `Item with id ${item.id} does not exist`,
+        );
+      }
+    }
+  }
+
+  // 5. Process image uploads
+  const processImages = async (
+    files: Express.Multer.File[] | undefined,
+    folder: string,
+  ) => {
+    if (!files || files.length === 0) return null;
+    return Promise.all(
+      files.map((file) => uploadInSpace(file, `estimates/${folder}`)),
+    );
+  };
+  const [map, urls] = await Promise.all([
+    processImages(files?.map, "map"),
+    processImages(files?.urls, "urls"),
+  ]);
+
+  // 6. Prepare update data
+  const updateData: Prisma.EstimateUpdateInput = {
+    estimator: { connect: { id: estimatorId } },
+  };
+
+  // Scalar fields
+  if (payload.estimateName !== undefined)
+    updateData.estimateName = payload.estimateName;
+  if (payload.legendary !== undefined) updateData.legendary = payload.legendary;
+  if (payload.date !== undefined) updateData.date = payload.date;
+  if (payload.endDate !== undefined) updateData.endDate = payload.endDate;
+  if (payload.items !== undefined) updateData.items = payload.items;
+  if (payload.additionalMarkUp !== undefined)
+    updateData.additionalMarkUp = payload.additionalMarkUp;
+  if (payload.grandTotal !== undefined)
+    updateData.grandTotal = payload.grandTotal;
+  if (payload.discountAmount !== undefined)
+    updateData.discountAmount = payload.discountAmount;
+  if (payload.depositAmount !== undefined)
+    updateData.depositAmount = payload.depositAmount;
+  if (payload.isOnlinePayment !== undefined)
+    updateData.isOnlinePayment = payload.isOnlinePayment;
+  if (payload.coverPaymentProcessingFee !== undefined)
+    updateData.coverPaymentProcessingFee = payload.coverPaymentProcessingFee;
+  if (payload.noteForClient !== undefined)
+    updateData.noteForClient = payload.noteForClient;
+  if (payload.privateNote !== undefined)
+    updateData.privateNote = payload.privateNote;
+  if (payload.clientSign !== undefined)
+    updateData.clientSign = payload.clientSign;
+  if (payload.mySign !== undefined) updateData.mySign = payload.mySign;
+  if (payload.format !== undefined) updateData.format = payload.format;
+  if (payload.poNumber !== undefined) updateData.poNumber = payload.poNumber;
+  if (payload.isGroupingEnabled !== undefined)
+    updateData.isGroupingEnabled = payload.isGroupingEnabled;
+  if (payload.isAutoInvoice !== undefined)
+    updateData.isAutoInvoice = payload.isAutoInvoice;
+  if (payload.estimateNumber !== undefined)
+    updateData.estimateNumber = payload.estimateNumber;
+
+  // Relations
+  if (payload.clientId !== undefined) {
+    updateData.client = { connect: { id: payload.clientId } };
+  }
+  if (payload.contractId !== undefined) {
+    updateData.contract = { connect: { id: payload.contractId } };
+  }
+
+  if (map) updateData.sideMap = map[0];
+  if (urls) updateData.fileUrls = urls;
+
+  // ========== 7. Handle subitems with automatic cleanup ==========
+  // Determine the final items array (after update)
+  const finalItems =
+    payload.items && Array.isArray(payload.items)
+      ? payload.items
+      : (existingEstimate.items as any[]);
+
+  // Build set of valid item IDs from finalItems
+  const validItemIds = new Set(finalItems.map((item: any) => item.id));
+
+  // Start with existing subitems (if any)
+  let existingSubItems = (existingEstimate.subItems as any[]) || [];
+
+  // If items were updated, remove subitems whose itemId is no longer valid
+  if (payload.items && Array.isArray(payload.items)) {
+    existingSubItems = existingSubItems.filter((sub: any) =>
+      validItemIds.has(sub.itemId),
+    );
+  }
+
+  // Process new subitems from the payload (if any)
+  let newSubItems: any[] = [];
+  if (
+    payload.subItems &&
+    Array.isArray(payload.subItems) &&
+    payload.subItems.length > 0
+  ) {
+    newSubItems = payload.subItems.map((sub: any) => {
+      if (!validItemIds.has(sub.itemId)) {
+        throw new ApiError(
+          httpStatus.BAD_REQUEST,
+          `Subitem references itemId ${sub.itemId} which is not in the estimate items list (after update)`,
+        );
+      }
+      return {
+        id: randomUUID(),
+        itemId: sub.itemId,
+        title: sub.title,
+        quantity: sub.quantity ?? null,
+        unitCost: sub.unitCost ?? null,
+        price: sub.price ?? null,
+      };
+    });
+  }
+
+  // Merge: cleaned existing subitems + new subitems
+  if (existingSubItems.length > 0 || newSubItems.length > 0) {
+    updateData.subItems = [...existingSubItems, ...newSubItems];
+  }
+  // ========== End of subitems handling ==========
+
+  // 8. Perform update
+  const updatedEstimate = await prisma.estimate.update({
+    where: { id: estimateId },
+    data: updateData,
+  });
+
+  // 9. Fetch detailed items for response
+  const itemIds = updatedEstimate.items.map((item: any) => item.id);
+  const itemsDetail =
+    itemIds.length > 0
+      ? await prisma.item.findMany({ where: { id: { in: itemIds } } })
       : [];
 
   return {
@@ -1877,7 +2204,7 @@ const updateEstimateItemImages = async (
   if (!estimate) throw new ApiError(httpStatus.NOT_FOUND, "Estimate not found");
 
   // 2. Verify item exists in the estimate's items array
-  const itemExists = estimate.items.some(
+  /* const itemExists = estimate.items.some(
     (item: any) => item.id === payload.itemId,
   );
   if (!itemExists)
@@ -1885,7 +2212,7 @@ const updateEstimateItemImages = async (
       httpStatus.BAD_REQUEST,
       `Item ${payload.itemId} not found in estimate`,
     );
-
+ */
   // 3. Get current itemImages array
   let itemImages: { itemId: string; images: string[] }[] =
     (estimate.itemImages as any) || [];
@@ -1978,6 +2305,112 @@ export const estimateService = {
 // contract
 ```
 
+## 🛠️ estimate.subItem.service.ts
+
+```ts
+import { randomUUID } from "crypto";
+import httpStatus from "http-status";
+import ApiError from "../../../errors/ApiErrors";
+import prisma from "../../../shared/prisma";
+
+// Helper to get estimate and validate existence
+const getEstimateOrThrow = async (estimateId: string) => {
+  const estimate = await prisma.estimate.findUnique({
+    where: { id: estimateId },
+    select: { id: true, items: true, subItems: true },
+  });
+  if (!estimate) throw new ApiError(httpStatus.NOT_FOUND, "Estimate not found");
+  return estimate;
+};
+
+// Validate that all itemId values exist in estimate.items
+const validateItemIds = (itemsArray: any[], subItems: { itemId: string }[]) => {
+  const existingItemIds = new Set(itemsArray.map((item: any) => item.id));
+  for (const sub of subItems) {
+    if (!existingItemIds.has(sub.itemId)) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        `Item with id ${sub.itemId} not found in this estimate`,
+      );
+    }
+  }
+};
+
+export const subItemService = {
+  // Add multiple subitems to an existing estimate
+  async addSubItems(estimateId: string, newSubItems: any[]) {
+    const estimate = await getEstimateOrThrow(estimateId);
+    const currentSubItems = (estimate.subItems as any[]) || [];
+
+    // Generate UUIDs for each new subitem (client never sends id)
+    const subItemsToAdd = newSubItems.map((sub) => ({
+      id: randomUUID(),
+      itemId: sub.itemId,
+      title: sub.title,
+      quantity: sub.quantity ?? null,
+      unitCost: sub.unitCost ?? null,
+      price: sub.price ?? null,
+    }));
+
+    // Validate parent item IDs
+    validateItemIds(estimate.items, subItemsToAdd);
+
+    const updatedSubItems = [...currentSubItems, ...subItemsToAdd];
+
+    await prisma.estimate.update({
+      where: { id: estimateId },
+      data: { subItems: updatedSubItems },
+    });
+
+    return subItemsToAdd; // return newly added subitems with their UUIDs
+  },
+
+  // Update a single subitem (by its UUID)
+  async updateSubItem(estimateId: string, subItemId: string, updateData: any) {
+    const estimate = await getEstimateOrThrow(estimateId);
+    const subItems = (estimate.subItems as any[]) || [];
+
+    const index = subItems.findIndex((sub) => sub.id === subItemId);
+    if (index === -1) {
+      throw new ApiError(httpStatus.NOT_FOUND, "Subitem not found");
+    }
+
+    // Apply updates (only fields provided)
+    const updatedSubItem = {
+      ...subItems[index],
+      ...updateData,
+    };
+
+    subItems[index] = updatedSubItem;
+
+    await prisma.estimate.update({
+      where: { id: estimateId },
+      data: { subItems: subItems },
+    });
+
+    return updatedSubItem;
+  },
+
+  // Delete a single subitem by its UUID
+  async deleteSubItem(estimateId: string, subItemId: string) {
+    const estimate = await getEstimateOrThrow(estimateId);
+    const subItems = (estimate.subItems as any[]) || [];
+
+    const newSubItems = subItems.filter((sub) => sub.id !== subItemId);
+    if (newSubItems.length === subItems.length) {
+      throw new ApiError(httpStatus.NOT_FOUND, "Subitem not found");
+    }
+
+    await prisma.estimate.update({
+      where: { id: estimateId },
+      data: { subItems: newSubItems },
+    });
+
+    return { deleted: true, id: subItemId };
+  },
+};
+```
+
 ## 📝 estimate.validation.ts
 
 ```ts
@@ -1993,7 +2426,7 @@ export const EstimateStatusEnum = z.enum(["Pending", "Approved", "Declined"]);
 export const TItemTypeSchema = z.object({
   id: objectIdSchema,
   quantity: z.number().int().positive("Quantity must be greater than 0"),
-  subTotal: z.number().int().nonnegative("Subtotal must be >= 0"),
+  subTotal: z.number().nonnegative("Subtotal must be >= 0"),
 });
 
 // 🔸 Main Estimate Schema
@@ -2016,11 +2449,22 @@ const createEstimateSchema = z
     clientSign: z.boolean().optional(),
     mySign: z.boolean().optional(),
     format: z.nativeEnum(Format).default("DESCRIPTION"),
-    contractId: objectIdSchema,
+    contractId: objectIdSchema.optional(),
     poNumber: z.string().optional(),
     isGroupingEnabled: z.boolean().optional(),
     estimateNumber: z.string().optional(),
     isAutoInvoice: z.boolean().optional(),
+    subItems: z
+      .array(
+        z.object({
+          itemId: objectIdSchema,
+          title: z.string().min(1),
+          quantity: z.number().positive().optional(),
+          unitCost: z.number().nonnegative().optional(),
+          price: z.number().nonnegative().optional(),
+        }),
+      )
+      .optional(),
   })
   .strict();
 
@@ -2168,6 +2612,40 @@ export type TUpdateEstimateItemImages = z.infer<
   typeof updateEstimateItemImagesSchema
 >;
 
+// ========== SUBLINE ITEMS VALIDATION ==========
+
+// Schema for adding multiple subitems to an existing estimate
+const addSubItemsSchema = z.object({
+  subItems: z
+    .array(
+      z.object({
+        itemId: objectIdSchema, // parent line item ID (must exist in estimate.items)
+        title: z.string().min(1, "Title is required"),
+        quantity: z.number().positive("Quantity must be > 0").optional(),
+        unitCost: z
+          .number()
+          .nonnegative("Unit cost cannot be negative")
+          .optional(),
+        price: z.number().nonnegative("Price cannot be negative").optional(),
+      }),
+    )
+    .min(1, "At least one subitem is required"),
+});
+
+// Schema for updating a single subitem
+const updateSubItemSchema = z
+  .object({
+    title: z.string().min(1).optional(),
+    quantity: z.number().positive().optional(),
+    unitCost: z.number().nonnegative().optional(),
+    price: z.number().nonnegative().optional(),
+  })
+  .refine((data) => Object.keys(data).length > 0, {
+    message: "At least one field must be provided for update",
+  });
+
+// Schema for delete (only URL param – no body needed)
+
 export const estimateValidation = {
   createEstimateSchema,
   markUpValidationSchema,
@@ -2179,7 +2657,15 @@ export const estimateValidation = {
   sendEstimateEmailSchema,
   estimateImageActionSchema,
   updateEstimateItemImagesSchema,
+  addSubItemsSchema,
+  updateSubItemSchema,
 };
+```
+
+## 📦 estimate-subitems.api.json
+
+```javascripton
+{"variable":[{"key":"baseUrl","value":"http://10.0.20.221:6015/api/v1","disabled":false,"id":"baseUrl"},{"key":"admin","value":"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5ZDA4ZDBmMGJiMjg3Y2YzNTQ0MjI2NyIsInJvbGUiOiJBRE1JTiIsImlhdCI6MTc3OTYyMjg3NSwiZXhwIjoxNzgwOTE4ODc1fQ.FjSdRUoDTBzo47ygK0I6sSxrz3KIT4eSThjrtmIgzcI","disabled":false,"id":"admin"}],"info":{"schema":"https://schema.getpostman.com/json/collection/v2.1.0/","name":"estimate-subitems.api","description":"Exported from Kulala: /home/sj/web/smt_project/kalsayegh_backend/src/app/modules/estimate/estimate-subitems.api.http"},"item":[{"description":"Kulala Export: /home/sj/web/smt_project/kalsayegh_backend/src/app/modules/estimate/estimate-subitems.api.http","item":[{"request":{"body":{"disabled":false,"raw":"{\n  \"clientId\": \"69d4be6152c9811ce6a7f12a\",\n  \"date\": \"2025-01-20\",\n  \"endDate\": \"2025-01-25\",\n  \"estimateName\": \"Parking Lot Sealcoating\",\n  \"grandTotal\": 2250,\n  \"items\": [\n    {\n      \"id\": \"69d87eb901d75586feffc495\",\n      \"quantity\": 2,\n      \"subTotal\": 1200\n    },\n    {\n      \"id\": \"69d9e204785ffd2b312e8483\",\n      \"quantity\": 1,\n      \"subTotal\": 800\n    }\n  ],\n  \"legendary\": \"legendary\",\n  \"subItems\": [\n    {\n      \"itemId\": \"69d87eb901d75586feffc495\",\n      \"price\": 150,\n      \"quantity\": 2,\n      \"title\": \"Extra preparation\",\n      \"unitCost\": 75\n    },\n    {\n      \"itemId\": \"69d87eb901d75586feffc495\",\n      \"price\": 100,\n      \"quantity\": 1,\n      \"title\": \"Disposal fee\",\n      \"unitCost\": 100\n    }\n  ]\n}","mode":"raw"},"method":"POST","description":"","auth":{"type":""},"header":[{"key":"Content-Type","value":"application/json","disabled":false}],"url":{"raw":"{{baseUrl}}/estimate/create-estimate","path":"/estimate/create-estimate","query":[],"host":"{{baseUrl}}","protocol":"http"}},"response":[],"event":[],"name":"1. Create estimate with subitems (backend generates UUIDs)","id":"estimate-subitems.api:2"},{"request":{"body":{"disabled":false,"raw":"{\n  \"subItems\": [\n    {\n      \"itemId\": \"69d87eb901d75586feffc495\",\n      \"price\": 250,\n      \"quantity\": 1,\n      \"title\": \"Traffic control\",\n      \"unitCost\": 250\n    }\n  ]\n}","mode":"raw"},"method":"POST","description":"/:estimateId","auth":{"type":""},"header":[{"key":"Content-Type","value":"application/json","disabled":false}],"url":{"raw":"{{baseUrl}}/estimate/6a12e5b643881d9d3452b6e5/sub-items","path":"/estimate/6a12e5b643881d9d3452b6e5/sub-items","query":[],"host":"{{baseUrl}}","protocol":"http"}},"response":[],"event":[],"name":"2. Add more subitems to existing estimate","id":"estimate-subitems.api:46"},{"request":{"body":{"disabled":false,"raw":"{\n  \"price\": 600,\n  \"quantity\": 2,\n  \"title\": \"Heavy traffic control (night)\",\n  \"unitCost\": 300\n}","mode":"raw"},"method":"PATCH","description":"/estimateId/subitemId","auth":{"type":""},"header":[{"key":"Content-Type","value":"application/json","disabled":false}],"url":{"raw":"{{baseUrl}}/estimate/6a12e5b643881d9d3452b6e5/sub-items/a1b2846f-a29b-4d79-9ce7-547bb2226609","path":"/estimate/6a12e5b643881d9d3452b6e5/sub-items/a1b2846f-a29b-4d79-9ce7-547bb2226609","query":[],"host":"{{baseUrl}}","protocol":"http"}},"response":[],"event":[],"name":"3. Update a subitem","id":"estimate-subitems.api:67"},{"request":{"body":{"disabled":false,"raw":"","mode":"raw"},"method":"DELETE","description":"","auth":{"type":""},"header":[],"url":{"raw":"{{baseUrl}}/estimate/6a12e5b643881d9d3452b6e5/sub-items/a1b2846f-a29b-4d79-9ce7-547bb2226609","path":"/estimate/6a12e5b643881d9d3452b6e5/sub-items/a1b2846f-a29b-4d79-9ce7-547bb2226609","query":[],"host":"{{baseUrl}}","protocol":"http"}},"response":[],"event":[],"name":"4. Delete a subitem","id":"estimate-subitems.api:83"},{"request":{"body":{"disabled":false,"raw":"","mode":"raw"},"method":"GET","description":"","auth":{"type":""},"header":[],"url":{"raw":"{{baseUrl}}/estimate/estimate/6a12e5b643881d9d3452b6e5","path":"/estimate/estimate/6a12e5b643881d9d3452b6e5","query":[],"host":"{{baseUrl}}","protocol":"http"}},"response":[],"event":[],"name":"5. Get estimate details","id":"estimate-subitems.api:89"}],"name":"estimate-subitems.api"}]}
 ```
 
 ## 🔧 estimate.route.ts
@@ -2194,6 +2680,7 @@ import validateRequest from "../../middlewares/validateRequest";
 import { estimateValidation } from "./estimate.validation";
 import { fileUploader } from "../../../helpers/fileUploader";
 import { parseBodyData } from "../../middlewares/parseBodyData";
+import { estimateSubItemControllers } from "./estimate.subItem.controller";
 
 const router = express.Router();
 
@@ -2332,7 +2819,85 @@ router.patch(
   estimateControllers.updateEstimateItemImages,
 );
 
+// ========== SUBLINE ITEMS ROUTES ==========
+
+router.post(
+  "/:estimateId/sub-items",
+  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  validateRequest(estimateValidation.addSubItemsSchema),
+  estimateSubItemControllers.addSubItems,
+);
+
+router.patch(
+  "/:estimateId/sub-items/:subItemId",
+  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  validateRequest(estimateValidation.updateSubItemSchema),
+  estimateSubItemControllers.updateSubItem,
+);
+
+router.delete(
+  "/:estimateId/sub-items/:subItemId",
+  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  estimateSubItemControllers.deleteSubItem,
+);
+
 export const estimateRoutes = router;
+```
+
+## 🎮 estimate.subItem.controller.ts
+
+```ts
+import httpStatus from "http-status";
+import catchAsync from "../../../shared/catchAsync";
+import sendResponse from "../../../shared/sendResponse";
+import { subItemService } from "./estimate.subItem.service";
+
+export const estimateSubItemControllers = {
+  addSubItems: catchAsync(async (req, res) => {
+    const { estimateId } = req.params;
+    const { subItems } = req.body;
+
+    const result = await subItemService.addSubItems(estimateId, subItems);
+
+    sendResponse(res, {
+      statusCode: httpStatus.CREATED,
+      success: true,
+      message: "Subitems added successfully",
+      data: result,
+    });
+  }),
+
+  updateSubItem: catchAsync(async (req, res) => {
+    const { estimateId, subItemId } = req.params;
+    const updateData = req.body;
+
+    const result = await subItemService.updateSubItem(
+      estimateId,
+      subItemId,
+      updateData,
+    );
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Subitem updated successfully",
+      data: result,
+    });
+  }),
+
+  deleteSubItem: catchAsync(async (req, res) => {
+    const { estimateId, subItemId } = req.params;
+
+    const result = await subItemService.deleteSubItem(estimateId, subItemId);
+
+    sendResponse(res, {
+      statusCode: httpStatus.OK,
+      success: true,
+      message: "Subitem deleted successfully",
+      data: result,
+    });
+  }),
+};
 ```
 
 ## 🎮 estimate.controller.ts

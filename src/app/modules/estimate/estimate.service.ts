@@ -1505,6 +1505,96 @@ const updateEstimateItemImages = async (
   return { success: true, itemId: payload.itemId, action: payload.action };
 };
 
+const addEstimateItemImagesBulk = async (
+  estimateId: string,
+  files?: Express.Multer.File[],
+) => {
+  // 1. Fetch estimate & validate
+  const estimate = await prisma.estimate.findUnique({
+    where: { id: estimateId },
+    select: { id: true, items: true, itemImages: true },
+  });
+  if (!estimate) throw new ApiError(httpStatus.NOT_FOUND, "Estimate not found");
+
+  // 2. If no files were sent, throw error
+  if (!files || files.length === 0) {
+    throw new ApiError(httpStatus.BAD_REQUEST, "No image files provided");
+  }
+
+  // 3. Group files by itemId (fieldname expected: "images[<itemId>]")
+  const filesByItem: Record<string, Express.Multer.File[]> = {};
+  for (const file of files) {
+    const fieldName = file.fieldname;
+    const match = fieldName.match(/^images\[(.+)\]$/);
+    if (!match) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        `Invalid file field name: "${fieldName}". Expected format: images[<itemId>]`,
+      );
+    }
+    const itemId = match[1];
+    if (!filesByItem[itemId]) filesByItem[itemId] = [];
+    filesByItem[itemId].push(file);
+  }
+
+  // 4. Ensure all item IDs exist in the estimate's items
+  const validItemIds = new Set(
+    (estimate.items as Array<{ id: string }>).map((i) => i.id),
+  );
+  for (const itemId of Object.keys(filesByItem)) {
+    if (!validItemIds.has(itemId)) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        `Item with id ${itemId} does not exist in this estimate`,
+      );
+    }
+  }
+
+  // 5. Upload all files concurrently, preserving per-item grouping
+  const uploadResults: Record<string, string[]> = {};
+  for (const [itemId, fileArr] of Object.entries(filesByItem)) {
+    // Enforce max 20 images per item (optional, consistent with existing limit)
+    if (fileArr.length > 20) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        `Maximum 20 images per item allowed. Item ${itemId} received ${fileArr.length}.`,
+      );
+    }
+
+    const urls = await Promise.all(
+      fileArr.map((file) => uploadInSpace(file, "estimates/itemImages")),
+    );
+    uploadResults[itemId] = urls;
+  }
+
+  // 6. Update the estimate's itemImages array
+  let existingItemImages: Array<{ itemId: string; images: string[] }> =
+    (estimate.itemImages as any) || [];
+
+  for (const [itemId, newUrls] of Object.entries(uploadResults)) {
+    const existingEntry = existingItemImages.find(
+      (entry) => entry.itemId === itemId,
+    );
+    if (existingEntry) {
+      existingEntry.images = [...existingEntry.images, ...newUrls];
+    } else {
+      existingItemImages.push({ itemId, images: newUrls });
+    }
+  }
+
+  await prisma.estimate.update({
+    where: { id: estimateId },
+    data: { itemImages: existingItemImages as any },
+  });
+
+  // 7. Return summary
+  return Object.entries(uploadResults).map(([itemId, urls]) => ({
+    itemId,
+    uploadedCount: urls.length,
+    urls,
+  }));
+};
+
 export const estimateService = {
   createClientInDB,
   getEstimateByIdFromDB,
@@ -1527,6 +1617,7 @@ export const estimateService = {
   getEstimateNumber,
   updateEstimateImages,
   updateEstimateItemImages,
+  addEstimateItemImagesBulk,
 };
 
 // contract
