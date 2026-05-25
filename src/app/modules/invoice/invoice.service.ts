@@ -1621,6 +1621,110 @@ const updateInvoiceItemImages = async (
   return { success: true, itemId: payload.itemId, action: payload.action };
 };
 
+const addInvoiceItemImagesBulk = async (
+  invoiceId: string,
+  items: { itemId: string }[],
+  files?: Express.Multer.File[],
+) => {
+  // 1. Fetch invoice & validate
+  const invoice = await prisma.invoice.findUnique({
+    where: { id: invoiceId },
+    select: { id: true, items: true, itemImages: true },
+  });
+  if (!invoice) throw new ApiError(httpStatus.NOT_FOUND, "Invoice not found");
+
+  // 2. Verify every supplied itemId exists in the invoice items
+  const validItemIds = new Set(
+    (invoice.items as Array<{ id: string }>).map((i) => i.id),
+  );
+
+  for (const { itemId } of items) {
+    if (!validItemIds.has(itemId)) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        `Item with id ${itemId} does not exist in this invoice`,
+      );
+    }
+  }
+
+  // 3. If no files were sent, just return (nothing to add)
+  if (!files || files.length === 0) {
+    throw new ApiError(httpStatus.BAD_REQUEST, "No image files provided");
+  }
+
+  // 4. Group files by itemId (fieldname expected: "images[<itemId>]")
+  const filesByItem: Record<string, Express.Multer.File[]> = {};
+  for (const file of files) {
+    const fieldName = file.fieldname;
+    // Extract itemId from "images[<itemId>]"
+    const match = fieldName.match(/^images\[(.+)\]$/);
+    if (!match) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        `Invalid file field name: "${fieldName}". Expected format: images[<itemId>]`,
+      );
+    }
+    const itemId = match[1];
+    if (!filesByItem[itemId]) filesByItem[itemId] = [];
+    filesByItem[itemId].push(file);
+  }
+
+  // 5. Ensure we only process items that were declared in the body
+  const declaredItemIds = new Set(items.map((i) => i.itemId));
+  for (const itemId of Object.keys(filesByItem)) {
+    if (!declaredItemIds.has(itemId)) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        `Files sent for item ${itemId}, but it was not included in the 'items' array`,
+      );
+    }
+  }
+
+  // 6. Upload all files concurrently, preserving per-item grouping
+  const uploadResults: Record<string, string[]> = {};
+  for (const [itemId, fileArr] of Object.entries(filesByItem)) {
+    // Enforce max 20 images per item (optional, consistent with existing limits)
+    if (fileArr.length > 20) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        `Maximum 20 images per item allowed. Item ${itemId} received ${fileArr.length}.`,
+      );
+    }
+
+    const urls = await Promise.all(
+      fileArr.map((file) => uploadInSpace(file, "invoices/itemImages")),
+    );
+    uploadResults[itemId] = urls;
+  }
+
+  // 7. Update the invoice itemImages array
+  let existingItemImages: Array<{ itemId: string; images: string[] }> =
+    (invoice.itemImages as any) || [];
+
+  for (const [itemId, newUrls] of Object.entries(uploadResults)) {
+    const existingEntry = existingItemImages.find(
+      (entry) => entry.itemId === itemId,
+    );
+    if (existingEntry) {
+      existingEntry.images = [...existingEntry.images, ...newUrls];
+    } else {
+      existingItemImages.push({ itemId, images: newUrls });
+    }
+  }
+
+  await prisma.invoice.update({
+    where: { id: invoiceId },
+    data: { itemImages: existingItemImages as any },
+  });
+
+  // 8. Return a summary
+  return Object.entries(uploadResults).map(([itemId, urls]) => ({
+    itemId,
+    uploadedCount: urls.length,
+    urls,
+  }));
+};
+
 export const invoiceService = {
   createInvoice,
   updateInvoice,
@@ -1640,4 +1744,5 @@ export const invoiceService = {
   getInvoiceNumber,
   updateInvoiceImages,
   updateInvoiceItemImages,
+  addInvoiceItemImagesBulk,
 };

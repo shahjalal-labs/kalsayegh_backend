@@ -262,6 +262,25 @@ const updateInvoiceItemImages = catchAsync(async (req, res) => {
   });
 });
 
+const addInvoiceItemImagesBulk = catchAsync(async (req, res) => {
+  const { id: invoiceId } = req.params;
+  const { items } = req.body; // parsed by parseBodyData
+  const files = req.files as Express.Multer.File[]; // upload.any() → array
+
+  const result = await invoiceService.addInvoiceItemImagesBulk(
+    invoiceId,
+    items,
+    files,
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Bulk item images added successfully",
+    data: result,
+  });
+});
+
 export const invoiceController = {
   createInvoice,
   updateInvoice,
@@ -281,4 +300,5 @@ export const invoiceController = {
   getInvoiceNumber,
   updateInvoiceImages,
   updateInvoiceItemImages,
+  addInvoiceItemImagesBulk,
 };

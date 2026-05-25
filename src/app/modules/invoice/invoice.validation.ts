@@ -199,6 +199,22 @@ const updateInvoiceSubItemSchema = z
 
 // Delete schema – no body needed, only URL params
 
+const addInvoiceItemImagesBulkSchema = z
+  .object({
+    items: z
+      .array(
+        z.object({
+          itemId: objectIdSchema, // validated to be a valid ObjectId
+        }),
+      )
+      .min(1, "At least one item is required"),
+  })
+  .strict();
+
+export type TAddInvoiceItemImagesBulk = z.infer<
+  typeof addInvoiceItemImagesBulkSchema
+>;
+
 export const invoiceValidation = {
   createInvoiceSchema,
   sendInvoiceEmailSchema,
@@ -212,4 +228,5 @@ export const invoiceValidation = {
   updateInvoiceItemImagesSchema,
   addInvoiceSubItemsSchema,
   updateInvoiceSubItemSchema,
+  addInvoiceItemImagesBulkSchema,
 };

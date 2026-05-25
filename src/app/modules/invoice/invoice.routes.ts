@@ -147,4 +147,13 @@ router.delete(
   invoiceSubItemControllers.deleteSubItem,
 );
 
+router.post(
+  "/item-images/bulk-add/:id",
+  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  fileUploader.upload.any(), // accepts any field name → dynamic mapping
+  parseBodyData, // parses the JSON 'items' field
+  validateRequest(invoiceValidation.addInvoiceItemImagesBulkSchema),
+  invoiceController.addInvoiceItemImagesBulk,
+);
+
 export const invoiceRoutes = router;
