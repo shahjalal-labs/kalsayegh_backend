@@ -152,7 +152,6 @@ router.post(
   auth(UserRole.ADMIN, UserRole.ESTIMATOR),
   fileUploader.upload.any(), // accepts any field name → dynamic mapping
   parseBodyData, // parses the JSON 'items' field
-  validateRequest(invoiceValidation.addInvoiceItemImagesBulkSchema),
   invoiceController.addInvoiceItemImagesBulk,
 );
 
