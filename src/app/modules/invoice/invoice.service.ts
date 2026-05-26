@@ -384,16 +384,18 @@ const updateInvoice = async (invoiceId: string, req: Request) => {
   const existingInvoice = await prisma.invoice.findUnique({
     where: { id: invoiceId },
   });
-  if (!existingInvoice)
+  if (!existingInvoice) {
     throw new ApiError(httpStatus.NOT_FOUND, "Invoice not found");
+  }
 
   // 2. Validate client if provided
   if (payload.clientId) {
     const existingClient = await prisma.client.findUnique({
       where: { id: payload.clientId },
     });
-    if (!existingClient)
+    if (!existingClient) {
       throw new ApiError(httpStatus.BAD_REQUEST, "Client does not exist");
+    }
   }
 
   // 3. Validate contract if provided
@@ -401,8 +403,9 @@ const updateInvoice = async (invoiceId: string, req: Request) => {
     const contractExists = await prisma.contract.count({
       where: { id: payload.contractId },
     });
-    if (!contractExists)
+    if (!contractExists) {
       throw new ApiError(httpStatus.NOT_FOUND, "Contract not found");
+    }
   }
 
   // 4. Validate items if provided (each must exist globally)
@@ -420,7 +423,7 @@ const updateInvoice = async (invoiceId: string, req: Request) => {
     }
   }
 
-  // 5. Process image uploads
+  // 5. Process image uploads (if any)
   const processImages = async (
     files: Express.Multer.File[] | undefined,
     folder: string,
@@ -435,78 +438,97 @@ const updateInvoice = async (invoiceId: string, req: Request) => {
     processImages(files?.urls, "urls"),
   ]);
 
-  // 6. Build update data
+  // 6. Build update data object
   const updateData: Prisma.InvoiceUpdateInput = {
     estimator: { connect: { id: estimatorId } },
   };
 
-  // Scalar fields (only if provided)
-  if (payload.clientId !== undefined)
+  // Scalar fields
+  if (payload.clientId !== undefined) {
     updateData.client = { connect: { id: payload.clientId } };
-  if (payload.invoiceName !== undefined)
+  }
+  if (payload.invoiceName !== undefined) {
     updateData.invoiceName = payload.invoiceName;
-  if (payload.legendary !== undefined) updateData.legendary = payload.legendary;
-  if (payload.date !== undefined) updateData.date = payload.date;
-  if (payload.endDate !== undefined) updateData.endDate = payload.endDate;
-  if (payload.items !== undefined) updateData.items = payload.items;
-  if (payload.grandTotal !== undefined)
+  }
+  if (payload.legendary !== undefined) {
+    updateData.legendary = payload.legendary;
+  }
+  if (payload.date !== undefined) {
+    updateData.date = payload.date;
+  }
+  if (payload.endDate !== undefined) {
+    updateData.endDate = payload.endDate;
+  }
+  if (payload.items !== undefined) {
+    updateData.items = payload.items;
+  }
+  if (payload.grandTotal !== undefined) {
     updateData.grandTotal = payload.grandTotal;
-  if (payload.additionalMarkUp !== undefined)
+  }
+  if (payload.additionalMarkUp !== undefined) {
     updateData.additionalMarkUp = payload.additionalMarkUp;
-  if (payload.discountAmount !== undefined)
+  }
+  if (payload.discountAmount !== undefined) {
     updateData.discountAmount = payload.discountAmount;
-  if (payload.depositAmount !== undefined)
+  }
+  if (payload.depositAmount !== undefined) {
     updateData.depositAmount = payload.depositAmount;
-  if (payload.isOnlinePayment !== undefined)
+  }
+  if (payload.isOnlinePayment !== undefined) {
     updateData.isOnlinePayment = payload.isOnlinePayment;
-  if (payload.coverPaymentProcessingFee !== undefined)
+  }
+  if (payload.coverPaymentProcessingFee !== undefined) {
     updateData.coverPaymentProcessingFee = payload.coverPaymentProcessingFee;
-  if (payload.noteForClient !== undefined)
+  }
+  if (payload.noteForClient !== undefined) {
     updateData.noteForClient = payload.noteForClient;
-  if (payload.privateNote !== undefined)
+  }
+  if (payload.privateNote !== undefined) {
     updateData.privateNote = payload.privateNote;
-  if (payload.clientSign !== undefined)
+  }
+  if (payload.clientSign !== undefined) {
     updateData.clientSign = payload.clientSign;
-  if (payload.mySign !== undefined) updateData.mySign = payload.mySign;
-  if (payload.format !== undefined) updateData.format = payload.format;
-  if (payload.contractId !== undefined)
+  }
+  if (payload.mySign !== undefined) {
+    updateData.mySign = payload.mySign;
+  }
+  if (payload.format !== undefined) {
+    updateData.format = payload.format;
+  }
+  if (payload.contractId !== undefined) {
     updateData.contract = { connect: { id: payload.contractId } };
-  if (payload.poNumber !== undefined) updateData.poNumber = payload.poNumber;
-  if (payload.isGroupingEnabled !== undefined)
+  }
+  if (payload.poNumber !== undefined) {
+    updateData.poNumber = payload.poNumber;
+  }
+  if (payload.isGroupingEnabled !== undefined) {
     updateData.isGroupingEnabled = payload.isGroupingEnabled;
-  if (payload.invoiceNumber !== undefined)
+  }
+  if (payload.invoiceNumber !== undefined) {
     updateData.invoiceNumber = payload.invoiceNumber;
-
-  if (map && map.length > 0) updateData.sideMap = map[0];
-  if (urls && urls.length > 0) updateData.fileUrls = urls;
-
-  // ========== 7. Handle subitems with automatic cleanup ==========
-  // Determine the final items array (after update)
-  const finalItems =
-    payload.items && Array.isArray(payload.items)
-      ? payload.items
-      : (existingInvoice.items as any[]);
-
-  const validItemIds = new Set(finalItems.map((item: any) => item.id));
-
-  // Start with existing subitems (if any)
-  let existingSubItems = (existingInvoice.subItems as any[]) || [];
-
-  // If items were updated, remove subitems whose itemId is no longer valid
-  if (payload.items && Array.isArray(payload.items)) {
-    existingSubItems = existingSubItems.filter((sub: any) =>
-      validItemIds.has(sub.itemId),
-    );
   }
 
-  // Process new subitems from the payload (if any)
-  let newSubItems: any[] = [];
-  if (
-    payload.subItems &&
-    Array.isArray(payload.subItems) &&
-    payload.subItems.length > 0
-  ) {
-    newSubItems = payload.subItems.map((sub: any) => {
+  // Overwrite sideMap / fileUrls if new files were uploaded
+  if (map && map.length > 0) {
+    updateData.sideMap = map[0];
+  }
+  if (urls && urls.length > 0) {
+    updateData.fileUrls = urls;
+  }
+
+  // ========== 7. Handle subitems – FULL REPLACEMENT ==========
+  // Only process subitems if the payload includes `subItems` (even empty array)
+  if (payload.subItems !== undefined) {
+    // Determine the final items array (after update)
+    const finalItems =
+      payload.items && Array.isArray(payload.items)
+        ? payload.items
+        : (existingInvoice.items as any[]);
+
+    const validItemIds = new Set(finalItems.map((item: any) => item.id));
+
+    // Process each subitem from the payload
+    const processedSubItems = (payload.subItems as any[]).map((sub: any) => {
       if (!validItemIds.has(sub.itemId)) {
         throw new ApiError(
           httpStatus.BAD_REQUEST,
@@ -522,11 +544,9 @@ const updateInvoice = async (invoiceId: string, req: Request) => {
         price: sub.price ?? null,
       };
     });
-  }
 
-  // Merge: cleaned existing subitems + new subitems
-  if (existingSubItems.length > 0 || newSubItems.length > 0) {
-    updateData.subItems = [...existingSubItems, ...newSubItems];
+    // Replace existing subitems with the new ones
+    updateData.subItems = processedSubItems;
   }
   // ========== End of subitems handling ==========
 
@@ -540,7 +560,9 @@ const updateInvoice = async (invoiceId: string, req: Request) => {
   const itemIds = updatedInvoice.items.map((item: any) => item.id);
   const itemsDetail =
     itemIds.length > 0
-      ? await prisma.item.findMany({ where: { id: { in: itemIds } } })
+      ? await prisma.item.findMany({
+          where: { id: { in: itemIds } },
+        })
       : [];
 
   return {
