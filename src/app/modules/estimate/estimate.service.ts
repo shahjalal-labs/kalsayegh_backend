@@ -527,7 +527,7 @@ const editEstimateInDB = async (estimateId: string, req: Request) => {
     });
 
     // Replace existing subitems with the new ones
-    updateData.subItems = processedSubItems as Prisma.JsonArray;
+    updateData.subItems = processedSubItems;
   }
   // ========== End of subitems handling ==========
 
