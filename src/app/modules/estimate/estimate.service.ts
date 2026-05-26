@@ -497,34 +497,19 @@ const editEstimateInDB = async (estimateId: string, req: Request) => {
   if (map) updateData.sideMap = map[0];
   if (urls) updateData.fileUrls = urls;
 
-  // ========== 7. Handle subitems with automatic cleanup ==========
-  // Determine the final items array (after update)
-  const finalItems =
-    payload.items && Array.isArray(payload.items)
-      ? payload.items
-      : (existingEstimate.items as any[]);
+  // ========== 7. Handle subitems – FULL REPLACEMENT ==========
+  // Only process subitems if the payload includes `subItems` (even empty array)
+  if (payload.subItems !== undefined) {
+    // Determine the final items array (after update)
+    const finalItems =
+      payload.items && Array.isArray(payload.items)
+        ? payload.items
+        : (existingEstimate.items as any[]);
 
-  // Build set of valid item IDs from finalItems
-  const validItemIds = new Set(finalItems.map((item: any) => item.id));
+    const validItemIds = new Set(finalItems.map((item: any) => item.id));
 
-  // Start with existing subitems (if any)
-  let existingSubItems = (existingEstimate.subItems as any[]) || [];
-
-  // If items were updated, remove subitems whose itemId is no longer valid
-  if (payload.items && Array.isArray(payload.items)) {
-    existingSubItems = existingSubItems.filter((sub: any) =>
-      validItemIds.has(sub.itemId),
-    );
-  }
-
-  // Process new subitems from the payload (if any)
-  let newSubItems: any[] = [];
-  if (
-    payload.subItems &&
-    Array.isArray(payload.subItems) &&
-    payload.subItems.length > 0
-  ) {
-    newSubItems = payload.subItems.map((sub: any) => {
+    // Process each subitem from the payload
+    const processedSubItems = (payload.subItems as any[]).map((sub: any) => {
       if (!validItemIds.has(sub.itemId)) {
         throw new ApiError(
           httpStatus.BAD_REQUEST,
@@ -540,11 +525,9 @@ const editEstimateInDB = async (estimateId: string, req: Request) => {
         price: sub.price ?? null,
       };
     });
-  }
 
-  // Merge: cleaned existing subitems + new subitems
-  if (existingSubItems.length > 0 || newSubItems.length > 0) {
-    updateData.subItems = [...existingSubItems, ...newSubItems];
+    // Replace existing subitems with the new ones
+    updateData.subItems = processedSubItems as Prisma.JsonArray;
   }
   // ========== End of subitems handling ==========
 
