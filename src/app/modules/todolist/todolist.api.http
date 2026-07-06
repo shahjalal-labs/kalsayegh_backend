@@ -11,7 +11,6 @@ Authorization: {{officeAdmin}}
 Content-Type: application/json
 
 {
-  "assignedId": "69ddf702378f36b27a299483",
   "description": "Resolve JWT expiration issue on refresh",
   "title": "Fix login bug"
 }
