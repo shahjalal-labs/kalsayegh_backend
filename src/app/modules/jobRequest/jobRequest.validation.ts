@@ -10,6 +10,10 @@ const createOfficeSchema = z
 
 export type TCreateOffice = z.infer<typeof createOfficeSchema>;
 
+const updateOfficeSchema = createOfficeSchema.optional();
+
+export type TUpdateOfficeSchema = z.infer<typeof updateOfficeSchema>;
+
 const createJobRequestSchema = z
   .object({
     title: z.string().trim().min(2).max(150),
@@ -54,6 +58,7 @@ export type TCreateJobRequestByImage = z.infer<
 export const jobRequestValidatin = {
   createOfficeSchema,
   createJobRequestSchema,
+  updateOfficeSchema,
   updateJobRequestSchema,
   createJobRequestByImageSchema,
 };

@@ -87,20 +87,10 @@ const createTodolist = async (
   payload: TCreateTodolist,
   files?: Express.Multer.File[],
 ) => {
-  const [user, assingedUser, todoCount] = await Promise.all([
+  const [user, todoCount] = await Promise.all([
     prisma.user.findUnique({
       where: {
         id: userId,
-      },
-      select: {
-        id: true,
-      },
-    }),
-
-    prisma.user.findUnique({
-      where: {
-        id: payload.assignedId,
-        role: "OFFICE_ADMINISTRATOR",
       },
       select: {
         id: true,
@@ -111,8 +101,21 @@ const createTodolist = async (
   ]);
 
   if (!user) throw new ApiError(httpStatus.NOT_FOUND, "User not found");
-  if (!assingedUser)
-    throw new ApiError(httpStatus.NOT_FOUND, "AssignedTo user not found");
+
+  if (payload.assignedId) {
+    const assingedUser = await prisma.user.findUnique({
+      where: {
+        id: payload.assignedId,
+        role: "OFFICE_ADMINISTRATOR",
+      },
+      select: {
+        id: true,
+      },
+    });
+
+    if (!assingedUser)
+      throw new ApiError(httpStatus.NOT_FOUND, "AssignedTo user not found");
+  }
 
   let todolistImages: string[] = [];
 
@@ -124,10 +127,18 @@ const createTodolist = async (
 
   return prisma.todolist.create({
     data: {
-      ...payload,
+      title: payload.title,
+      description: payload.description,
       creatorId: userId,
       image: todolistImages,
       serial: todoCount + 1,
+      ...(payload.assignedId && {
+        assignedTo: {
+          connect: {
+            id: payload.assignedId,
+          },
+        },
+      }),
     },
     select: {
       id: true,

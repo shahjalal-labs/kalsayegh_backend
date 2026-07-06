@@ -16,6 +16,12 @@ GET {{baseUrl}}/job-request/office HTTP/1.1
 Authorization: {{administrator}}
 
 
+### update office
+
+GET {{baseUrl}}/job-request/office-update/ HTTP/1.1
+Authorization: {{administrator}}
+
+
 ### create job request
 
 POST {{baseUrl}}/job-request/create-job-request HTTP/1.1

@@ -67,4 +67,10 @@ router.get(
   jobRequestController.getAllJobRequetsForAOffice,
 );
 
+router.patch(
+  "/office-update/:id",
+  validateRequest(jobRequestValidatin.updateOfficeSchema),
+  jobRequestController.updateOffice,
+);
+
 export const jobRequestRoutes = router;

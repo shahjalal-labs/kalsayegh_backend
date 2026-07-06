@@ -28,17 +28,23 @@ const getOffice = catchAsync(async (_req, res) => {
   });
 });
 
-/* const updateOffice = catchAsync(async (req, res) => {
+const updateOffice = catchAsync(async (req, res) => {
+  const { id: userId } = req.user;
+
   const { id: officeId } = req.params;
-  const result = await jobRequestService.updateOffice(officeId, req.body);
+  const result = await jobRequestService.updateOffice(
+    userId,
+    officeId,
+    req.body,
+  );
 
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,
-    message: "Office updated successfully.",
+    message: "Office updated successfully",
     data: result,
   });
-}); */
+});
 
 const createJobRequest = catchAsync(async (req, res) => {
   const { id: userId } = req.user;
@@ -144,6 +150,7 @@ const getAllJobRequetsForAOffice = catchAsync(async (req, res) => {
 export const jobRequestController = {
   createOffice,
   getOffice,
+  updateOffice,
   createJobRequest,
   getAllJobRequests,
   getJobRequestDetails,

@@ -43,22 +43,12 @@ const getOffice = async () => {
   return result;
 };
 
-const updateOffice = (userId: string, officeId: string, payload: any) => {
+const updateOffice = async (userId: string, officeId: string, payload: any) => {
   logger.info({
     userId,
     officeId,
     payload,
   });
-
-  return prisma.office.update({
-    where: {
-      id: officeId,
-    },
-    data: {
-      ...payload,
-    },
-  });
-
 };
 
 const createJobRequest = async (
