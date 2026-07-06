@@ -1,0 +1,5 @@
+### Duplicate an invoice
+
+POST {{baseUrl}}/invoice/duplicate/69f1e2dc659e336f0039f091 HTTP/1.1
+Authorization: {{estMir}}
+Content-Type: application/json

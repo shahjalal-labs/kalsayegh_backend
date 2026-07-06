@@ -54,7 +54,6 @@
 │   │   │   │   ├── estimate.route.ts
 │   │   │   │   ├── estimate.service.ts
 │   │   │   │   ├── estimate.subItem.controller.ts
-│   │   │   │   ├── estimate-subitems.api.json
 │   │   │   │   ├── estimate.subItem.service.ts
 │   │   │   │   ├── estimate.validation.ts
 │   │   │   │   └── subitems.api.http
@@ -169,6 +168,7 @@
 │   │   ├── searchFilter.ts
 │   │   ├── sendResponse.ts
 │   │   └── webhook.ts
+│   ├── todo.md
 │   ├── types
 │   │   └── index.ts
 │   └── workers
@@ -191,12 +191,11 @@
 ├── estimate.route.ts
 ├── estimate.service.ts
 ├── estimate.subItem.controller.ts
-├── estimate-subitems.api.json
 ├── estimate.subItem.service.ts
 ├── estimate.validation.ts
 └── subitems.api.http
 
-1 directory, 9 files
+1 directory, 8 files
 ```
 
 ## 📋 schema.prisma
@@ -598,9 +597,9 @@ model Reaction {
 
 model Todolist {
   id          String   @id @default(auto()) @map("_id") @db.ObjectId
-  title       String
+  title       String?
   serial      Int?
-  description String
+  description String?
   assignedId  String?  @db.ObjectId
   assignedTo  User?    @relation(fields: [assignedId], references: [id], onDelete: SetNull)
   image       String[]
@@ -1270,34 +1269,19 @@ const editEstimateInDB = async (estimateId: string, req: Request) => {
   if (map) updateData.sideMap = map[0];
   if (urls) updateData.fileUrls = urls;
 
-  // ========== 7. Handle subitems with automatic cleanup ==========
-  // Determine the final items array (after update)
-  const finalItems =
-    payload.items && Array.isArray(payload.items)
-      ? payload.items
-      : (existingEstimate.items as any[]);
+  // ========== 7. Handle subitems – FULL REPLACEMENT ==========
+  // Only process subitems if the payload includes `subItems` (even empty array)
+  if (payload.subItems !== undefined) {
+    // Determine the final items array (after update)
+    const finalItems =
+      payload.items && Array.isArray(payload.items)
+        ? payload.items
+        : (existingEstimate.items as any[]);
 
-  // Build set of valid item IDs from finalItems
-  const validItemIds = new Set(finalItems.map((item: any) => item.id));
+    const validItemIds = new Set(finalItems.map((item: any) => item.id));
 
-  // Start with existing subitems (if any)
-  let existingSubItems = (existingEstimate.subItems as any[]) || [];
-
-  // If items were updated, remove subitems whose itemId is no longer valid
-  if (payload.items && Array.isArray(payload.items)) {
-    existingSubItems = existingSubItems.filter((sub: any) =>
-      validItemIds.has(sub.itemId),
-    );
-  }
-
-  // Process new subitems from the payload (if any)
-  let newSubItems: any[] = [];
-  if (
-    payload.subItems &&
-    Array.isArray(payload.subItems) &&
-    payload.subItems.length > 0
-  ) {
-    newSubItems = payload.subItems.map((sub: any) => {
+    // Process each subitem from the payload
+    const processedSubItems = (payload.subItems as any[]).map((sub: any) => {
       if (!validItemIds.has(sub.itemId)) {
         throw new ApiError(
           httpStatus.BAD_REQUEST,
@@ -1313,11 +1297,9 @@ const editEstimateInDB = async (estimateId: string, req: Request) => {
         price: sub.price ?? null,
       };
     });
-  }
 
-  // Merge: cleaned existing subitems + new subitems
-  if (existingSubItems.length > 0 || newSubItems.length > 0) {
-    updateData.subItems = [...existingSubItems, ...newSubItems];
+    // Replace existing subitems with the new ones
+    updateData.subItems = processedSubItems;
   }
   // ========== End of subitems handling ==========
 
@@ -2278,6 +2260,96 @@ const updateEstimateItemImages = async (
   return { success: true, itemId: payload.itemId, action: payload.action };
 };
 
+const addEstimateItemImagesBulk = async (
+  estimateId: string,
+  files?: Express.Multer.File[],
+) => {
+  // 1. Fetch estimate & validate
+  const estimate = await prisma.estimate.findUnique({
+    where: { id: estimateId },
+    select: { id: true, items: true, itemImages: true },
+  });
+  if (!estimate) throw new ApiError(httpStatus.NOT_FOUND, "Estimate not found");
+
+  // 2. If no files were sent, throw error
+  if (!files || files.length === 0) {
+    throw new ApiError(httpStatus.BAD_REQUEST, "No image files provided");
+  }
+
+  // 3. Group files by itemId (fieldname expected: "images[<itemId>]")
+  const filesByItem: Record<string, Express.Multer.File[]> = {};
+  for (const file of files) {
+    const fieldName = file.fieldname;
+    const match = fieldName.match(/^images\[(.+)\]$/);
+    if (!match) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        `Invalid file field name: "${fieldName}". Expected format: images[<itemId>]`,
+      );
+    }
+    const itemId = match[1];
+    if (!filesByItem[itemId]) filesByItem[itemId] = [];
+    filesByItem[itemId].push(file);
+  }
+
+  // 4. Ensure all item IDs exist in the estimate's items
+  const validItemIds = new Set(
+    (estimate.items as Array<{ id: string }>).map((i) => i.id),
+  );
+  for (const itemId of Object.keys(filesByItem)) {
+    if (!validItemIds.has(itemId)) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        `Item with id ${itemId} does not exist in this estimate`,
+      );
+    }
+  }
+
+  // 5. Upload all files concurrently, preserving per-item grouping
+  const uploadResults: Record<string, string[]> = {};
+  for (const [itemId, fileArr] of Object.entries(filesByItem)) {
+    // Enforce max 20 images per item (optional, consistent with existing limit)
+    if (fileArr.length > 20) {
+      throw new ApiError(
+        httpStatus.BAD_REQUEST,
+        `Maximum 20 images per item allowed. Item ${itemId} received ${fileArr.length}.`,
+      );
+    }
+
+    const urls = await Promise.all(
+      fileArr.map((file) => uploadInSpace(file, "estimates/itemImages")),
+    );
+    uploadResults[itemId] = urls;
+  }
+
+  // 6. Update the estimate's itemImages array
+  let existingItemImages: Array<{ itemId: string; images: string[] }> =
+    (estimate.itemImages as any) || [];
+
+  for (const [itemId, newUrls] of Object.entries(uploadResults)) {
+    const existingEntry = existingItemImages.find(
+      (entry) => entry.itemId === itemId,
+    );
+    if (existingEntry) {
+      existingEntry.images = [...existingEntry.images, ...newUrls];
+    } else {
+      existingItemImages.push({ itemId, images: newUrls });
+    }
+  }
+
+  await prisma.estimate.update({
+    where: { id: estimateId },
+    data: { itemImages: existingItemImages as any },
+  });
+
+  // 7. Return summary
+  return Object.entries(uploadResults).map(([itemId, urls]) => ({
+    itemId,
+    uploadedCount: urls.length,
+    urls,
+  }));
+};
+
 export const estimateService = {
   createClientInDB,
   getEstimateByIdFromDB,
@@ -2300,6 +2372,7 @@ export const estimateService = {
   getEstimateNumber,
   updateEstimateImages,
   updateEstimateItemImages,
+  addEstimateItemImagesBulk,
 };
 
 // contract
@@ -2662,12 +2735,6 @@ export const estimateValidation = {
 };
 ```
 
-## 📦 estimate-subitems.api.json
-
-```javascripton
-{"variable":[{"key":"baseUrl","value":"http://10.0.20.221:6015/api/v1","disabled":false,"id":"baseUrl"},{"key":"admin","value":"Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjY5ZDA4ZDBmMGJiMjg3Y2YzNTQ0MjI2NyIsInJvbGUiOiJBRE1JTiIsImlhdCI6MTc3OTYyMjg3NSwiZXhwIjoxNzgwOTE4ODc1fQ.FjSdRUoDTBzo47ygK0I6sSxrz3KIT4eSThjrtmIgzcI","disabled":false,"id":"admin"}],"info":{"schema":"https://schema.getpostman.com/json/collection/v2.1.0/","name":"estimate-subitems.api","description":"Exported from Kulala: /home/sj/web/smt_project/kalsayegh_backend/src/app/modules/estimate/estimate-subitems.api.http"},"item":[{"description":"Kulala Export: /home/sj/web/smt_project/kalsayegh_backend/src/app/modules/estimate/estimate-subitems.api.http","item":[{"request":{"body":{"disabled":false,"raw":"{\n  \"clientId\": \"69d4be6152c9811ce6a7f12a\",\n  \"date\": \"2025-01-20\",\n  \"endDate\": \"2025-01-25\",\n  \"estimateName\": \"Parking Lot Sealcoating\",\n  \"grandTotal\": 2250,\n  \"items\": [\n    {\n      \"id\": \"69d87eb901d75586feffc495\",\n      \"quantity\": 2,\n      \"subTotal\": 1200\n    },\n    {\n      \"id\": \"69d9e204785ffd2b312e8483\",\n      \"quantity\": 1,\n      \"subTotal\": 800\n    }\n  ],\n  \"legendary\": \"legendary\",\n  \"subItems\": [\n    {\n      \"itemId\": \"69d87eb901d75586feffc495\",\n      \"price\": 150,\n      \"quantity\": 2,\n      \"title\": \"Extra preparation\",\n      \"unitCost\": 75\n    },\n    {\n      \"itemId\": \"69d87eb901d75586feffc495\",\n      \"price\": 100,\n      \"quantity\": 1,\n      \"title\": \"Disposal fee\",\n      \"unitCost\": 100\n    }\n  ]\n}","mode":"raw"},"method":"POST","description":"","auth":{"type":""},"header":[{"key":"Content-Type","value":"application/json","disabled":false}],"url":{"raw":"{{baseUrl}}/estimate/create-estimate","path":"/estimate/create-estimate","query":[],"host":"{{baseUrl}}","protocol":"http"}},"response":[],"event":[],"name":"1. Create estimate with subitems (backend generates UUIDs)","id":"estimate-subitems.api:2"},{"request":{"body":{"disabled":false,"raw":"{\n  \"subItems\": [\n    {\n      \"itemId\": \"69d87eb901d75586feffc495\",\n      \"price\": 250,\n      \"quantity\": 1,\n      \"title\": \"Traffic control\",\n      \"unitCost\": 250\n    }\n  ]\n}","mode":"raw"},"method":"POST","description":"/:estimateId","auth":{"type":""},"header":[{"key":"Content-Type","value":"application/json","disabled":false}],"url":{"raw":"{{baseUrl}}/estimate/6a12e5b643881d9d3452b6e5/sub-items","path":"/estimate/6a12e5b643881d9d3452b6e5/sub-items","query":[],"host":"{{baseUrl}}","protocol":"http"}},"response":[],"event":[],"name":"2. Add more subitems to existing estimate","id":"estimate-subitems.api:46"},{"request":{"body":{"disabled":false,"raw":"{\n  \"price\": 600,\n  \"quantity\": 2,\n  \"title\": \"Heavy traffic control (night)\",\n  \"unitCost\": 300\n}","mode":"raw"},"method":"PATCH","description":"/estimateId/subitemId","auth":{"type":""},"header":[{"key":"Content-Type","value":"application/json","disabled":false}],"url":{"raw":"{{baseUrl}}/estimate/6a12e5b643881d9d3452b6e5/sub-items/a1b2846f-a29b-4d79-9ce7-547bb2226609","path":"/estimate/6a12e5b643881d9d3452b6e5/sub-items/a1b2846f-a29b-4d79-9ce7-547bb2226609","query":[],"host":"{{baseUrl}}","protocol":"http"}},"response":[],"event":[],"name":"3. Update a subitem","id":"estimate-subitems.api:67"},{"request":{"body":{"disabled":false,"raw":"","mode":"raw"},"method":"DELETE","description":"","auth":{"type":""},"header":[],"url":{"raw":"{{baseUrl}}/estimate/6a12e5b643881d9d3452b6e5/sub-items/a1b2846f-a29b-4d79-9ce7-547bb2226609","path":"/estimate/6a12e5b643881d9d3452b6e5/sub-items/a1b2846f-a29b-4d79-9ce7-547bb2226609","query":[],"host":"{{baseUrl}}","protocol":"http"}},"response":[],"event":[],"name":"4. Delete a subitem","id":"estimate-subitems.api:83"},{"request":{"body":{"disabled":false,"raw":"","mode":"raw"},"method":"GET","description":"","auth":{"type":""},"header":[],"url":{"raw":"{{baseUrl}}/estimate/estimate/6a12e5b643881d9d3452b6e5","path":"/estimate/estimate/6a12e5b643881d9d3452b6e5","query":[],"host":"{{baseUrl}}","protocol":"http"}},"response":[],"event":[],"name":"5. Get estimate details","id":"estimate-subitems.api:89"}],"name":"estimate-subitems.api"}]}
-```
-
 ## 🔧 estimate.route.ts
 
 ```ts
@@ -2839,6 +2906,15 @@ router.delete(
   "/:estimateId/sub-items/:subItemId",
   auth(UserRole.ADMIN, UserRole.ESTIMATOR),
   estimateSubItemControllers.deleteSubItem,
+);
+
+router.post(
+  "/item-images/bulk-add/:id",
+  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  fileUploader.upload.any(), // accepts dynamic field names like images[<itemId>]
+  parseBodyData, // still needed? Not required for no body, but harmless
+  // validateRequest(estimateValidation.addEstimateItemImagesBulkSchema), // optional
+  estimateControllers.addEstimateItemImagesBulk,
 );
 
 export const estimateRoutes = router;
@@ -3185,7 +3261,22 @@ const updateEstimateItemImages = catchAsync(async (req, res) => {
   });
 });
 
+const addEstimateItemImagesBulk = catchAsync(async (req, res) => {
+  const { id: estimateId } = req.params;
+  const files = req.files as Express.Multer.File[]; // upload.any() → array
 
+  const result = await estimateService.addEstimateItemImagesBulk(
+    estimateId,
+    files,
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Bulk item images added successfully",
+    data: result,
+  });
+});
 
 export const estimateControllers = {
   createClient,
@@ -3209,5 +3300,6 @@ export const estimateControllers = {
   getEstimateNumber,
   updateEstimateImages,
   updateEstimateItemImages,
+  addEstimateItemImagesBulk,
 };
 ```

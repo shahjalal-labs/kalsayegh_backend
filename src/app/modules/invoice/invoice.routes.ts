@@ -155,4 +155,10 @@ router.post(
   invoiceController.addInvoiceItemImagesBulk,
 );
 
+router.post(
+  "/duplicate/:id",
+  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  invoiceController.duplicateInvoice,
+);
+
 export const invoiceRoutes = router;

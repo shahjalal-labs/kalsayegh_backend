@@ -279,6 +279,20 @@ const addInvoiceItemImagesBulk = catchAsync(async (req, res) => {
   });
 });
 
+const duplicateInvoice = catchAsync(async (req, res) => {
+  const { id: invoiceId } = req.params;
+  const userId = req.user.id;
+
+  const result = await invoiceService.duplicateInvoiceInDB(invoiceId, userId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.CREATED,
+    success: true,
+    message: "Invoice duplicated successfully",
+    data: result,
+  });
+});
+
 export const invoiceController = {
   createInvoice,
   updateInvoice,
@@ -299,4 +313,5 @@ export const invoiceController = {
   updateInvoiceImages,
   updateInvoiceItemImages,
   addInvoiceItemImagesBulk,
+  duplicateInvoice,
 };

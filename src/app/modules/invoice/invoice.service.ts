@@ -11,6 +11,7 @@ import {
 } from "./invoice.validation";
 import {
   EmailStatus,
+  InvoiceStage,
   InvoiceStatus,
   PaymentStatus,
   Prisma,
@@ -1733,6 +1734,114 @@ const addInvoiceItemImagesBulk = async (
   }));
 };
 
+const duplicateInvoiceInDB = async (invoiceId: string, userId: string) => {
+  // 1. Fetch the original invoice with all needed fields
+  const original = await prisma.invoice.findUnique({
+    where: { id: invoiceId },
+    select: {
+      clientId: true,
+      contractId: true,
+      invoiceName: true,
+      legendary: true,
+      date: true,
+      endDate: true,
+      sideMap: true,
+      fileUrls: true,
+      items: true,
+      subItems: true,
+      itemImages: true,
+      additionalMarkUp: true,
+      grandTotal: true,
+      discountAmount: true,
+      depositAmount: true,
+      isOnlinePayment: true,
+      coverPaymentProcessingFee: true,
+      noteForClient: true,
+      privateNote: true,
+      format: true,
+      poNumber: true,
+      isGroupingEnabled: true,
+      mySign: true,
+      mySignAt: true,
+      mySignName: true,
+      // We intentionally omit estimateId to set it null later
+    },
+  });
+
+  if (!original) {
+    throw new ApiError(httpStatus.NOT_FOUND, "Invoice not found");
+  }
+
+  // 2. Process subItems: generate new UUIDs for each
+  let processedSubItems = undefined;
+  if (
+    original.subItems &&
+    Array.isArray(original.subItems) &&
+    original.subItems.length > 0
+  ) {
+    processedSubItems = original.subItems.map((sub: any) => ({
+      ...sub,
+      id: randomUUID(), // new unique ID for each sub-item
+    }));
+  }
+
+  // 3. Get invoice count for numbering
+  const invoiceCount = await prisma.invoice.count();
+
+  // 4. Prepare data for new invoice
+  const newInvoiceData = {
+    // Copied fields
+    clientId: original.clientId,
+    contractId: original.contractId,
+    invoiceName: original.invoiceName,
+    legendary: original.legendary,
+    date: original.date,
+    endDate: original.endDate,
+    sideMap: original.sideMap,
+    fileUrls: original.fileUrls,
+    items: original.items,
+    subItems: processedSubItems,
+    itemImages: original.itemImages,
+    additionalMarkUp: original.additionalMarkUp,
+    grandTotal: original.grandTotal,
+    discountAmount: original.discountAmount,
+    depositAmount: original.depositAmount,
+    isOnlinePayment: original.isOnlinePayment,
+    coverPaymentProcessingFee: original.coverPaymentProcessingFee,
+    noteForClient: original.noteForClient,
+    privateNote: original.privateNote,
+    format: original.format,
+    poNumber: original.poNumber,
+    isGroupingEnabled: original.isGroupingEnabled,
+
+    // Copied signature fields (mySign, mySignAt, mySignName)
+    mySign: original.mySign,
+    mySignAt: original.mySignAt,
+    mySignName: original.mySignName,
+
+    // Reset fields with proper enum values
+    estimatorId: userId,
+    status: InvoiceStatus.ACTIVE,
+    stage: InvoiceStage.DRAFT,
+    emailStatus: EmailStatus.NOT_SENT,
+    isSigned: false,
+    signedAt: null,
+    signedName: null,
+    clientSign: false,
+    estimateId: null, // explicitly unlink from any estimate
+
+    // New invoice number
+    invoiceNumber: (invoiceCount + 1).toString(),
+  };
+
+  // 5. Create the new invoice
+  const newInvoice = await prisma.invoice.create({
+    data: newInvoiceData,
+  });
+
+  return newInvoice;
+};
+
 export const invoiceService = {
   createInvoice,
   updateInvoice,
@@ -1753,4 +1862,5 @@ export const invoiceService = {
   updateInvoiceImages,
   updateInvoiceItemImages,
   addInvoiceItemImagesBulk,
+  duplicateInvoiceInDB,
 };

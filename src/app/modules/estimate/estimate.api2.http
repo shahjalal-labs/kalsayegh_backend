@@ -1,0 +1,5 @@
+### Duplicate an estimate
+
+POST {{baseUrl}}/estimate/duplicate/69fb010d1a74edd18fe057e8 HTTP/1.1
+Authorization: {{estMir}}
+Content-Type: application/json

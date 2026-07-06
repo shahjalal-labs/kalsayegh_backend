@@ -177,4 +177,10 @@ router.post(
   estimateControllers.addEstimateItemImagesBulk,
 );
 
+router.post(
+  "/duplicate/:id",
+  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  estimateControllers.duplicateEstimate,
+);
+
 export const estimateRoutes = router;

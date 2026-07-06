@@ -1,6 +1,7 @@
 import {
   Client,
   EmailStatus,
+  EstimateStage,
   EstimateStatus,
   Item,
   MarkUp,
@@ -1578,6 +1579,114 @@ const addEstimateItemImagesBulk = async (
   }));
 };
 
+const duplicateEstimateInDB = async (estimateId: string, userId: string) => {
+  // 1. Fetch the original estimate
+  const original = await prisma.estimate.findUnique({
+    where: { id: estimateId },
+    select: {
+      clientId: true,
+      contractId: true,
+      estimateName: true,
+      legendary: true,
+      date: true,
+      endDate: true,
+      sideMap: true,
+      fileUrls: true,
+      items: true,
+      subItems: true,
+      itemImages: true,
+      additionalMarkUp: true,
+      grandTotal: true,
+      discountAmount: true,
+      depositAmount: true,
+      isOnlinePayment: true,
+      coverPaymentProcessingFee: true,
+      noteForClient: true,
+      privateNote: true,
+      format: true,
+      poNumber: true,
+      isGroupingEnabled: true,
+      mySign: true,
+      mySignAt: true,
+      mySignName: true,
+    },
+  });
+
+  if (!original) {
+    throw new ApiError(httpStatus.NOT_FOUND, "Estimate not found");
+  }
+
+  // 2. Process subItems – generate new UUIDs
+  let processedSubItems = undefined;
+  if (
+    original.subItems &&
+    Array.isArray(original.subItems) &&
+    original.subItems.length > 0
+  ) {
+    processedSubItems = original.subItems.map((sub: any) => ({
+      ...sub,
+      id: randomUUID(),
+    }));
+  }
+
+  // 3. Get count for new estimate number
+  const estimateCount = await prisma.estimate.count();
+
+  // 4. Prepare new estimate data with proper enum values
+  const newEstimateData = {
+    // Copied fields
+    clientId: original.clientId,
+    contractId: original.contractId,
+    estimateName: original.estimateName,
+    legendary: original.legendary,
+    date: original.date,
+    endDate: original.endDate,
+    sideMap: original.sideMap,
+    fileUrls: original.fileUrls,
+    items: original.items,
+    subItems: processedSubItems,
+    itemImages: original.itemImages,
+    additionalMarkUp: original.additionalMarkUp,
+    grandTotal: original.grandTotal,
+    discountAmount: original.discountAmount,
+    depositAmount: original.depositAmount,
+    isOnlinePayment: original.isOnlinePayment,
+    coverPaymentProcessingFee: original.coverPaymentProcessingFee,
+    noteForClient: original.noteForClient,
+    privateNote: original.privateNote,
+    format: original.format, // already an enum, just copy
+    poNumber: original.poNumber,
+    isGroupingEnabled: original.isGroupingEnabled,
+
+    // Copied signature fields
+    mySign: original.mySign,
+    mySignAt: original.mySignAt,
+    mySignName: original.mySignName,
+
+    // Reset fields – using proper enum values
+    estimatorId: userId,
+    status: EstimateStatus.Pending,
+    stage: EstimateStage.DRAFT,
+    emailStatus: EmailStatus.NOT_SENT,
+    isSigned: false,
+    signedAt: null,
+    signedName: null,
+    clientSign: false,
+    isInvoiced: false,
+    isAutoInvoice: false,
+
+    // New estimate number
+    estimateNumber: (estimateCount + 1).toString(),
+  };
+
+  // 5. Create the new estimate
+  const newEstimate = await prisma.estimate.create({
+    data: newEstimateData,
+  });
+
+  return newEstimate;
+};
+
 export const estimateService = {
   createClientInDB,
   getEstimateByIdFromDB,
@@ -1601,6 +1710,7 @@ export const estimateService = {
   updateEstimateImages,
   updateEstimateItemImages,
   addEstimateItemImagesBulk,
+  duplicateEstimateInDB,
 };
 
 // contract

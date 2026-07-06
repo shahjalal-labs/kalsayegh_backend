@@ -297,6 +297,23 @@ const addEstimateItemImagesBulk = catchAsync(async (req, res) => {
   });
 });
 
+const duplicateEstimate = catchAsync(async (req, res) => {
+  const { id: estimateId } = req.params;
+  const userId = req.user.id;
+
+  const result = await estimateService.duplicateEstimateInDB(
+    estimateId,
+    userId,
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.CREATED,
+    success: true,
+    message: "Estimate duplicated successfully",
+    data: result,
+  });
+});
+
 export const estimateControllers = {
   createClient,
   myClients,
@@ -320,4 +337,5 @@ export const estimateControllers = {
   updateEstimateImages,
   updateEstimateItemImages,
   addEstimateItemImagesBulk,
+  duplicateEstimate,
 };

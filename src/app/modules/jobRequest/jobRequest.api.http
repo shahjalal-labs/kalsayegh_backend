@@ -23,13 +23,14 @@ Authorization: {{officeAdmin}}
 Content-Type: application/json
 
 {
-  "name": "office 3"
+  "address": "Salt lake",
+  "name": "office3"
 }
 
 
 ### delete office
 
-DELETE {{baseUrl}}/job-request/office-delete/6a0aa83eb0a686ec80192791 HTTP/1.1
+DELETE {{baseUrl}}/job-request/office-delete/6a4b42d7f7819c55817fa921 HTTP/1.1
 Authorization: {{officeAdmin}}
 
 
