@@ -10,7 +10,7 @@ const createOfficeSchema = z
 
 export type TCreateOffice = z.infer<typeof createOfficeSchema>;
 
-const updateOfficeSchema = createOfficeSchema.optional();
+const updateOfficeSchema = createOfficeSchema.partial();
 
 export type TUpdateOfficeSchema = z.infer<typeof updateOfficeSchema>;
 

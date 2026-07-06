@@ -1,4 +1,4 @@
-import { Prisma } from "@prisma/client";
+import { Prisma, UserRole } from "@prisma/client";
 import ApiError from "../../../errors/ApiErrors";
 import { uploadInSpace } from "../../../helpers/uploadInSpace";
 import prisma from "../../../shared/prisma";
@@ -12,6 +12,7 @@ import httpStatus from "http-status";
 import { paginationHelper, TOptions } from "../../../shared/pagination";
 import { TUpdateImageSchema } from "../todolist/todolist.validation";
 import { logger } from "../../../shared/logger";
+import { http } from "winston";
 
 const createOffice = async (userId: string, payload: TCreateOffice) => {
   const user = await prisma.user.findUnique({
@@ -49,6 +50,54 @@ const updateOffice = async (userId: string, officeId: string, payload: any) => {
     officeId,
     payload,
   });
+
+  const office = await prisma.office.count({
+    where: {
+      id: officeId,
+    },
+  });
+
+  if (!office) throw new ApiError(httpStatus.BAD_REQUEST, "Office not found");
+
+  return prisma.office.update({
+    where: {
+      id: officeId,
+    },
+    data: {
+      ...payload,
+    },
+  });
+};
+
+const deleteOffice = async (userId: string, officeId: string) => {
+  const [user, office] = await Promise.all([
+    prisma.user.findUnique({
+      where: {
+        id: userId,
+      },
+      select: {
+        role: true,
+      },
+    }),
+
+    prisma.office.count({
+      where: {
+        id: officeId,
+      },
+    }),
+  ]);
+
+  if (!user) throw new ApiError(httpStatus.NOT_FOUND, "User not found");
+
+  if (!office) throw new ApiError(httpStatus.NOT_FOUND, "Office not found");
+
+  await prisma.office.delete({
+    where: {
+      id: officeId,
+    },
+  });
+
+  return null;
 };
 
 const createJobRequest = async (
@@ -383,6 +432,7 @@ export const jobRequestService = {
   createOffice,
   getOffice,
   updateOffice,
+  deleteOffice,
   createJobRequest,
   getAllJobRequests,
   getJobRequestDetails,

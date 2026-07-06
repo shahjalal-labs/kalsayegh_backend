@@ -46,6 +46,20 @@ const updateOffice = catchAsync(async (req, res) => {
   });
 });
 
+const deleteOffice = catchAsync(async (req, res) => {
+  const { id: userId } = req.user;
+
+  const { id: officeId } = req.params;
+  const result = await jobRequestService.deleteOffice(userId, officeId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Office deleted successfully",
+    data: result,
+  });
+});
+
 const createJobRequest = catchAsync(async (req, res) => {
   const { id: userId } = req.user;
   const files = req.files as {
@@ -151,6 +165,7 @@ export const jobRequestController = {
   createOffice,
   getOffice,
   updateOffice,
+  deleteOffice,
   createJobRequest,
   getAllJobRequests,
   getJobRequestDetails,

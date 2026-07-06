@@ -1,25 +1,36 @@
 ### create office
 
 POST {{baseUrl}}/job-request/office-create HTTP/1.1
-Authorization: {{administrator}}
+Authorization: {{officeAdmin}}
 Content-Type: application/json
 
 {
   "address": "konabari",
-  "name": "office2"
+  "name": "office3"
 }
 
 
 ### get office
 
 GET {{baseUrl}}/job-request/office HTTP/1.1
-Authorization: {{administrator}}
+Authorization: {{officeAdmin}}
 
 
 ### update office
 
-GET {{baseUrl}}/job-request/office-update/ HTTP/1.1
-Authorization: {{administrator}}
+PATCH {{baseUrl}}/job-request/office-update/6a4b42d7f7819c55817fa921 HTTP/1.1
+Authorization: {{officeAdmin}}
+Content-Type: application/json
+
+{
+  "name": "office 3"
+}
+
+
+### delete office
+
+DELETE {{baseUrl}}/job-request/office-delete/6a0aa83eb0a686ec80192791 HTTP/1.1
+Authorization: {{officeAdmin}}
 
 
 ### create job request

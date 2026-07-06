@@ -69,8 +69,17 @@ router.get(
 
 router.patch(
   "/office-update/:id",
+  auth(UserRole.OFFICE_ADMINISTRATOR, UserRole.ADMIN, UserRole.ESTIMATOR),
+
   validateRequest(jobRequestValidatin.updateOfficeSchema),
   jobRequestController.updateOffice,
+);
+
+router.delete(
+  "/office-delete/:id",
+  auth(UserRole.OFFICE_ADMINISTRATOR, UserRole.ADMIN, UserRole.ESTIMATOR),
+
+  jobRequestController.deleteOffice,
 );
 
 export const jobRequestRoutes = router;
