@@ -28,7 +28,7 @@ const getOffice = catchAsync(async (_req, res) => {
   });
 });
 
-const updateOffice = catchAsync(async (req, res) => {
+/* const updateOffice = catchAsync(async (req, res) => {
   const { id: officeId } = req.params;
   const result = await jobRequestService.updateOffice(officeId, req.body);
 
@@ -38,7 +38,7 @@ const updateOffice = catchAsync(async (req, res) => {
     message: "Office updated successfully.",
     data: result,
   });
-});
+}); */
 
 const createJobRequest = catchAsync(async (req, res) => {
   const { id: userId } = req.user;
