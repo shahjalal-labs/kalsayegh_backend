@@ -11,6 +11,7 @@ import {
 import httpStatus from "http-status";
 import { paginationHelper, TOptions } from "../../../shared/pagination";
 import { TUpdateImageSchema } from "../todolist/todolist.validation";
+import { logger } from "../../../shared/logger";
 
 const createOffice = async (userId: string, payload: TCreateOffice) => {
   const user = await prisma.user.findUnique({
@@ -40,6 +41,24 @@ const getOffice = async () => {
     },
   });
   return result;
+};
+
+const updateOffice = (userId: string, officeId: string, payload: any) => {
+  logger.info({
+    userId,
+    officeId,
+    payload,
+  });
+
+  return prisma.office.update({
+    where: {
+      id: officeId,
+    },
+    data: {
+      ...payload,
+    },
+  });
+
 };
 
 const createJobRequest = async (
@@ -373,6 +392,7 @@ const updateJobRequestImage = async (
 export const jobRequestService = {
   createOffice,
   getOffice,
+  updateOffice,
   createJobRequest,
   getAllJobRequests,
   getJobRequestDetails,

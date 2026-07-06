@@ -3,9 +3,9 @@ import z from "zod";
 
 const createTodolistSchema = z
   .object({
-    title: z.string(),
-    description: z.string(),
-    assignedId: z.string(),
+    title: z.string().optional(),
+    description: z.string().optional(),
+    assignedId: z.string().optional(),
   })
   .strict();
 
