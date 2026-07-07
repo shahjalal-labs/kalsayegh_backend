@@ -66,6 +66,15 @@ router.post(
   invoiceController.recordManualPayment,
 );
 
+router.post(
+  "/deposit-check/:id",
+  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  fileUploader.uploadMultiple, // handles checkFront, checkBack fields
+  parseBodyData, // parses JSON fields from multipart
+  validateRequest(invoiceValidation.depositCheckSchema),
+  invoiceController.depositCheck,
+);
+
 // /:invoiceId
 router.get(
   "/payments/:id",

@@ -109,6 +109,16 @@ const payWithCardSchema = z.object({
   paymentMethodId: z.string().min(1, "Payment method ID is required"),
 });
 
+const depositCheckSchema = z.object({
+  amount: z.number().positive("Amount must be greater than 0"),
+  paymentDate: z.string().datetime("Invalid date format"),
+  checkNumber: z.string().optional(),
+  description: z.string().max(500, "Description too long").optional(),
+  // Files are handled separately via multer, not in Zod
+});
+
+export type TDepositCheck = z.infer<typeof depositCheckSchema>;
+
 // invoice image update validation
 
 const invoiceImageActionSchema = z
@@ -203,6 +213,7 @@ export const invoiceValidation = {
   updateInvoiceEmailSignSchema,
   generateInvoiceSchema,
   recordManualPaymentSchema,
+  depositCheckSchema,
   refundPaymentSchema,
   payWithCardSchema,
   updateInvoiceSchema,

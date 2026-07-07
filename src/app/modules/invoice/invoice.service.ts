@@ -1045,6 +1045,97 @@ const recordManualPayment = async (
   return payment;
 };
 
+const recordCheckDeposit = async (
+  invoiceId: string,
+  userId: string,
+  payload: {
+    amount: number;
+    paymentDate: string;
+    checkNumber?: string;
+    description?: string;
+  },
+  files?: {
+    checkFront?: Express.Multer.File[];
+    checkBack?: Express.Multer.File[];
+  },
+) => {
+  // 1. Verify invoice exists
+  const invoice = await prisma.invoice.findUnique({
+    where: { id: invoiceId },
+  });
+  if (!invoice) {
+    throw new ApiError(httpStatus.NOT_FOUND, "Invoice not found");
+  }
+
+  // 2. Validate payment date
+  const paymentDate = new Date(payload.paymentDate);
+  if (isNaN(paymentDate.getTime())) {
+    throw new ApiError(httpStatus.BAD_REQUEST, "Invalid payment date");
+  }
+
+  // 3. Prevent overpayment (same logic as recordManualPayment)
+  const existingPayments = await prisma.payment.findMany({
+    where: { invoiceId, status: { not: "REFUNDED" } },
+    include: { refunds: true },
+  });
+
+  let totalPaidNet = 0;
+  for (const p of existingPayments) {
+    const refunded = p.refunds.reduce((sum, r) => sum + r.amount, 0);
+    totalPaidNet += p.amount - refunded;
+  }
+
+  const remainingDue = invoice.grandTotal - totalPaidNet;
+  if (remainingDue <= 0) {
+    throw new ApiError(httpStatus.BAD_REQUEST, "Invoice is already fully paid");
+  }
+
+  if (payload.amount > remainingDue) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      `Payment amount exceeds remaining due of $${remainingDue.toFixed(2)}`,
+    );
+  }
+
+  // 4. Upload check images (optional)
+  let checkFrontImage: string | null = null;
+  let checkBackImage: string | null = null;
+
+  if (files?.checkFront && files.checkFront.length > 0) {
+    checkFrontImage = await uploadInSpace(
+      files.checkFront[0],
+      "payments/checks/front",
+    );
+  }
+
+  if (files?.checkBack && files.checkBack.length > 0) {
+    checkBackImage = await uploadInSpace(
+      files.checkBack[0],
+      "payments/checks/back",
+    );
+  }
+
+  // 5. Create payment record
+  const payment = await prisma.payment.create({
+    data: {
+      invoiceId,
+      amount: payload.amount,
+      paymentDate,
+      paymentMethod: "CHECK",
+      checkNumber: payload.checkNumber,
+      description: payload.description,
+      checkFrontImage,
+      checkBackImage,
+      status: "COMPLETED",
+    },
+  });
+
+  // 6. Update invoice status
+  await updateInvoiceStatus(invoiceId);
+
+  return payment;
+};
+
 const getInvoicePayments = async (invoiceId: string) => {
   const invoice = await prisma.invoice.findUnique({
     where: { id: invoiceId },
@@ -1851,6 +1942,7 @@ export const invoiceService = {
   updateInvoiceEmailAndSign,
   generateInvoiceFromEstimate,
   recordManualPayment,
+  recordCheckDeposit,
   getInvoicePayments,
   refundPayment,
   getPaymentDetails,

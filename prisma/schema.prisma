@@ -461,10 +461,16 @@ model Payment {
   checkNumber           String? // only for CHECK method
   stripePaymentIntentId String? // for Stripe payments
   status                PaymentStatus @default(COMPLETED)
-  createdAt             DateTime      @default(now())
-  updatedAt             DateTime      @updatedAt
-  invoice               Invoice       @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-  refunds               Refund[]
+
+  // === FIELDS FOR CHECK DEPOSIT ===
+  checkFrontImage String? // URL of uploaded front check image
+  checkBackImage  String? // URL of uploaded back check image (optional)
+  description     String? // Optional description 
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  invoice   Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  refunds   Refund[]
 
   @@map("payments")
 }

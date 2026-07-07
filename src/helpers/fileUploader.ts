@@ -57,6 +57,10 @@ const uploadMultiple = upload.fields([
   { name: "itemImages", maxCount: 10 },
   { name: "sideMap", maxCount: 1 },
   { name: "fileUrls", maxCount: 20 },
+
+  // check deposit
+  { name: "checkFront", maxCount: 1 },
+  { name: "checkBack", maxCount: 1 },
 ]);
 
 export const fileUploader = {

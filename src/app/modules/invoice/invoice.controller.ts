@@ -116,6 +116,39 @@ const recordManualPayment = catchAsync(async (req, res) => {
   });
 });
 
+const depositCheck = catchAsync(async (req, res) => {
+  const { id: invoiceId } = req.params;
+  const userId = req.user.id;
+
+  // Extract text fields from request body
+  const payload = {
+    amount: parseFloat(req.body.amount),
+    paymentDate: req.body.paymentDate,
+    checkNumber: req.body.checkNumber,
+    description: req.body.description,
+  };
+
+  // Extract files from request
+  const files = req.files as {
+    checkFront?: Express.Multer.File[];
+    checkBack?: Express.Multer.File[];
+  };
+
+  const result = await invoiceService.recordCheckDeposit(
+    invoiceId,
+    userId,
+    payload,
+    files,
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.CREATED,
+    success: true,
+    message: "Check deposit recorded successfully",
+    data: result,
+  });
+});
+
 const getInvoicePayments = catchAsync(async (req, res) => {
   const { id: invoiceId } = req.params;
   const result = await invoiceService.getInvoicePayments(invoiceId);
@@ -302,6 +335,7 @@ export const invoiceController = {
   updateInvoiceEmailAndSign,
   generateInvoiceFromEstimate,
   recordManualPayment,
+  depositCheck,
   getInvoicePayments,
   refundPayment,
   getPaymentDetails,
