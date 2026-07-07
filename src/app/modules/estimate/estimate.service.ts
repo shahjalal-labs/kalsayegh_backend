@@ -601,25 +601,22 @@ const getEstimateByIdFromDB = async (estimateId: string) => {
   };
 };
 
-const createClientInDB = async (clientData: Client, userId: string) => {
+const createClientInDB = async (clientData: any, userId: string) => {
   const user = await prisma.user.findUniqueOrThrow({
-    where: {
-      id: userId,
-    },
+    where: { id: userId },
   });
 
-  const client = await prisma.client.findUnique({
-    where: {
-      email: clientData.email,
-    },
+  const existingClient = await prisma.client.findUnique({
+    where: { email: clientData.email },
   });
 
-  if (client) {
+  if (existingClient) {
     throw new ApiError(400, "Client with this email already exists");
   }
 
   const newClient = await prisma.client.create({
     data: {
+      // Billing address (existing)
       address: clientData.address,
       city: clientData.city,
       clientName: clientData.clientName,
@@ -628,6 +625,13 @@ const createClientInDB = async (clientData: Client, userId: string) => {
       phoneNumber: clientData.phoneNumber,
       state: clientData.state,
       zip: clientData.zip,
+
+      // Service address (new, optional)
+      serviceAddress: clientData.serviceAddress ?? null,
+      serviceCity: clientData.serviceCity ?? null,
+      serviceState: clientData.serviceState ?? null,
+      serviceZip: clientData.serviceZip ?? null,
+      isServiceDifferent: clientData.isServiceDifferent ?? false,
     },
   });
 
@@ -635,16 +639,11 @@ const createClientInDB = async (clientData: Client, userId: string) => {
 };
 
 const getMyClientsFromDB = async (userId: string) => {
-  const user = await prisma.user.findUniqueOrThrow({
-    where: {
-      id: userId,
-    },
+  await prisma.user.findUniqueOrThrow({
+    where: { id: userId },
   });
 
   const clients = await prisma.client.findMany({
-    // where: {
-    //   estimatorId: user.role === "ESTIMATOR" ? userId : undefined,
-    // },
     select: {
       id: true,
       clientName: true,
@@ -653,6 +652,13 @@ const getMyClientsFromDB = async (userId: string) => {
       address: true,
       state: true,
       zip: true,
+
+      // Include new service address fields
+      isServiceDifferent: true,
+      serviceAddress: true,
+      serviceCity: true,
+      serviceState: true,
+      serviceZip: true,
     },
   });
   return clients;

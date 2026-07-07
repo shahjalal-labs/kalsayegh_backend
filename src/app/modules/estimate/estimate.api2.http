@@ -3,3 +3,25 @@
 POST {{baseUrl}}/estimate/duplicate/69fb010d1a74edd18fe057e8 HTTP/1.1
 Authorization: {{estMir}}
 Content-Type: application/json
+
+
+### Create a client with both billing and service address
+
+POST {{baseUrl}}/estimate/create-client HTTP/1.1
+Authorization: {{estMir}}
+Content-Type: application/json
+
+{
+  "address": "123 Main Street",
+  "city": "Springfield",
+  "clientName": "Acme Construction",
+  "email": "billing@acme.com",
+  "isServiceDifferent": true,
+  "phoneNumber": "555-123-4567",
+  "serviceAddress": "456 Elm Street",
+  "serviceCity": "Shelbyville",
+  "serviceState": "IL",
+  "serviceZip": "62565",
+  "state": "IL",
+  "zip": "62701"
+}

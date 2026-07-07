@@ -169,20 +169,28 @@ model Message {
 }
 
 model Client {
-  id          String     @id @default(auto()) @map("_id") @db.ObjectId
-  estimatorId String?    @db.ObjectId
+  id          String  @id @default(auto()) @map("_id") @db.ObjectId
+  estimatorId String? @db.ObjectId
   clientName  String
-  email       String     @unique
+  email       String  @unique
   phoneNumber String
   address     String
   city        String
   zip         String
   state       String
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  estimator   User?      @relation(fields: [estimatorId], references: [id], onDelete: Cascade)
-  estimates   Estimate[]
-  invoices    Invoice[]
+
+  // ===  for service address ===
+  serviceAddress     String?
+  serviceCity        String?
+  serviceState       String?
+  serviceZip         String?
+  isServiceDifferent Boolean? @default(false)
+
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  estimator User?      @relation(fields: [estimatorId], references: [id], onDelete: Cascade)
+  estimates Estimate[]
+  invoices  Invoice[]
 
   @@map("clients")
 }
