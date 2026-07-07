@@ -660,6 +660,9 @@ const getMyClientsFromDB = async (userId: string) => {
       serviceState: true,
       serviceZip: true,
     },
+    orderBy: {
+      id: "desc",
+    },
   });
   return clients;
 };
