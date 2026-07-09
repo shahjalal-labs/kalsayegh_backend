@@ -1,3 +1,2 @@
 1. subitem update api
-2. Check Deposit System with Check Images Api Needed
-3. group invite but conversation not found
+2. group invite but conversation not found (by musfik vi)
