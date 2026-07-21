@@ -44,4 +44,10 @@ router.get(
   adminController.getAllOfficeAdmin,
 );
 
+router.get(
+  "/pending-users/all",
+  auth(UserRole.ADMIN, UserRole.OFFICE_ADMINISTRATOR),
+  adminController.getAllPendingUsers,
+);
+
 export const adminRoutes = router;

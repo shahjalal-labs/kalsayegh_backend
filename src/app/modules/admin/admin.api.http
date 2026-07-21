@@ -68,3 +68,9 @@ Authorization: {{admin}}
 
 GET {{baseUrl}}/admin/office-admin/all?page=1&limit=20&searchTerm=office2 HTTP/1.1
 Authorization: {{admin}}
+
+
+### get all pendings users | admin
+
+GET {{baseUrl}}/admin/pending-users/all?page=1&limit=20&searchTerm=jabir HTTP/1.1
+Authorization: {{admin}}

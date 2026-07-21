@@ -112,6 +112,25 @@ const getAllOfficeAdmin = catchAsync(async (req, res) => {
   });
 });
 
+const getAllPendingUsers = catchAsync(async (req, res) => {
+  const { id: userId } = req.user;
+  const paginations = pick(req.query, paginationOptions);
+  const filter = pick(req.query, ["searchTerm"]);
+
+  const result = await adminService.getAllPendingUsers(
+    userId,
+    paginations,
+    filter,
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "All pending users retrieved successfully",
+    data: result,
+  });
+});
+
 export const adminController = {
   getEmployeeList,
   getAdminOverview,
@@ -121,4 +140,5 @@ export const adminController = {
   deleteUserAccount,
   getAllEstimator,
   getAllOfficeAdmin,
+  getAllPendingUsers,
 };

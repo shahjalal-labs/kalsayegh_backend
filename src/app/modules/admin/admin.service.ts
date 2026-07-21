@@ -1,6 +1,6 @@
 import prisma from "../../../shared/prisma";
 
-import { Prisma, SessionType, UserRole } from "@prisma/client";
+import { Prisma, SessionType, UserRole, UserStatus } from "@prisma/client";
 import {
   startOfDay,
   endOfDay,
@@ -686,6 +686,103 @@ const getAllOfficeAdmin = async (
   };
 };
 
+const getAllPendingUsers = async (
+  userId: string,
+  paginations: TOptions,
+  filter?: {
+    searchTerm?: string;
+  },
+) => {
+  const [user] = await Promise.all([
+    prisma.user.findUnique({
+      where: {
+        id: userId,
+      },
+      select: {
+        id: true,
+        role: true,
+      },
+    }),
+  ]);
+
+  if (!user) throw new ApiError(httpStatus.NOT_FOUND, "User not found");
+
+  if (
+    user.role !== UserRole.ADMIN &&
+    user.role !== UserRole.OFFICE_ADMINISTRATOR
+  )
+    throw new ApiError(httpStatus.UNAUTHORIZED, "You have not permission");
+
+  const whereClause: Prisma.UserWhereInput = {};
+
+  const andClause: Prisma.UserWhereInput[] = [];
+  const searchTerm = filter?.searchTerm?.trim();
+
+  if (searchTerm) {
+    andClause.push({
+      OR: [
+        {
+          fullName: {
+            contains: searchTerm,
+            mode: "insensitive",
+          },
+        },
+        {
+          email: {
+            contains: searchTerm,
+            mode: "insensitive",
+          },
+        },
+        {
+          profession: {
+            contains: searchTerm,
+            mode: "insensitive",
+          },
+        },
+      ],
+    });
+  }
+
+  if (andClause.length) {
+    whereClause.AND = andClause;
+  }
+
+  const { page, skip, limit } = paginationHelper(paginations);
+
+  const [users, totalUsers] = await Promise.all([
+    prisma.user.findMany({
+      where: whereClause,
+      select: {
+        id: true,
+        fullName: true,
+        email: true,
+        status: true,
+        role: true,
+      },
+      skip,
+      take: limit,
+      orderBy: {
+        id: "desc", // same as created:"desc"
+      },
+    }),
+
+    prisma.user.count({
+      where: whereClause,
+    }),
+  ]);
+
+  return {
+    meta: {
+      page,
+      limit,
+      total: totalUsers,
+      totalPages: Math.ceil(totalUsers / limit),
+    },
+
+    data: users,
+  };
+};
+
 export const adminService = {
   getEmployeeList,
   getAdminOverview,
@@ -695,4 +792,5 @@ export const adminService = {
   deleteUserAccount,
   getAllEstimator,
   getAllOfficeAdmin,
+  getAllPendingUsers,
 };
