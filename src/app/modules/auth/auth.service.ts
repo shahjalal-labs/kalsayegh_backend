@@ -29,12 +29,12 @@ const loginUserIntoDB = async (payload: TLogin) => {
     );
   }
 
-  if (user.status === "INACTIVE") {
+  /* if (user.status === "INACTIVE") {
     throw new ApiError(
       httpStatus.BAD_REQUEST,
       "Your account is inactive. Please contact support.",
     );
-  }
+  } */
 
   const isPasswordValid = await bcrypt.compare(payload.password, user.password);
 
