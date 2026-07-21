@@ -9,6 +9,7 @@ import httpStatus from "http-status";
 import { uploadInSpace } from "../../../helpers/uploadInSpace";
 import { jwtHelpers } from "../../../helpers/jwtHelpers";
 import { Secret } from "jsonwebtoken";
+import { UserStatus } from "@prisma/client";
 
 const createUser = async (
   payload: TUserRegister,
@@ -145,6 +146,7 @@ const signupVerification = async (payload: {
         profession: pendingUser.profession,
         profileImage: pendingUser.profileImage,
         fcmToken: payload.fcmToken,
+        status: UserStatus.PENDING,
       },
     });
     await tx.pendingUser.delete({ where: { email } });

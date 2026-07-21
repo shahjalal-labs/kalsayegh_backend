@@ -22,19 +22,19 @@ const loginUserIntoDB = async (payload: TLogin) => {
     throw new ApiError(httpStatus.NOT_FOUND, "User not found");
   }
 
-  /* if (user.status === "PENDING") {
+  if (user.status === "PENDING") {
     throw new ApiError(
       httpStatus.BAD_REQUEST,
       "Your account is under review. You can log in after admin approval.",
     );
-  } */
+  }
 
-  /* if (user.status === "INACTIVE") {
+  if (user.status === "INACTIVE") {
     throw new ApiError(
       httpStatus.BAD_REQUEST,
       "Your account is inactive. Please contact support.",
     );
-  } */
+  }
 
   const isPasswordValid = await bcrypt.compare(payload.password, user.password);
 
