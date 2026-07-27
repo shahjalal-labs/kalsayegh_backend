@@ -131,6 +131,16 @@ const getAllPendingUsers = catchAsync(async (req, res) => {
   });
 });
 
+const createOfficeAdmin = catchAsync(async (req, res) => {
+  const result = await adminService.createOfficeAdmin(req.body, req.file);
+  sendResponse(res, {
+    statusCode: httpStatus.CREATED,
+    success: true,
+    message: "Office Admin created successfully",
+    data: result,
+  });
+});
+
 export const adminController = {
   getEmployeeList,
   getAdminOverview,
@@ -141,4 +151,5 @@ export const adminController = {
   getAllEstimator,
   getAllOfficeAdmin,
   getAllPendingUsers,
+  createOfficeAdmin,
 };

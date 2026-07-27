@@ -74,3 +74,17 @@ Authorization: {{admin}}
 
 GET {{baseUrl}}/admin/pending-users/all?page=1&limit=20&searchTerm=jabir HTTP/1.1
 Authorization: {{admin}}
+
+
+### Create office admin | admin
+
+POST {{baseUrl}}/admin/office-admin HTTP/1.1
+Content-Type: application/json
+Authorization: {{admin}}
+
+{
+  "email": "newadmin2@company.com",
+  "fullName": "Jane Smith",
+  "password": "SecurePass123",
+  "profession": "Office Administrator"
+}

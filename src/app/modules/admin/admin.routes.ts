@@ -4,6 +4,8 @@ import auth from "../../middlewares/auth";
 import { UserRole } from "@prisma/client";
 import validateRequest from "../../middlewares/validateRequest";
 import { adminValidation } from "./admin.validation";
+import { fileUploader } from "../../../helpers/fileUploader";
+import { parseBodyData } from "../../middlewares/parseBodyData";
 
 const router = Router();
 
@@ -48,6 +50,15 @@ router.get(
   "/pending-users/all",
   auth(UserRole.ADMIN, UserRole.OFFICE_ADMINISTRATOR),
   adminController.getAllPendingUsers,
+);
+
+router.post(
+  "/office-admin",
+  auth(UserRole.ADMIN),
+  fileUploader.profileImage,
+  parseBodyData,
+  validateRequest(adminValidation.createOfficeAdminSchema),
+  adminController.createOfficeAdmin,
 );
 
 export const adminRoutes = router;

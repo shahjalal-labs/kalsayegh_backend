@@ -1,5 +1,7 @@
 import prisma from "../../../shared/prisma";
 
+import bcrypt from "bcryptjs";
+
 import { Prisma, SessionType, UserRole, UserStatus } from "@prisma/client";
 import {
   startOfDay,
@@ -22,9 +24,14 @@ import {
 } from "date-fns";
 import ApiError from "../../../errors/ApiErrors";
 import httpStatus from "http-status";
-import { TUpdateUserDetailsSchema } from "./admin.validation";
+import {
+  TCreateOfficeAdmin,
+  TUpdateUserDetailsSchema,
+} from "./admin.validation";
 import { paginationHelper, TOptions } from "../../../shared/pagination";
 import { logger } from "../../../shared/logger";
+import config from "../../../config";
+import { uploadInSpace } from "../../../helpers/uploadInSpace";
 
 // Helper to calculate duration in hours (decimal)
 const calculateHours = (clockIn: Date, clockOut: Date | null): number => {
@@ -51,6 +58,9 @@ const getEmployeeList = async (
 
   const whereClause: Prisma.UserWhereInput = {
     role: UserRole.WORKER,
+    NOT: {
+      status: UserStatus.PENDING,
+    },
   };
 
   const andClause: Prisma.UserWhereInput[] = [];
@@ -783,6 +793,55 @@ const getAllPendingUsers = async (
   };
 };
 
+const createOfficeAdmin = async (
+  payload: TCreateOfficeAdmin,
+  file: Express.Multer.File | undefined,
+) => {
+  // 1. Check existing user
+  const existing = await prisma.user.findUnique({
+    where: { email: payload.email },
+  });
+  if (existing)
+    throw new ApiError(httpStatus.BAD_REQUEST, "Email already registered");
+
+  // 2. Hash password
+  const hashedPassword = await bcrypt.hash(
+    payload.password,
+    Number(config.jwt.gen_salt),
+  );
+
+  // 3. Upload image if present
+  let profileImage: string | null = null;
+  if (file) {
+    profileImage = await uploadInSpace(file, "users/profileImage");
+  }
+
+  // 4. Create user
+  const newUser = await prisma.user.create({
+    data: {
+      email: payload.email,
+      password: hashedPassword,
+      fullName: payload.fullName,
+      profession: payload.profession ?? null,
+      profileImage,
+      role: UserRole.OFFICE_ADMINISTRATOR,
+      status: UserStatus.ACTIVE,
+    },
+    select: {
+      id: true,
+      email: true,
+      fullName: true,
+      profession: true,
+      profileImage: true,
+      role: true,
+      status: true,
+      createdAt: true,
+    },
+  });
+
+  return newUser;
+};
+
 export const adminService = {
   getEmployeeList,
   getAdminOverview,
@@ -793,4 +852,5 @@ export const adminService = {
   getAllEstimator,
   getAllOfficeAdmin,
   getAllPendingUsers,
+  createOfficeAdmin,
 };
