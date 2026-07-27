@@ -18,9 +18,9 @@ POST {{baseUrl}}/users/signup-verification HTTP/1.1
 Content-Type: application/json
 
 {
-  "email": "jabirbinhasan@gmail.com",
+  "email": "shahjalal.backend@gmail.com",
   "fcmToken": "fcm1",
-  "otp": "4401"
+  "otp": "6069"
 }
 
 
