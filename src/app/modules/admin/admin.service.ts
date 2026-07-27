@@ -824,7 +824,7 @@ const createOfficeAdmin = async (
       fullName: payload.fullName,
       profession: payload.profession ?? null,
       profileImage,
-      role: UserRole.OFFICE_ADMINISTRATOR,
+      role: UserRole.ADMIN,
       status: UserStatus.ACTIVE,
     },
     select: {
