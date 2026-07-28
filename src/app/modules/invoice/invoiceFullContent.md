@@ -30,14 +30,14 @@
 │   │   │   ├── admin
 │   │   │   │   ├── admin.api.http
 │   │   │   │   ├── admin.controller.ts
+│   │   │   │   ├── adminFullContent.md
 │   │   │   │   ├── admin.routes.ts
 │   │   │   │   ├── admin.service.ts
-│   │   │   │   ├── admin.validation.ts
-│   │   │   │   └── new.txt
+│   │   │   │   └── admin.validation.ts
 │   │   │   ├── auth
 │   │   │   │   ├── auth.api.http
-│   │   │   │   ├── auth.api.json
 │   │   │   │   ├── auth.controller.ts
+│   │   │   │   ├── authFullContent.md
 │   │   │   │   ├── auth.routes.ts
 │   │   │   │   ├── auth.service.ts
 │   │   │   │   └── auth.validation.ts
@@ -65,6 +65,7 @@
 │   │   │   │   ├── group.service.ts
 │   │   │   │   └── group.validation.ts
 │   │   │   ├── invoice
+│   │   │   │   ├── invoice.api2.http
 │   │   │   │   ├── invoice.api.http
 │   │   │   │   ├── invoice.controller.ts
 │   │   │   │   ├── invoice.routes.ts
@@ -181,13 +182,14 @@
 │   └── google.png
 └── vercel.json
 
-33 directories, 144 files
+33 directories, 145 files
 ```
 
 ## 📁 invoice Module Tree
 
 ```bash
 /home/sj/web/smt_project/kalsayegh_backend/src/app/modules/invoice
+├── invoice.api2.http
 ├── invoice.api.http
 ├── invoice.controller.ts
 ├── invoice.routes.ts
@@ -197,7 +199,7 @@
 ├── invoice.validation.ts
 └── subitems.api.http
 
-1 directory, 8 files
+1 directory, 9 files
 ```
 
 ## 📋 schema.prisma
@@ -374,20 +376,28 @@ model Message {
 }
 
 model Client {
-  id          String     @id @default(auto()) @map("_id") @db.ObjectId
-  estimatorId String?    @db.ObjectId
+  id          String  @id @default(auto()) @map("_id") @db.ObjectId
+  estimatorId String? @db.ObjectId
   clientName  String
-  email       String     @unique
+  email       String  @unique
   phoneNumber String
   address     String
   city        String
   zip         String
   state       String
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime   @updatedAt
-  estimator   User?      @relation(fields: [estimatorId], references: [id], onDelete: Cascade)
-  estimates   Estimate[]
-  invoices    Invoice[]
+
+  // ===  for service address ===
+  serviceAddress     String?
+  serviceCity        String?
+  serviceState       String?
+  serviceZip         String?
+  isServiceDifferent Boolean? @default(false)
+
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  estimator User?      @relation(fields: [estimatorId], references: [id], onDelete: Cascade)
+  estimates Estimate[]
+  invoices  Invoice[]
 
   @@map("clients")
 }
@@ -658,10 +668,16 @@ model Payment {
   checkNumber           String? // only for CHECK method
   stripePaymentIntentId String? // for Stripe payments
   status                PaymentStatus @default(COMPLETED)
-  createdAt             DateTime      @default(now())
-  updatedAt             DateTime      @updatedAt
-  invoice               Invoice       @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
-  refunds               Refund[]
+
+  // === FIELDS FOR CHECK DEPOSIT ===
+  checkFrontImage String? // URL of uploaded front check image
+  checkBackImage  String? // URL of uploaded back check image (optional)
+  description     String? // Optional description 
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  invoice   Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  refunds   Refund[]
 
   @@map("payments")
 }
@@ -890,6 +906,39 @@ const recordManualPayment = catchAsync(async (req, res) => {
   });
 });
 
+const depositCheck = catchAsync(async (req, res) => {
+  const { id: invoiceId } = req.params;
+  const userId = req.user.id;
+
+  // Extract text fields from request body
+  const payload = {
+    amount: parseFloat(req.body.amount),
+    paymentDate: req.body.paymentDate,
+    checkNumber: req.body.checkNumber,
+    description: req.body.description,
+  };
+
+  // Extract files from request
+  const files = req.files as {
+    checkFront?: Express.Multer.File[];
+    checkBack?: Express.Multer.File[];
+  };
+
+  const result = await invoiceService.recordCheckDeposit(
+    invoiceId,
+    userId,
+    payload,
+    files,
+  );
+
+  sendResponse(res, {
+    statusCode: httpStatus.CREATED,
+    success: true,
+    message: "Check deposit recorded successfully",
+    data: result,
+  });
+});
+
 const getInvoicePayments = catchAsync(async (req, res) => {
   const { id: invoiceId } = req.params;
   const result = await invoiceService.getInvoicePayments(invoiceId);
@@ -1053,6 +1102,20 @@ const addInvoiceItemImagesBulk = catchAsync(async (req, res) => {
   });
 });
 
+const duplicateInvoice = catchAsync(async (req, res) => {
+  const { id: invoiceId } = req.params;
+  const userId = req.user.id;
+
+  const result = await invoiceService.duplicateInvoiceInDB(invoiceId, userId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.CREATED,
+    success: true,
+    message: "Invoice duplicated successfully",
+    data: result,
+  });
+});
+
 export const invoiceController = {
   createInvoice,
   updateInvoice,
@@ -1062,6 +1125,7 @@ export const invoiceController = {
   updateInvoiceEmailAndSign,
   generateInvoiceFromEstimate,
   recordManualPayment,
+  depositCheck,
   getInvoicePayments,
   refundPayment,
   getPaymentDetails,
@@ -1073,6 +1137,7 @@ export const invoiceController = {
   updateInvoiceImages,
   updateInvoiceItemImages,
   addInvoiceItemImagesBulk,
+  duplicateInvoice,
 };
 ```
 
@@ -1296,6 +1361,16 @@ const payWithCardSchema = z.object({
   paymentMethodId: z.string().min(1, "Payment method ID is required"),
 });
 
+const depositCheckSchema = z.object({
+  amount: z.number().positive("Amount must be greater than 0"),
+  paymentDate: z.string().datetime("Invalid date format"),
+  checkNumber: z.string().optional(),
+  description: z.string().max(500, "Description too long").optional(),
+  // Files are handled separately via multer, not in Zod
+});
+
+export type TDepositCheck = z.infer<typeof depositCheckSchema>;
+
 // invoice image update validation
 
 const invoiceImageActionSchema = z
@@ -1390,6 +1465,7 @@ export const invoiceValidation = {
   updateInvoiceEmailSignSchema,
   generateInvoiceSchema,
   recordManualPaymentSchema,
+  depositCheckSchema,
   refundPaymentSchema,
   payWithCardSchema,
   updateInvoiceSchema,
@@ -1469,6 +1545,15 @@ router.post(
   auth(UserRole.ADMIN, UserRole.ESTIMATOR),
   validateRequest(invoiceValidation.recordManualPaymentSchema),
   invoiceController.recordManualPayment,
+);
+
+router.post(
+  "/deposit-check/:id",
+  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  fileUploader.uploadMultiple, // handles checkFront, checkBack fields
+  parseBodyData, // parses JSON fields from multipart
+  validateRequest(invoiceValidation.depositCheckSchema),
+  invoiceController.depositCheck,
 );
 
 // /:invoiceId
@@ -1560,6 +1645,12 @@ router.post(
   invoiceController.addInvoiceItemImagesBulk,
 );
 
+router.post(
+  "/duplicate/:id",
+  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  invoiceController.duplicateInvoice,
+);
+
 export const invoiceRoutes = router;
 ```
 
@@ -1638,6 +1729,7 @@ import {
 } from "./invoice.validation";
 import {
   EmailStatus,
+  InvoiceStage,
   InvoiceStatus,
   PaymentStatus,
   Prisma,
@@ -2671,6 +2763,97 @@ const recordManualPayment = async (
   return payment;
 };
 
+const recordCheckDeposit = async (
+  invoiceId: string,
+  userId: string,
+  payload: {
+    amount: number;
+    paymentDate: string;
+    checkNumber?: string;
+    description?: string;
+  },
+  files?: {
+    checkFront?: Express.Multer.File[];
+    checkBack?: Express.Multer.File[];
+  },
+) => {
+  // 1. Verify invoice exists
+  const invoice = await prisma.invoice.findUnique({
+    where: { id: invoiceId },
+  });
+  if (!invoice) {
+    throw new ApiError(httpStatus.NOT_FOUND, "Invoice not found");
+  }
+
+  // 2. Validate payment date
+  const paymentDate = new Date(payload.paymentDate);
+  if (isNaN(paymentDate.getTime())) {
+    throw new ApiError(httpStatus.BAD_REQUEST, "Invalid payment date");
+  }
+
+  // 3. Prevent overpayment (same logic as recordManualPayment)
+  const existingPayments = await prisma.payment.findMany({
+    where: { invoiceId, status: { not: "REFUNDED" } },
+    include: { refunds: true },
+  });
+
+  let totalPaidNet = 0;
+  for (const p of existingPayments) {
+    const refunded = p.refunds.reduce((sum, r) => sum + r.amount, 0);
+    totalPaidNet += p.amount - refunded;
+  }
+
+  const remainingDue = invoice.grandTotal - totalPaidNet;
+  if (remainingDue <= 0) {
+    throw new ApiError(httpStatus.BAD_REQUEST, "Invoice is already fully paid");
+  }
+
+  if (payload.amount > remainingDue) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      `Payment amount exceeds remaining due of $${remainingDue.toFixed(2)}`,
+    );
+  }
+
+  // 4. Upload check images (optional)
+  let checkFrontImage: string | null = null;
+  let checkBackImage: string | null = null;
+
+  if (files?.checkFront && files.checkFront.length > 0) {
+    checkFrontImage = await uploadInSpace(
+      files.checkFront[0],
+      "payments/checks/front",
+    );
+  }
+
+  if (files?.checkBack && files.checkBack.length > 0) {
+    checkBackImage = await uploadInSpace(
+      files.checkBack[0],
+      "payments/checks/back",
+    );
+  }
+
+  // 5. Create payment record
+  const payment = await prisma.payment.create({
+    data: {
+      invoiceId,
+      amount: payload.amount,
+      paymentDate,
+      paymentMethod: "CHECK",
+      checkNumber: payload.checkNumber,
+      description: payload.description,
+      checkFrontImage,
+      checkBackImage,
+      status: "COMPLETED",
+    },
+  });
+
+  // 6. Update invoice status
+  await updateInvoiceStatus(invoiceId);
+
+  return payment;
+};
+
 const getInvoicePayments = async (invoiceId: string) => {
   const invoice = await prisma.invoice.findUnique({
     where: { id: invoiceId },
@@ -3360,6 +3543,114 @@ const addInvoiceItemImagesBulk = async (
   }));
 };
 
+const duplicateInvoiceInDB = async (invoiceId: string, userId: string) => {
+  // 1. Fetch the original invoice with all needed fields
+  const original = await prisma.invoice.findUnique({
+    where: { id: invoiceId },
+    select: {
+      clientId: true,
+      contractId: true,
+      invoiceName: true,
+      legendary: true,
+      date: true,
+      endDate: true,
+      sideMap: true,
+      fileUrls: true,
+      items: true,
+      subItems: true,
+      itemImages: true,
+      additionalMarkUp: true,
+      grandTotal: true,
+      discountAmount: true,
+      depositAmount: true,
+      isOnlinePayment: true,
+      coverPaymentProcessingFee: true,
+      noteForClient: true,
+      privateNote: true,
+      format: true,
+      poNumber: true,
+      isGroupingEnabled: true,
+      mySign: true,
+      mySignAt: true,
+      mySignName: true,
+      // We intentionally omit estimateId to set it null later
+    },
+  });
+
+  if (!original) {
+    throw new ApiError(httpStatus.NOT_FOUND, "Invoice not found");
+  }
+
+  // 2. Process subItems: generate new UUIDs for each
+  let processedSubItems = undefined;
+  if (
+    original.subItems &&
+    Array.isArray(original.subItems) &&
+    original.subItems.length > 0
+  ) {
+    processedSubItems = original.subItems.map((sub: any) => ({
+      ...sub,
+      id: randomUUID(), // new unique ID for each sub-item
+    }));
+  }
+
+  // 3. Get invoice count for numbering
+  const invoiceCount = await prisma.invoice.count();
+
+  // 4. Prepare data for new invoice
+  const newInvoiceData = {
+    // Copied fields
+    clientId: original.clientId,
+    contractId: original.contractId,
+    invoiceName: original.invoiceName,
+    legendary: original.legendary,
+    date: original.date,
+    endDate: original.endDate,
+    sideMap: original.sideMap,
+    fileUrls: original.fileUrls,
+    items: original.items,
+    subItems: processedSubItems,
+    itemImages: original.itemImages,
+    additionalMarkUp: original.additionalMarkUp,
+    grandTotal: original.grandTotal,
+    discountAmount: original.discountAmount,
+    depositAmount: original.depositAmount,
+    isOnlinePayment: original.isOnlinePayment,
+    coverPaymentProcessingFee: original.coverPaymentProcessingFee,
+    noteForClient: original.noteForClient,
+    privateNote: original.privateNote,
+    format: original.format,
+    poNumber: original.poNumber,
+    isGroupingEnabled: original.isGroupingEnabled,
+
+    // Copied signature fields (mySign, mySignAt, mySignName)
+    mySign: original.mySign,
+    mySignAt: original.mySignAt,
+    mySignName: original.mySignName,
+
+    // Reset fields with proper enum values
+    estimatorId: userId,
+    status: InvoiceStatus.ACTIVE,
+    stage: InvoiceStage.DRAFT,
+    emailStatus: EmailStatus.NOT_SENT,
+    isSigned: false,
+    signedAt: null,
+    signedName: null,
+    clientSign: false,
+    estimateId: null, // explicitly unlink from any estimate
+
+    // New invoice number
+    invoiceNumber: (invoiceCount + 1).toString(),
+  };
+
+  // 5. Create the new invoice
+  const newInvoice = await prisma.invoice.create({
+    data: newInvoiceData,
+  });
+
+  return newInvoice;
+};
+
 export const invoiceService = {
   createInvoice,
   updateInvoice,
@@ -3369,6 +3660,7 @@ export const invoiceService = {
   updateInvoiceEmailAndSign,
   generateInvoiceFromEstimate,
   recordManualPayment,
+  recordCheckDeposit,
   getInvoicePayments,
   refundPayment,
   getPaymentDetails,
@@ -3380,5 +3672,6 @@ export const invoiceService = {
   updateInvoiceImages,
   updateInvoiceItemImages,
   addInvoiceItemImagesBulk,
+  duplicateInvoiceInDB,
 };
 ```

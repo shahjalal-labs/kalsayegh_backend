@@ -1394,7 +1394,7 @@ const payInvoiceWithCard = async (
   }
 };
 
-const getPublicInvoiceDetails = async (invoiceId: string) => {
+/* const getPublicInvoiceDetails = async (invoiceId: string) => {
   const invoice = await prisma.invoice.findUnique({
     where: { id: invoiceId },
     include: {
@@ -1444,6 +1444,97 @@ const getPublicInvoiceDetails = async (invoiceId: string) => {
     payments: {
       totalPaid: totalPaidNet,
       amountDue: Math.max(0, amountDue),
+    },
+  };
+}; */
+
+// public invoice details with item format
+
+const getPublicInvoiceDetails = async (invoiceId: string) => {
+  // 1. Fetch invoice with client and estimator
+  const invoice = await prisma.invoice.findUnique({
+    where: { id: invoiceId },
+    include: {
+      client: {
+        select: {
+          clientName: true,
+          email: true,
+          phoneNumber: true,
+          address: true,
+          city: true,
+          state: true,
+          zip: true,
+        },
+      },
+      estimator: {
+        select: {
+          fullName: true,
+          email: true,
+        },
+      },
+    },
+  });
+
+  if (!invoice) {
+    throw new ApiError(httpStatus.NOT_FOUND, "Invoice not found");
+  }
+
+  // 2. Enrich items – same logic as getInvoiceDetails
+  const invoiceItems = Array.isArray(invoice.items) ? invoice.items : [];
+  const itemIds = invoiceItems.map((item) => item.id);
+
+  let enrichedItems: any[] = [];
+  if (itemIds.length > 0) {
+    const dbItems = await prisma.item.findMany({
+      where: {
+        id: { in: itemIds },
+      },
+      select: {
+        id: true,
+        description: true,
+        itemName: true,
+        rate: true,
+        markUp: true,
+        taxes: true,
+        format: true,
+        imageUrls: true,
+      },
+    });
+
+    enrichedItems = dbItems.map((dbItem) => {
+      const matchedInvoiceItem = invoiceItems.find(
+        (item) => item.id === dbItem.id,
+      );
+      return {
+        ...dbItem,
+        quantity: matchedInvoiceItem?.quantity ?? 0,
+        subTotal: matchedInvoiceItem?.subTotal ?? 0,
+      };
+    });
+  }
+
+  // 3. Compute payment totals (existing logic)
+  const payments = await prisma.payment.findMany({
+    where: { invoiceId, status: "COMPLETED" },
+    include: { refunds: true },
+  });
+
+  let totalPaidNet = 0;
+  for (const p of payments) {
+    const refunded = p.refunds.reduce((sum, r) => sum + r.amount, 0);
+    totalPaidNet += p.amount - refunded;
+  }
+
+  let amountDue = getAmountDue(invoice, totalPaidNet);
+  amountDue = Math.max(0, Math.round(amountDue * 100) / 100);
+
+  // 4. Return the invoice with enriched items and payment summary
+  return {
+    ...invoice,
+    items: enrichedItems, // ← now contains format, itemName, etc.
+    payments: {
+      totalPaid: totalPaidNet,
+      amountDue,
     },
   };
 };
