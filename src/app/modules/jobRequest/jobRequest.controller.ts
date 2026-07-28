@@ -161,6 +161,20 @@ const getAllJobRequetsForAOffice = catchAsync(async (req, res) => {
   });
 });
 
+const deleteJobRequest = catchAsync(async (req, res) => {
+  // const { id: userId } = req.user;
+
+  const { id: jobReqId } = req.params;
+  const result = await jobRequestService.deleteJobRequest(jobReqId);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: "Job request deleted successfully",
+    data: result,
+  });
+});
+
 export const jobRequestController = {
   createOffice,
   getOffice,
@@ -172,4 +186,5 @@ export const jobRequestController = {
   updateJobRequest,
   getAllJobRequetsForAOffice,
   createJobRequestByImage,
+  deleteJobRequest,
 };

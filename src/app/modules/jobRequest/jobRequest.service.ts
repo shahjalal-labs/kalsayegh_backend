@@ -428,6 +428,26 @@ const updateJobRequestImage = async (
   });
 };
 
+const deleteJobRequest = async (jobReqId: string) => {
+  const jobReq = await prisma.jobRequest.count({
+    where: {
+      id: jobReqId,
+    },
+  });
+
+  if (!jobReq)
+    throw new ApiError(httpStatus.NOT_FOUND, "Job request not found");
+
+  return prisma.jobRequest.delete({
+    where: {
+      id: jobReqId,
+    },
+    select: {
+      id: true,
+    },
+  });
+};
+
 export const jobRequestService = {
   createOffice,
   getOffice,
@@ -440,4 +460,5 @@ export const jobRequestService = {
   getAllJobRequetsForAOffice,
   updateJobRequestImage,
   createJobRequestByImage,
+  deleteJobRequest,
 };

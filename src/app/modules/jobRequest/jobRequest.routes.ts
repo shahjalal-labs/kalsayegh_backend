@@ -82,4 +82,11 @@ router.delete(
   jobRequestController.deleteOffice,
 );
 
+router.delete(
+  "/delete/:id",
+  auth(UserRole.OFFICE_ADMINISTRATOR, UserRole.ADMIN),
+
+  jobRequestController.deleteJobRequest,
+);
+
 export const jobRequestRoutes = router;

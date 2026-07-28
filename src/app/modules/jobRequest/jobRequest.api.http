@@ -104,3 +104,9 @@ Content-Type: application/json
 
 GET {{baseUrl}}/job-request/requests-for-office/69d5edc0810a2cd30c06ee1c HTTP/1.1
 Authorization: {{admin}}
+
+
+### delete job request
+
+DELETE {{baseUrl}}/job-request/delete/6a68334c82a99cb7c0c7f466 HTTP/1.1
+Authorization: {{admin}}
