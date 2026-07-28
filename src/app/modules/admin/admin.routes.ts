@@ -9,56 +9,39 @@ import { parseBodyData } from "../../middlewares/parseBodyData";
 
 const router = Router();
 
-router.get(
-  "/employees",
-  auth(UserRole.ADMIN, UserRole.OFFICE_ADMINISTRATOR),
-  adminController.getEmployeeList,
+router.post(
+  "/office-admin",
+  fileUploader.profileImage,
+  parseBodyData,
+  validateRequest(adminValidation.createOfficeAdminSchema),
+  auth(UserRole.SUPER_ADMIN),
+  adminController.createOfficeAdmin,
 );
 
-router.get(
-  "/overview",
-  auth(UserRole.ADMIN, UserRole.OFFICE_ADMINISTRATOR),
-  adminController.getAdminOverview,
+router.use(
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.OFFICE_ADMINISTRATOR),
 );
 
-router.get("/hours-trend", auth(UserRole.ADMIN), adminController.getHoursTrend);
+router.get("/employees", adminController.getEmployeeList);
 
-router.get("/:id", auth(UserRole.ADMIN), adminController.getEmployeeDetails);
+router.get("/overview", adminController.getAdminOverview);
+
+router.get("/hours-trend", adminController.getHoursTrend);
+
+router.get("/:id", adminController.getEmployeeDetails);
 
 router.patch(
   "/:id",
-  auth(UserRole.ADMIN),
   validateRequest(adminValidation.updateUserDetailsSchema),
   adminController.updateUserDetails,
 );
 
-router.delete("/:id", auth(UserRole.ADMIN), adminController.deleteUserAccount);
+router.delete("/:id", adminController.deleteUserAccount);
 
-router.get(
-  "/estimator/all",
-  auth(UserRole.ADMIN, UserRole.OFFICE_ADMINISTRATOR),
-  adminController.getAllEstimator,
-);
+router.get("/estimator/all", adminController.getAllEstimator);
 
-router.get(
-  "/office-admin/all",
-  auth(UserRole.ADMIN, UserRole.OFFICE_ADMINISTRATOR),
-  adminController.getAllOfficeAdmin,
-);
+router.get("/office-admin/all", adminController.getAllOfficeAdmin);
 
-router.get(
-  "/pending-users/all",
-  auth(UserRole.ADMIN, UserRole.OFFICE_ADMINISTRATOR),
-  adminController.getAllPendingUsers,
-);
-
-router.post(
-  "/office-admin",
-  auth(UserRole.ADMIN),
-  fileUploader.profileImage,
-  parseBodyData,
-  validateRequest(adminValidation.createOfficeAdminSchema),
-  adminController.createOfficeAdmin,
-);
+router.get("/pending-users/all", adminController.getAllPendingUsers);
 
 export const adminRoutes = router;

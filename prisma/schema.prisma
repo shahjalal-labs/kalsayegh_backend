@@ -58,6 +58,7 @@ enum UserRole {
   ESTIMATOR
   ADMIN
   OFFICE_ADMINISTRATOR
+  SUPER_ADMIN
 }
 
 model Otp {
