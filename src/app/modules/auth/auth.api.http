@@ -4,7 +4,7 @@ POST {{baseUrl}}/auth/login HTTP/1.1
 Content-Type: application/json
 
 {
-  "email": "shahjalal.backend@gmail.com",
+  "email": "mir78@gmail.com",
   "password": "Aw32@320"
 }
 
