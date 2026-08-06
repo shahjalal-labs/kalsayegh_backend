@@ -166,11 +166,14 @@ const mySessionsByGrouping = async (userId: string) => {
   };
 };
 
+const DAILY_REGULAR_HOUR_LIMIT = 8; // hours before overtime starts
+const DAILY_DOUBLE_HOUR_LIMIT = 12; // hours before double time starts
+
 const weeklyOverview = async (userId: string) => {
-  const DAILY_REGULAR_HOUR_LIMIT = 8;
   const weekStart = startOfWeek(new Date(), { weekStartsOn: 1 });
   const weekEnd = endOfWeek(new Date(), { weekStartsOn: 1 });
 
+  // Fetch all sessions for the user within the week
   const sessions = await prisma.session.findMany({
     where: {
       userId,
@@ -186,16 +189,17 @@ const weeklyOverview = async (userId: string) => {
     },
   });
 
+  // Aggregate daily hours (split across midnight)
   const dailyTypeHours = sessions.reduce(
     (acc, session) => {
       if (!session.clockOutAt) {
+        // Skip open sessions (no clock-out)
         return acc;
       }
 
       const sessionEnd = session.clockOutAt;
       let segmentStart = session.clockInAt;
 
-      // Split sessions that span midnight so daily OT stays accurate.
       while (segmentStart < sessionEnd) {
         const currentDayEnd = endOfDay(segmentStart);
         const segmentEnd =
@@ -212,9 +216,7 @@ const weeklyOverview = async (userId: string) => {
 
         if (session.sessionType === "Regular_Hours") {
           acc[dayKey].regularHours += hours;
-        }
-
-        if (session.sessionType === "PW_Hours") {
+        } else if (session.sessionType === "PW_Hours") {
           acc[dayKey].pwHours += hours;
         }
 
@@ -226,35 +228,66 @@ const weeklyOverview = async (userId: string) => {
     {} as Record<string, { regularHours: number; pwHours: number }>,
   );
 
+  // Compute weekly totals per category with caps and double thresholds
   const totals = Object.values(dailyTypeHours).reduce(
     (acc, day) => {
+      // --- Regular Hours ---
+      // 1. Regular (0-8h)
       acc.totalRegularHours += Math.min(
         day.regularHours,
         DAILY_REGULAR_HOUR_LIMIT,
       );
+
+      // 2. Regular OT (8-12h)
       acc.totalRegularOTHours += Math.max(
         0,
-        day.regularHours - DAILY_REGULAR_HOUR_LIMIT,
+        Math.min(day.regularHours, DAILY_DOUBLE_HOUR_LIMIT) -
+          DAILY_REGULAR_HOUR_LIMIT,
       );
 
+      // 3. Regular Double (>12h)
+      acc.totalRegularDoubleHours += Math.max(
+        0,
+        day.regularHours - DAILY_DOUBLE_HOUR_LIMIT,
+      );
+
+      // --- PW Hours ---
+      // 4. PW (0-8h)
       acc.totalPWHours += Math.min(day.pwHours, DAILY_REGULAR_HOUR_LIMIT);
-      acc.totalPWOTHours += Math.max(0, day.pwHours - DAILY_REGULAR_HOUR_LIMIT);
+
+      // 5. PW OT (8-12h)
+      acc.totalPWOTHours += Math.max(
+        0,
+        Math.min(day.pwHours, DAILY_DOUBLE_HOUR_LIMIT) -
+          DAILY_REGULAR_HOUR_LIMIT,
+      );
+
+      // 6. PW Double (>12h)
+      acc.totalPWDoubleHours += Math.max(
+        0,
+        day.pwHours - DAILY_DOUBLE_HOUR_LIMIT,
+      );
 
       return acc;
     },
     {
       totalRegularHours: 0,
       totalRegularOTHours: 0,
+      totalRegularDoubleHours: 0,
       totalPWHours: 0,
       totalPWOTHours: 0,
+      totalPWDoubleHours: 0,
     },
   );
 
+  // Format numbers to 2 decimal places and return
   return {
     totalRegularHours: Number(totals.totalRegularHours.toFixed(2)),
     totalRegularOTHours: Number(totals.totalRegularOTHours.toFixed(2)),
+    totalRegularDoubleHours: Number(totals.totalRegularDoubleHours.toFixed(2)),
     totalPWHours: Number(totals.totalPWHours.toFixed(2)),
     totalPWOTHours: Number(totals.totalPWOTHours.toFixed(2)),
+    totalPWDoubleHours: Number(totals.totalPWDoubleHours.toFixed(2)),
   };
 };
 
