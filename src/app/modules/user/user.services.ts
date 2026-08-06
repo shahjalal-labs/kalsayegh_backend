@@ -7,9 +7,8 @@ import sendEmail from "../../../helpers/sendEmail";
 import { TUserRegister } from "./user.validation";
 import httpStatus from "http-status";
 import { uploadInSpace } from "../../../helpers/uploadInSpace";
-import { jwtHelpers } from "../../../helpers/jwtHelpers";
-import { Secret } from "jsonwebtoken";
-import { UserStatus } from "@prisma/client";
+import { Prisma, UserStatus } from "@prisma/client";
+import { paginationHelper, TOptions } from "../../../shared/pagination";
 
 const createUser = async (
   payload: TUserRegister,
