@@ -1,6 +1,8 @@
 import express from "express";
 import { userControllers } from "./user.controller";
-import validateRequest from "../../middlewares/validateRequest";
+import validateRequest, {
+  validateQuery,
+} from "../../middlewares/validateRequest";
 import { userValidation } from "./user.validation";
 import auth from "../../middlewares/auth";
 import { fileUploader } from "../../../helpers/fileUploader";
@@ -23,7 +25,12 @@ router.post(
   userControllers.signupVerification,
 );
 
-router.get("/all", auth(), userControllers.getAllUsers);
+router.get(
+  "/all",
+  auth(),
+  validateQuery(userValidation.userQuerySchema), // validate query params
+  userControllers.getAllUsers,
+);
 
 router.get("/:id", auth(), userControllers.getUserDetails);
 

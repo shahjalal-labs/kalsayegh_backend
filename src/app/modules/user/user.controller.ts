@@ -2,6 +2,8 @@ import httpStatus from "http-status";
 import catchAsync from "../../../shared/catchAsync";
 import sendResponse from "../../../shared/sendResponse";
 import { userService } from "./user.services";
+import pick from "../../../shared/pick";
+import { paginationOptions } from "../../../shared/pagination";
 
 const createUser = catchAsync(async (req, res) => {
   console.log(`file:`, req.file);
@@ -46,8 +48,12 @@ const getUserDetails = catchAsync(async (req, res) => {
   });
 });
 
-const getAllUsers = catchAsync(async (_req, res) => {
-  const result = await userService.getAllUsers();
+const getAllUsers = catchAsync(async (req, res) => {
+  const pagination = pick(req.query, paginationOptions); // page, limit, sortBy, sortOrder
+  const filter = pick(req.query, ["searchTerm"]);
+
+  const result = await userService.getAllUsers(pagination, filter);
+
   sendResponse(res, {
     statusCode: httpStatus.OK,
     success: true,

@@ -177,14 +177,46 @@ const getUserDetails = async (userId: string) => {
   return user;
 };
 
-const getAllUsers = async () => {
-  return prisma.user.findMany({
-    omit: {
-      password: true,
-      fcmToken: true,
-      status: true,
+const getAllUsers = async (
+  paginations: TOptions,
+  filter?: { searchTerm?: string },
+) => {
+  const { page, limit, skip } = paginationHelper(paginations);
+
+  const whereClause: Prisma.UserWhereInput = {};
+
+  const searchTerm = filter?.searchTerm?.trim();
+  if (searchTerm) {
+    whereClause.OR = [
+      { fullName: { contains: searchTerm, mode: "insensitive" } },
+      { email: { contains: searchTerm, mode: "insensitive" } },
+      { profession: { contains: searchTerm, mode: "insensitive" } },
+    ];
+  }
+
+  const [users, total] = await Promise.all([
+    prisma.user.findMany({
+      where: whereClause,
+      omit: {
+        password: true,
+        fcmToken: true,
+      },
+      skip,
+      take: limit,
+      orderBy: { id: "desc" }, // as per your request
+    }),
+    prisma.user.count({ where: whereClause }),
+  ]);
+
+  return {
+    meta: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
     },
-  });
+    data: users,
+  };
 };
 
 export const userService = {

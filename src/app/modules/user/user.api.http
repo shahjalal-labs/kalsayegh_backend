@@ -36,3 +36,8 @@ Authorization: {{john}}
 
 GET {{baseUrl}}/users/all HTTP/1.1
 Authorization: {{john}}
+
+
+### Get all users with pagination and search
+GET {{baseUrl}}/users/all?page=1&limit=5&searchTerm=john
+Authorization: {{john}}
