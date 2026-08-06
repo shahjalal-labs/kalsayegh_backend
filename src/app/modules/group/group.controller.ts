@@ -1,6 +1,7 @@
 import { groupServices } from "./group.service";
 import sendResponse from "../../../shared/sendResponse";
 import catchAsync from "../../../shared/catchAsync";
+import httpStatus from "http-status";
 
 const createGroup = catchAsync(async (req, res) => {
   const userId = req.user.id;
@@ -24,7 +25,21 @@ const inviteGroup = catchAsync(async (req, res) => {
   });
 });
 
+const removeMember = catchAsync(async (req, res) => {
+  const { groupId, memberId } = req.params;
+
+  const result = await groupServices.removeMember(groupId, memberId);
+
+  sendResponse(res, {
+    success: true,
+    statusCode: httpStatus.OK,
+    message: "Member removed successfully",
+    data: result,
+  });
+});
+
 export const groupControllers = {
   createGroup,
   inviteGroup,
+  removeMember,
 };

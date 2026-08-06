@@ -1,3 +1,4 @@
+import httpStatus from "http-status";
 import ApiError from "../../../errors/ApiErrors";
 import { uploadInSpace } from "../../../helpers/uploadInSpace";
 import prisma from "../../../shared/prisma";
@@ -56,7 +57,47 @@ const inviteGroup = async (
   return;
 };
 
+const removeMember = async (groupId: string, memberId: string) => {
+  // 1. Check if group exists and is a Group type
+  const group = await prisma.room.findUnique({
+    where: { id: groupId },
+    select: { roomName: true, memberIds: true },
+  });
+
+  if (!group) {
+    throw new ApiError(httpStatus.NOT_FOUND, "Group not found");
+  }
+
+  if (!group.roomName) {
+    throw new ApiError(httpStatus.BAD_REQUEST, "Room is not a group");
+  }
+
+  // 2. Check if memberId exists in the group
+  if (!group.memberIds.includes(memberId)) {
+    throw new ApiError(
+      httpStatus.BAD_REQUEST,
+      "User is not a member of this group",
+    );
+  }
+
+  // 3. Remove memberId from the array
+  const updatedMemberIds = group.memberIds.filter((id) => id !== memberId);
+
+  // 4. Update the group
+  await prisma.room.update({
+    where: { id: groupId },
+    data: { memberIds: { set: updatedMemberIds } },
+  });
+
+  return {
+    groupId,
+    removedMemberId: memberId,
+    updatedMemberIds,
+  };
+};
+
 export const groupServices = {
   createGroup,
   inviteGroup,
+  removeMember,
 };

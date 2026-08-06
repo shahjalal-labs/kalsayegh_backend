@@ -1,0 +1,2 @@
+DELETE {{baseUrl}}/groups/69d37a78089e0601fadc71d2/members/69cdf6533266564213c476d3
+Authorization: {{authToken}}
