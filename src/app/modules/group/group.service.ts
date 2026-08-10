@@ -2,6 +2,7 @@ import httpStatus from "http-status";
 import ApiError from "../../../errors/ApiErrors";
 import { uploadInSpace } from "../../../helpers/uploadInSpace";
 import prisma from "../../../shared/prisma";
+import { RoomType } from "@prisma/client";
 
 const createGroup = async (
   userId: string,
@@ -35,15 +36,18 @@ const inviteGroup = async (
 ) => {
   const isExist = await prisma.room.findUnique({
     where: { id: groupId },
-    select: { memberIds: true, roomName: true },
+    select: { memberIds: true, roomName: true, roomType: true },
   });
   if (!isExist) throw new ApiError(404, "Group not found");
-  if (!isExist.roomName) throw new ApiError(400, "Room is not a group");
+
+  if (isExist.roomType !== RoomType.Group)
+    throw new ApiError(400, "Room is not a group");
 
   const group = await prisma.room.findUnique({
     where: { id: groupId, creatorId: userId },
     select: { memberIds: true, roomName: true },
   });
+
   if (!group)
     throw new ApiError(403, "Only group creator permission to join user");
   if (!group.roomName) throw new ApiError(400, "Room is not a group");
@@ -61,14 +65,14 @@ const removeMember = async (groupId: string, memberId: string) => {
   // 1. Check if group exists and is a Group type
   const group = await prisma.room.findUnique({
     where: { id: groupId },
-    select: { roomName: true, memberIds: true },
+    select: { roomName: true, memberIds: true, roomType: true },
   });
 
   if (!group) {
     throw new ApiError(httpStatus.NOT_FOUND, "Group not found");
   }
 
-  if (!group.roomName) {
+  if (group.roomType !== RoomType.Group) {
     throw new ApiError(httpStatus.BAD_REQUEST, "Room is not a group");
   }
 
