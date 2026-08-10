@@ -360,3 +360,10 @@ export const sessionServices = {
   weeklySubmitTimesheet,
   addNotes,
 };
+
+// MONTHLY MEDICINE COST
+// 300+ 24 + 180 + 480
+// timotor 300
+// amilin 24
+// famotid 180
+// prolacto 480
