@@ -8,6 +8,7 @@ import prisma from "./shared/prisma";
 import { logger } from "./shared/logger";
 import { configRoutes } from "./config/viewRoutes";
 import { webhookRouter } from "./shared/webhook";
+import { deleteData, privacyPolicy, userDelete } from "./app/routes/viewRoute";
 // import { bullBoardRouter } from "./bullBoard";
 // import basicAuth from "express-basic-auth";
 
@@ -54,6 +55,16 @@ app.get("/api/v1", (_req: Request, res: Response) => {
   res.send({
     Message: "Welcome to api version 1",
   });
+});
+
+app.get("/delete-account", (req, res) => {
+  res.send(userDelete());
+});
+app.get("/delete-data", (req, res) => {
+  res.send(deleteData());
+});
+app.get("/privacy-policy", (req, res) => {
+  res.send(privacyPolicy());
 });
 
 app.use("/", configRoutes);
