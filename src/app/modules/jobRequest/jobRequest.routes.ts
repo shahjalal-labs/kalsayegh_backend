@@ -11,20 +11,35 @@ const router = Router();
 
 router.post(
   "/office-create",
-  auth(UserRole.OFFICE_ADMINISTRATOR, UserRole.ADMIN, UserRole.ESTIMATOR),
+  auth(
+    UserRole.OFFICE_ADMINISTRATOR,
+    UserRole.ADMIN,
+    UserRole.SUPER_ADMIN,
+    UserRole.ESTIMATOR,
+  ),
   validateRequest(jobRequestValidatin.createOfficeSchema),
   jobRequestController.createOffice,
 );
 
 router.get(
   "/office",
-  auth(UserRole.OFFICE_ADMINISTRATOR, UserRole.ADMIN, UserRole.ESTIMATOR),
+  auth(
+    UserRole.OFFICE_ADMINISTRATOR,
+    UserRole.ADMIN,
+    UserRole.SUPER_ADMIN,
+    UserRole.ESTIMATOR,
+  ),
   jobRequestController.getOffice,
 );
 
 router.post(
   "/create-job-request",
-  auth(UserRole.OFFICE_ADMINISTRATOR, UserRole.ADMIN, UserRole.ESTIMATOR),
+  auth(
+    UserRole.OFFICE_ADMINISTRATOR,
+    UserRole.ADMIN,
+    UserRole.SUPER_ADMIN,
+    UserRole.ESTIMATOR,
+  ),
   fileUploader.uploadMultiple,
   parseBodyData,
   validateRequest(jobRequestValidatin.createJobRequestSchema),
@@ -33,7 +48,12 @@ router.post(
 
 router.post(
   "/create-job-request-by-image",
-  auth(UserRole.OFFICE_ADMINISTRATOR, UserRole.ADMIN, UserRole.ESTIMATOR),
+  auth(
+    UserRole.OFFICE_ADMINISTRATOR,
+    UserRole.ADMIN,
+    UserRole.SUPER_ADMIN,
+    UserRole.ESTIMATOR,
+  ),
   fileUploader.uploadMultiple,
   parseBodyData,
   validateRequest(jobRequestValidatin.createJobRequestByImageSchema),
@@ -42,19 +62,34 @@ router.post(
 
 router.get(
   "/all",
-  auth(UserRole.OFFICE_ADMINISTRATOR, UserRole.ADMIN, UserRole.ESTIMATOR),
+  auth(
+    UserRole.OFFICE_ADMINISTRATOR,
+    UserRole.ADMIN,
+    UserRole.SUPER_ADMIN,
+    UserRole.ESTIMATOR,
+  ),
   jobRequestController.getAllJobRequests,
 );
 
 router.get(
   "/details/:id",
-  auth(UserRole.OFFICE_ADMINISTRATOR, UserRole.ADMIN, UserRole.ESTIMATOR),
+  auth(
+    UserRole.OFFICE_ADMINISTRATOR,
+    UserRole.ADMIN,
+    UserRole.SUPER_ADMIN,
+    UserRole.ESTIMATOR,
+  ),
   jobRequestController.getJobRequestDetails,
 );
 
 router.patch(
   "/update-job-request/:id",
-  auth(UserRole.OFFICE_ADMINISTRATOR, UserRole.ADMIN, UserRole.ESTIMATOR),
+  auth(
+    UserRole.OFFICE_ADMINISTRATOR,
+    UserRole.ADMIN,
+    UserRole.SUPER_ADMIN,
+    UserRole.ESTIMATOR,
+  ),
   fileUploader.uploadMultiple,
   parseBodyData,
   validateRequest(jobRequestValidatin.updateJobRequestSchema),
@@ -63,13 +98,23 @@ router.patch(
 
 router.get(
   "/requests-for-office/:id",
-  auth(UserRole.OFFICE_ADMINISTRATOR, UserRole.ADMIN, UserRole.ESTIMATOR),
+  auth(
+    UserRole.OFFICE_ADMINISTRATOR,
+    UserRole.ADMIN,
+    UserRole.SUPER_ADMIN,
+    UserRole.ESTIMATOR,
+  ),
   jobRequestController.getAllJobRequetsForAOffice,
 );
 
 router.patch(
   "/office-update/:id",
-  auth(UserRole.OFFICE_ADMINISTRATOR, UserRole.ADMIN, UserRole.ESTIMATOR),
+  auth(
+    UserRole.OFFICE_ADMINISTRATOR,
+    UserRole.ADMIN,
+    UserRole.SUPER_ADMIN,
+    UserRole.ESTIMATOR,
+  ),
 
   validateRequest(jobRequestValidatin.updateOfficeSchema),
   jobRequestController.updateOffice,
@@ -77,14 +122,19 @@ router.patch(
 
 router.delete(
   "/office-delete/:id",
-  auth(UserRole.OFFICE_ADMINISTRATOR, UserRole.ADMIN, UserRole.ESTIMATOR),
+  auth(
+    UserRole.OFFICE_ADMINISTRATOR,
+    UserRole.ADMIN,
+    UserRole.SUPER_ADMIN,
+    UserRole.ESTIMATOR,
+  ),
 
   jobRequestController.deleteOffice,
 );
 
 router.delete(
   "/delete/:id",
-  auth(UserRole.OFFICE_ADMINISTRATOR, UserRole.ADMIN),
+  auth(UserRole.OFFICE_ADMINISTRATOR, UserRole.ADMIN, UserRole.SUPER_ADMIN),
 
   jobRequestController.deleteJobRequest,
 );

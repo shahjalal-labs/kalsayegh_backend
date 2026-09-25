@@ -9,7 +9,12 @@ const router = Router();
 
 router.post(
   "/create-contract",
-  auth(UserRole.ADMIN, UserRole.ESTIMATOR, UserRole.OFFICE_ADMINISTRATOR),
+  auth(
+    UserRole.ADMIN,
+    UserRole.SUPER_ADMIN,
+    UserRole.ESTIMATOR,
+    UserRole.OFFICE_ADMINISTRATOR,
+  ),
   validateRequest(contractValidation.createContractSchema),
   contractController.createContract,
 );

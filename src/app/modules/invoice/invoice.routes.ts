@@ -15,7 +15,7 @@ router.post(
   fileUploader.uploadMultiple,
   parseBodyData,
   validateRequest(invoiceValidation.createInvoiceSchema),
-  auth(UserRole.ESTIMATOR, UserRole.ADMIN),
+  auth(UserRole.ESTIMATOR, UserRole.ADMIN, UserRole.SUPER_ADMIN),
   invoiceController.createInvoice,
 );
 
@@ -24,13 +24,13 @@ router.patch(
   fileUploader.uploadMultiple,
   parseBodyData,
   validateRequest(invoiceValidation.updateInvoiceSchema),
-  auth(UserRole.ESTIMATOR, UserRole.ADMIN),
+  auth(UserRole.ESTIMATOR, UserRole.ADMIN, UserRole.SUPER_ADMIN),
   invoiceController.updateInvoice,
 );
 
 router.get(
   "/all-invoices",
-  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.ESTIMATOR),
   invoiceController.getAllInvoices,
 );
 
@@ -42,7 +42,7 @@ router.get(
 
 router.post(
   "/send-email/:id",
-  auth(UserRole.ADMIN, UserRole.ESTIMATOR), // adjust roles as needed
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.ESTIMATOR), // adjust roles as needed
   validateRequest(invoiceValidation.sendInvoiceEmailSchema),
   invoiceController.sendInvoiceEmail,
 );
@@ -55,20 +55,20 @@ router.patch(
 
 router.post(
   "/generate-from-estimate/:estimateId",
-  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.ESTIMATOR),
   invoiceController.generateInvoiceFromEstimate,
 );
 
 router.post(
   "/record-payment/:id",
-  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.ESTIMATOR),
   validateRequest(invoiceValidation.recordManualPaymentSchema),
   invoiceController.recordManualPayment,
 );
 
 router.post(
   "/deposit-check/:id",
-  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.ESTIMATOR),
   fileUploader.uploadMultiple, // handles checkFront, checkBack fields
   parseBodyData, // parses JSON fields from multipart
   validateRequest(invoiceValidation.depositCheckSchema),
@@ -78,20 +78,20 @@ router.post(
 // /:invoiceId
 router.get(
   "/payments/:id",
-  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.ESTIMATOR),
   invoiceController.getInvoicePayments,
 );
 
 router.post(
   "/refund-payment/:id",
-  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.ESTIMATOR),
   validateRequest(invoiceValidation.refundPaymentSchema),
   invoiceController.refundPayment,
 );
 
 router.get(
   "/payment-details/:id",
-  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.ESTIMATOR),
   invoiceController.getPaymentDetails,
 );
 
@@ -110,7 +110,12 @@ router.post(
 
 router.delete(
   "/delete/:id",
-  auth(UserRole.ADMIN, UserRole.ESTIMATOR, UserRole.OFFICE_ADMINISTRATOR),
+  auth(
+    UserRole.ADMIN,
+    UserRole.SUPER_ADMIN,
+    UserRole.ESTIMATOR,
+    UserRole.OFFICE_ADMINISTRATOR,
+  ),
   invoiceController.deleteInvoice,
 );
 
@@ -118,7 +123,7 @@ router.get("/invoice-number", auth(), invoiceController.getInvoiceNumber);
 
 router.patch(
   "/invoice-images/:id",
-  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.ESTIMATOR),
   fileUploader.uploadMultiple,
   parseBodyData,
   validateRequest(invoiceValidation.invoiceImageActionSchema),
@@ -127,7 +132,7 @@ router.patch(
 
 router.patch(
   "/item-images/:id",
-  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.ESTIMATOR),
   fileUploader.uploadMultiple, // provides req.files.urls
   parseBodyData,
   validateRequest(invoiceValidation.updateInvoiceItemImagesSchema),
@@ -138,27 +143,27 @@ router.patch(
 
 router.post(
   "/:invoiceId/sub-items",
-  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.ESTIMATOR),
   validateRequest(invoiceValidation.addInvoiceSubItemsSchema),
   invoiceSubItemControllers.addSubItems,
 );
 
 router.patch(
   "/:invoiceId/sub-items/:subItemId",
-  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.ESTIMATOR),
   validateRequest(invoiceValidation.updateInvoiceSubItemSchema),
   invoiceSubItemControllers.updateSubItem,
 );
 
 router.delete(
   "/:invoiceId/sub-items/:subItemId",
-  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.ESTIMATOR),
   invoiceSubItemControllers.deleteSubItem,
 );
 
 router.post(
   "/item-images/bulk-add/:id",
-  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.ESTIMATOR),
   fileUploader.upload.any(), // accepts any field name → dynamic mapping
   parseBodyData, // parses the JSON 'items' field
   invoiceController.addInvoiceItemImagesBulk,
@@ -166,7 +171,7 @@ router.post(
 
 router.post(
   "/duplicate/:id",
-  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.ESTIMATOR),
   invoiceController.duplicateInvoice,
 );
 

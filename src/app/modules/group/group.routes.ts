@@ -11,7 +11,7 @@ const router = express.Router();
 
 router.post(
   "/create",
-  auth(UserRole.ADMIN, UserRole.OFFICE_ADMINISTRATOR),
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.OFFICE_ADMINISTRATOR),
   fileUploader.groupPhoto,
   parseBodyData,
   groupControllers.createGroup,

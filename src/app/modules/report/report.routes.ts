@@ -8,13 +8,23 @@ const router = Router();
 
 router.get(
   "/summary",
-  auth(UserRole.ADMIN, UserRole.ESTIMATOR, UserRole.OFFICE_ADMINISTRATOR),
+  auth(
+    UserRole.ADMIN,
+    UserRole.SUPER_ADMIN,
+    UserRole.ESTIMATOR,
+    UserRole.OFFICE_ADMINISTRATOR,
+  ),
   reportController.getSummary,
 );
 
 router.get(
   "/filtered",
-  auth(UserRole.ADMIN, UserRole.ESTIMATOR, UserRole.OFFICE_ADMINISTRATOR),
+  auth(
+    UserRole.ADMIN,
+    UserRole.SUPER_ADMIN,
+    UserRole.ESTIMATOR,
+    UserRole.OFFICE_ADMINISTRATOR,
+  ),
   reportController.getFilteredReport,
 );
 

@@ -13,7 +13,7 @@ const router = express.Router();
 
 router.post(
   "/create-estimate",
-  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.ESTIMATOR),
   fileUploader.uploadMultiple,
   parseBodyData,
   validateRequest(estimateValidation.createEstimateSchema),
@@ -22,7 +22,7 @@ router.post(
 
 router.patch(
   "/edit-estimate/:id",
-  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.ESTIMATOR),
   fileUploader.uploadMultiple,
   parseBodyData,
   validateRequest(estimateValidation.createEstimateSchema),
@@ -31,34 +31,34 @@ router.patch(
 
 router.get(
   "/single-estimate/:id",
-  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.ESTIMATOR),
   estimateControllers.getEstimateById,
 );
 router.post(
   "/create-client",
-  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.ESTIMATOR),
   estimateControllers.createClient,
 );
 router.get(
   "/my-clients",
-  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.ESTIMATOR),
   estimateControllers.myClients,
 );
 router.post(
   "/create-markup",
-  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.ESTIMATOR),
   validateRequest(estimateValidation.markUpValidationSchema),
   estimateControllers.createMarkUp,
 );
 router.get(
   "/all-markups",
-  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.ESTIMATOR),
   estimateControllers.allMarkUps,
 );
 
 router.post(
   "/create-item",
-  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.ESTIMATOR),
   fileUploader.uploadMultiple, // handles "itemImages" field
   parseBodyData, // parses JSON fields from multipart
   validateRequest(estimateValidation.itemValidationSchema),
@@ -67,30 +67,30 @@ router.post(
 
 router.patch(
   "/update-item",
-  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.ESTIMATOR),
   validateRequest(estimateValidation.itemUpdateValidationSchema),
   estimateControllers.updateItem,
 );
 router.get(
   "/all-items",
-  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.ESTIMATOR),
   estimateControllers.itemList,
 );
 router.post(
   "/create-tax",
-  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.ESTIMATOR),
   validateRequest(estimateValidation.taxValidationSchema),
   estimateControllers.createTax,
 );
 router.get(
   "/all-taxes",
-  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.ESTIMATOR),
   estimateControllers.allTaxes,
 );
 
 router.get(
   "/all-estimates",
-  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.ESTIMATOR),
   estimateControllers.getAllEstimate,
 );
 
@@ -102,7 +102,7 @@ router.get(
 
 router.patch(
   "/update-status/:id",
-  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.ESTIMATOR),
   validateRequest(estimateValidation.updateEstimateStatusSchema),
   estimateControllers.updateEstimateStatus,
 );
@@ -115,14 +115,19 @@ router.patch(
 
 router.post(
   "/send-email/:id",
-  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.ESTIMATOR),
   validateRequest(estimateValidation.sendEstimateEmailSchema),
   estimateControllers.sendEstimateEmailFlexible,
 );
 
 router.delete(
   "/delete/:id",
-  auth(UserRole.ESTIMATOR, UserRole.ADMIN, UserRole.OFFICE_ADMINISTRATOR),
+  auth(
+    UserRole.ESTIMATOR,
+    UserRole.ADMIN,
+    UserRole.SUPER_ADMIN,
+    UserRole.OFFICE_ADMINISTRATOR,
+  ),
   estimateControllers.deleteEstimate,
 );
 
@@ -130,7 +135,7 @@ router.get("/estimate-number", auth(), estimateControllers.getEstimateNumber);
 
 router.patch(
   "/estimate-images/:id",
-  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.ESTIMATOR),
   fileUploader.uploadMultiple,
   parseBodyData,
   validateRequest(estimateValidation.estimateImageActionSchema),
@@ -139,7 +144,7 @@ router.patch(
 
 router.patch(
   "/item-images/:id",
-  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.ESTIMATOR),
   fileUploader.uploadMultiple, // provides req.files.urls
   parseBodyData,
   validateRequest(estimateValidation.updateEstimateItemImagesSchema),
@@ -150,27 +155,27 @@ router.patch(
 
 router.post(
   "/:estimateId/sub-items",
-  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.ESTIMATOR),
   validateRequest(estimateValidation.addSubItemsSchema),
   estimateSubItemControllers.addSubItems,
 );
 
 router.patch(
   "/:estimateId/sub-items/:subItemId",
-  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.ESTIMATOR),
   validateRequest(estimateValidation.updateSubItemSchema),
   estimateSubItemControllers.updateSubItem,
 );
 
 router.delete(
   "/:estimateId/sub-items/:subItemId",
-  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.ESTIMATOR),
   estimateSubItemControllers.deleteSubItem,
 );
 
 router.post(
   "/item-images/bulk-add/:id",
-  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.ESTIMATOR),
   fileUploader.upload.any(), // accepts dynamic field names like images[<itemId>]
   parseBodyData, // still needed? Not required for no body, but harmless
   // validateRequest(estimateValidation.addEstimateItemImagesBulkSchema), // optional
@@ -179,7 +184,7 @@ router.post(
 
 router.post(
   "/duplicate/:id",
-  auth(UserRole.ADMIN, UserRole.ESTIMATOR),
+  auth(UserRole.ADMIN, UserRole.SUPER_ADMIN, UserRole.ESTIMATOR),
   estimateControllers.duplicateEstimate,
 );
 

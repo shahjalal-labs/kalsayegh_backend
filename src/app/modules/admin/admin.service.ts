@@ -719,7 +719,8 @@ const getAllPendingUsers = async (
 
   if (
     user.role !== UserRole.ADMIN &&
-    user.role !== UserRole.OFFICE_ADMINISTRATOR
+    user.role !== UserRole.OFFICE_ADMINISTRATOR &&
+    user.role !== UserRole.SUPER_ADMIN
   )
     throw new ApiError(httpStatus.UNAUTHORIZED, "You have not permission");
 
