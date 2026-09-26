@@ -66,7 +66,8 @@ const createUser = async (
           <p>This OTP is valid for <b>5 minutes</b>. If you did not request this, please ignore this email.</p>
           <p>Thanks, <br>The Support Team</p>
         </div>`;
-  await sendEmail(payload.email, emailSubject, emailHtml);
+  const mailResponse = await sendEmail(payload.email, emailSubject, emailHtml);
+  console.log(mailResponse);
 
   return otp;
 };
